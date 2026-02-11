@@ -1,6 +1,7 @@
 package gpu
 
 import scala.compiletime.erasedValue
+import scala.scalajs.js
 
 /** Complete shader definition with all type parameters
   *
@@ -46,7 +47,7 @@ case class ShaderDef[
       vertexBody: String,
       fragmentBody: String
   ): String =
-    val parts = List(
+    val parts = js.Array(
       vertexInputStruct,
       vertexOutputStruct,
       fragmentOutputStruct,

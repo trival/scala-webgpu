@@ -2,6 +2,7 @@ package gpu
 
 import scala.compiletime.*
 import scala.NamedTuple.AnyNamedTuple
+import scala.scalajs.js
 
 /** Utilities for deriving WGSL code from Scala types at compile time */
 object derive:
@@ -11,35 +12,35 @@ object derive:
   // ===========================================================================
 
   /** Get field names from a named tuple type as a tuple of strings */
-  inline def fieldNames[T]: List[String] =
+  inline def fieldNames[T]: js.Array[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Nil
+      case _: EmptyTuple => js.Array()
       case _: AnyNamedTuple =>
         fieldNamesImpl[NamedTuple.Names[T & AnyNamedTuple]]
 
-  private inline def fieldNamesImpl[T <: Tuple]: List[String] =
+  private inline def fieldNamesImpl[T <: Tuple]: js.Array[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Nil
+      case _: EmptyTuple => js.Array()
       case _: (name *: rest) =>
-        constValue[name].asInstanceOf[String] :: fieldNamesImpl[rest]
+        js.Array(constValue[name].asInstanceOf[String]) ++ fieldNamesImpl[rest]
 
   /** Get WGSL type names for each field in a named tuple */
-  inline def fieldWgslTypes[T]: List[String] =
+  inline def fieldWgslTypes[T]: js.Array[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Nil
+      case _: EmptyTuple => js.Array()
       case _: AnyNamedTuple =>
         fieldWgslTypesImpl[NamedTuple.DropNames[T & AnyNamedTuple]]
 
-  private inline def fieldWgslTypesImpl[T <: Tuple]: List[String] =
+  private inline def fieldWgslTypesImpl[T <: Tuple]: js.Array[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Nil
+      case _: EmptyTuple => js.Array()
       case _: (head *: rest) =>
-        summonInline[WGSLType[head]].wgslName :: fieldWgslTypesImpl[rest]
+        js.Array(summonInline[WGSLType[head]].wgslName) ++ fieldWgslTypesImpl[rest]
 
   /** Get builtin info for each field in a named tuple of builtins */
-  inline def fieldBuiltins[T]: List[(String, String, String)] =
+  inline def fieldBuiltins[T]: js.Array[(String, String, String)] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Nil
+      case _: EmptyTuple => js.Array()
       case _: AnyNamedTuple =>
         fieldBuiltinsImpl[
           NamedTuple.Names[T & AnyNamedTuple],
@@ -47,16 +48,16 @@ object derive:
         ]
 
   private inline def fieldBuiltinsImpl[N <: Tuple, T <: Tuple]
-      : List[(String, String, String)] =
+      : js.Array[(String, String, String)] =
     inline (erasedValue[N], erasedValue[T]) match
-      case (_: EmptyTuple, _: EmptyTuple) => Nil
+      case (_: EmptyTuple, _: EmptyTuple) => js.Array()
       case (_: (name *: namesRest), _: (head *: typesRest)) =>
         val bt = summonInline[BuiltinType[head]]
-        (
+        js.Array((
           constValue[name].asInstanceOf[String],
           bt.wgslBuiltin,
           bt.wgslType
-        ) :: fieldBuiltinsImpl[namesRest, typesRest]
+        )) ++ fieldBuiltinsImpl[namesRest, typesRest]
 
   // ===========================================================================
   // WGSL Struct Generation
@@ -70,8 +71,8 @@ object derive:
 
   private def generateLocationStructFromLists(
       structName: String,
-      names: List[String],
-      types: List[String]
+      names: js.Array[String],
+      types: js.Array[String]
   ): String =
     if names.isEmpty then ""
     else
@@ -87,7 +88,7 @@ object derive:
 
   private def generateBuiltinStructFromList(
       structName: String,
-      builtins: List[(String, String, String)]
+      builtins: js.Array[(String, String, String)]
   ): String =
     if builtins.isEmpty then ""
     else
@@ -107,9 +108,9 @@ object derive:
 
   private def generateCombinedStructFromLists(
       structName: String,
-      locNames: List[String],
-      locTypes: List[String],
-      builtins: List[(String, String, String)]
+      locNames: js.Array[String],
+      locTypes: js.Array[String],
+      builtins: js.Array[(String, String, String)]
   ): String =
     val locationFields = locNames.zip(locTypes).zipWithIndex.map {
       case ((name, typ), idx) =>
@@ -160,11 +161,11 @@ object derive:
       case _ => ""
 
   /** Extract WGSL type names, unwrapping VertexUniform/FragmentUniform/SharedUniform */
-  private inline def uniformFieldTypes[T <: Tuple]: List[String] =
+  private inline def uniformFieldTypes[T <: Tuple]: js.Array[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Nil
+      case _: EmptyTuple => js.Array()
       case _: (head *: rest) =>
-        unwrapUniformType[head] :: uniformFieldTypes[rest]
+        js.Array(unwrapUniformType[head]) ++ uniformFieldTypes[rest]
 
   /** Unwrap uniform wrapper types to get the inner WGSL type name */
   private inline def unwrapUniformType[T]: String =
@@ -173,8 +174,8 @@ object derive:
 
   private def generateUniformGroupFromLists(
       groupIdx: Int,
-      names: List[String],
-      types: List[String]
+      names: js.Array[String],
+      types: js.Array[String]
   ): String =
     names.zip(types).zipWithIndex.map { case ((name, typ), bindingIdx) =>
       s"@group($groupIdx) @binding($bindingIdx) var<uniform> $name: $typ;"

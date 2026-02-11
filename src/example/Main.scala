@@ -4,6 +4,7 @@ import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
+import trivalibs.utils.promise.*
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
@@ -103,20 +104,16 @@ object Main:
       canvas: HTMLCanvasElement,
       setStatus: (String, Boolean) => Unit
   ): Unit =
-    import scala.scalajs.js.Thenable.Implicits.*
-    import scala.concurrent.ExecutionContext.Implicits.global
-
     val result = for
-      adapter <- gpu.requestAdapter()
+      adapter <- gpu.requestAdapter().orError("Failed to get WebGPU adapter")
       device <- adapter.requestDevice()
-    yield (adapter, device)
-
-    result.foreach: (adapter, device) =>
+    yield
       setStatus("WebGPU initialized! Rendering triangle...", false)
       renderTriangle(device, canvas, setStatus)
 
-    result.failed.foreach: e =>
-      setStatus(s"Failed to initialize WebGPU: ${e.getMessage}", true)
+    result.recover:
+      case e: NoSuchElementException => setStatus(e.getMessage, true)
+      case e                         => setStatus(s"WebGPU error: $e", true)
 
   def renderTriangle(
       device: GPUDevice,

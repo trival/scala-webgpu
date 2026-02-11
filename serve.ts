@@ -8,10 +8,7 @@ const server = serve({
 		"/": homepage,
 	},
 
-	development: {
-		hmr: true,
-		console: true,
-	},
+	development: true,
 });
 
 console.log(`Dev server running at http://localhost:${server.port}`);
