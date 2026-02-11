@@ -1,1 +1,0 @@
-package trivalibs.painter.wgsl

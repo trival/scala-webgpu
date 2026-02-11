@@ -6,6 +6,8 @@
 //> using jsModuleKind es
 //> using jsEsVersionStr es2021
 
+//> using exclude trivalibs/test/**
+
 //> using dep org.scala-js::scalajs-dom::2.8.1
 
 //> using test.dep org.scalameta::munit::1.2.1
