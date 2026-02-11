@@ -1,0 +1,14 @@
+{
+  "name": "scala-webgpu",
+  "type": "module",
+  "scripts": {
+    "build": "scala-cli --power package . --js -o src/out/main.js -f",
+    "watch": "scala-cli --power package . --js -o src/out/main.js -f -w",
+    "dev": "bun run watch & bun --bun run serve",
+    "serve": "bun --bun serve.ts",
+    "test": "scala-cli test ."
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

@@ -413,33 +413,57 @@ trait GPUDevice extends js.Object:
 ## File Structure
 
 ```
+trivalibs/
+  src/utils/
+    bufferdata.scala    # EXISTING: StructArray, StructRef, PrimitiveRef, match types
 src/
   webgpu/
     facades.scala       # Minimal WebGPU Scala.js facades (GPUDevice, GPUBuffer, etc.)
   gpu/
-    types.scala         # WGSLType, F32, Vec2, Vec3, Vec4 (opaque types + givens)
-    builtins.scala      # BuiltinType, BuiltinPosition, BuiltinVertexIndex, etc.
-    derive.scala        # Inline derivation utilities for named tuples
-    shader.scala        # ShaderDef case class and WGSL generation
+    types.scala         # [DONE] WGSLType, F32, Vec2, Vec3, Vec4 (opaque types + givens)
+    builtins.scala      # [DONE] BuiltinType, BuiltinPosition, BuiltinVertexIndex, etc.
+    derive.scala        # [DONE] Inline derivation utilities for named tuples
+    shader.scala        # [DONE] ShaderDef case class and WGSL generation
+    buffers.scala       # Bridge: FlattenToBuffer match type, GPU buffer factories
     layouts.scala       # Derive GPUVertexBufferLayout, GPUBindGroupLayout from types
-    buffers.scala       # Type-safe buffer wrappers (UniformBuffer, VertexBuffer)
     pipeline.scala      # Pipeline builder from ShaderDef
   example/
     Main.scala          # Working triangle example
   test/
-    ShaderTest.scala    # Tests for WGSL generation
+    ShaderTest.scala    # [DONE] Tests for WGSL generation
 ```
+
+---
+
+## Current Implementation Status
+
+| Part | Description | Status |
+|------|-------------|--------|
+| 1 | WGSL Code Generation | ✅ Complete - 5/5 tests passing |
+| 2 | Minimal WebGPU Facades | ⏳ Not started |
+| 3 | Buffer Integration | ⏳ Not started |
+| 4 | Pipeline Builder | ⏳ Not started |
+| 5 | Working Example | ⏳ Not started |
+
+**Last verified:** `scala-cli test .` passes all tests
 
 ---
 
 ## Implementation Order
 
-### Part 1: WGSL Code Generation
-1. [ ] Create `src/gpu/types.scala` - WGSL primitive types as opaque types with WGSLType givens
-2. [ ] Create `src/gpu/builtins.scala` - Builtin marker types with BuiltinType givens
-3. [ ] Create `src/gpu/derive.scala` - Named tuple introspection (extract names, types, generate WGSL)
-4. [ ] Create `src/gpu/shader.scala` - ShaderDef with WGSL generation
-5. [ ] Create `src/test/ShaderTest.scala` - Test that verifies generated WGSL
+### Part 1: WGSL Code Generation ✅ COMPLETE
+1. [x] Create `src/gpu/types.scala` - WGSL primitive types as opaque types with WGSLType givens
+2. [x] Create `src/gpu/builtins.scala` - Builtin marker types with BuiltinType givens
+3. [x] Create `src/gpu/derive.scala` - Named tuple introspection (extract names, types, generate WGSL)
+4. [x] Create `src/gpu/shader.scala` - ShaderDef with WGSL generation
+5. [x] Create `src/test/ShaderTest.scala` - Test that verifies generated WGSL
+
+**Status:** All 5 tests passing:
+- `minimal shader with defaults generates correct WGSL`
+- `shader with uniforms generates correct binding declarations`
+- `shader with custom vertex builtin input`
+- `empty tuples generate no struct content`
+- `generated WGSL compiles expected structure`
 
 ### Part 2: Minimal WebGPU Facades
 Implement minimal Scala.js facades for WebGPU types - only what we need for the MVP.
@@ -454,14 +478,54 @@ Implement minimal Scala.js facades for WebGPU types - only what we need for the 
    - `GPUCanvasContext`, `GPUTexture`, `GPURenderPassDescriptor`
    - `GPUCommandEncoder`, `GPURenderPassEncoder`
 
-### Part 3: Layout Derivation from Shader Types
-7. [ ] Create `src/gpu/layouts.scala` - Derive WebGPU layouts from shader types:
+### Part 3: Buffer Integration with trivalibs/bufferdata
+Leverage the existing `StructArray`/`StructRef` system from `trivalibs/src/utils/bufferdata.scala` for type-safe buffer management.
+
+**Key insight**: The bufferdata system provides zero-cost typed access to ArrayBuffer memory via:
+- `StructArray[T]` - typed array of structs (opaque type = `(DataView, Int)`)
+- `StructRef[T]` - reference to single struct (opaque type = `(DataView, Int)`)
+- Match types for compile-time size/offset calculation (`TupleSize`, `FieldOffset`)
+- `PrimitiveRef[T]` for type-safe field access with inline get/set
+
+7. [ ] Create `src/gpu/buffers.scala` - Bridge shader types to bufferdata:
+
+   **For Vertex Buffers:**
+   ```scala
+   // Map shader Attribs to bufferdata layout
+   // (position: Vec3, color: Vec4) → (F32, F32, F32, F32, F32, F32, F32)
+   type AttribsToBuffer[T] = ??? // Match type to flatten named tuple to primitive tuple
+
+   // Create typed vertex buffer
+   inline def createVertexBuffer[Attribs](count: Int): StructArray[AttribsToBuffer[Attribs]]
+
+   // Extension to upload to GPU
+   extension [T <: Tuple](arr: StructArray[T])
+     def toGPUBuffer(device: GPUDevice, usage: Int): GPUBuffer
+   ```
+
+   **For Uniform Buffers:**
+   ```scala
+   // Each bind group gets its own buffer
+   // Uniforms tuple position → group index
+   // Inner tuple fields → buffer layout with WGSL alignment
+
+   case class UniformBuffers[Uniforms](
+     buffers: IArray[StructRef[?]],  // One per bind group
+     gpuBuffers: IArray[GPUBuffer]
+   )
+
+   inline def createUniformBuffers[Uniforms](device: GPUDevice): UniformBuffers[Uniforms]
+   ```
+
+   **WGSL Alignment Handling:**
+   - Vec3 requires 16-byte alignment (not 12) - need padding
+   - Match type to insert padding fields automatically
+   - Or: use explicit padded layouts in shader type definitions
+
+8. [ ] Create `src/gpu/layouts.scala` - Derive WebGPU layouts from shader types:
    - `deriveVertexBufferLayout[VertexIn]` → `GPUVertexBufferLayout`
    - `deriveBindGroupLayouts[Uniforms]` → `Seq[GPUBindGroupLayoutDescriptor]`
-
-8. [ ] Create `src/gpu/buffers.scala` - Type-safe buffer creation:
-   - `UniformBuffer[T]` - wraps GPUBuffer, knows its bind group/binding
-   - `VertexBuffer[T]` - wraps GPUBuffer, knows its layout
+   - Use `WGSLType[T].byteSize` and `.alignment` for layout calculation
 
 ### Part 4: Pipeline Builder
 9. [ ] Create `src/gpu/pipeline.scala` - Build complete pipeline from ShaderDef:
@@ -475,7 +539,8 @@ Implement minimal Scala.js facades for WebGPU types - only what we need for the 
     - Get GPU device
     - Define shader with our type-safe API
     - Derive pipeline from shader
-    - Create vertex buffer with triangle data
+    - Create vertex buffer using StructArray
+    - Create uniform buffers for bind groups
     - Render loop
 
 ---
@@ -594,3 +659,157 @@ val customShader = Shader.full[
 - **Builtins**: Separate type params for vertex/fragment builtin ins/outs, merged into structs during generation
 - **Type encoding**: Opaque types (`Vec3`) with `WGSLType[T]` type class - no `.type` needed
 - **Output pattern**: Generated output structs + auto `return out;` - user assigns to `out.fieldName`
+- **Buffer management**: Reuse `trivalibs/bufferdata` for typed CPU-side buffer access
+
+---
+
+## Buffer Integration Design (trivalibs/bufferdata)
+
+### Overview
+
+The `trivalibs/src/utils/bufferdata.scala` provides a zero-cost abstraction for typed buffer access:
+
+```scala
+// From bufferdata.scala - key types:
+opaque type StructArray[Fields <: Tuple] = (DataView, Int)  // view, count
+opaque type StructRef[Fields <: Tuple] = (DataView, Int)    // view, offset
+opaque type PrimitiveRef[T] = (DataView, Int)               // view, offset
+
+// Match types for compile-time calculation:
+type TupleSize[Fields <: Tuple] <: Int    // Total byte size of struct
+type FieldOffset[Fields, N] <: Int        // Offset of field N
+type ValueType[T]                          // Scala type for primitive T
+```
+
+### Integration Strategy
+
+**1. Type Mapping: Shader Types → Buffer Layout**
+
+Shader types use named tuples with high-level WGSL types:
+```scala
+type Attribs = (position: Vec3, color: Vec4)  // Named tuple for shader
+```
+
+Buffer layouts use primitive tuples:
+```scala
+type AttribsBuffer = (F32, F32, F32, F32, F32, F32, F32)  // Flattened for buffer
+```
+
+**Bridge via match type:**
+```scala
+type FlattenToBuffer[T] <: Tuple = T match
+  case EmptyTuple => EmptyTuple
+  case Vec2 *: rest => (F32, F32) *: FlattenToBuffer[rest]
+  case Vec3 *: rest => (F32, F32, F32) *: FlattenToBuffer[rest]
+  case Vec4 *: rest => (F32, F32, F32, F32) *: FlattenToBuffer[rest]
+  case F32 *: rest => F32 *: FlattenToBuffer[rest]
+  // ... handle named tuples via NamedTuple.DropNames
+```
+
+**2. Vertex Buffer Usage**
+
+```scala
+// Define shader attributes
+type Attribs = (position: Vec3, color: Vec4)
+
+// Derive buffer type (at compile time)
+type AttribsBuffer = FlattenToBuffer[NamedTuple.DropNames[Attribs]]
+// = (F32, F32, F32, F32, F32, F32, F32)
+
+// Create typed array
+val vertices = StructArray.allocate[AttribsBuffer](3)
+
+// Set vertex data (zero-cost field access)
+vertices(0)(0) := 0.0f    // position.x
+vertices(0)(1) := 0.5f    // position.y
+vertices(0)(2) := 0.0f    // position.z
+vertices(0)(3) := 1.0f    // color.r
+vertices(0)(4) := 0.0f    // color.g
+vertices(0)(5) := 0.0f    // color.b
+vertices(0)(6) := 1.0f    // color.a
+
+// Or with helper extension:
+extension (v: StructRef[AttribsBuffer])
+  inline def position = (v(0), v(1), v(2))
+  inline def color = (v(3), v(4), v(5), v(6))
+
+// Upload to GPU
+val gpuBuffer = device.createBuffer(GPUBufferDescriptor(
+  size = vertices.arrayBuffer.byteLength,
+  usage = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+))
+device.queue.writeBuffer(gpuBuffer, 0, vertices.arrayBuffer)
+```
+
+**3. Uniform Buffer Usage with WGSL Alignment**
+
+WGSL has strict alignment rules (vec3 = 16 bytes, not 12). Two approaches:
+
+**Option A: Explicit padding in shader type**
+```scala
+type CameraUniforms = (
+  viewProj: Mat4,           // 64 bytes, 16-aligned ✓
+  position: Vec3,           // 12 bytes
+  _pad1: F32                // 4 bytes padding to reach 16-alignment
+)
+```
+
+**Option B: Auto-padding match type**
+```scala
+type AlignedBuffer[T] <: Tuple = T match
+  case Vec3 *: rest => (F32, F32, F32, F32) *: AlignedBuffer[rest]  // Pad to 16
+  case head *: rest => head *: AlignedBuffer[rest]
+  case EmptyTuple => EmptyTuple
+```
+
+**Usage:**
+```scala
+type CameraUniformsBuffer = AlignedBuffer[FlattenToBuffer[NamedTuple.DropNames[CameraUniforms]]]
+
+val uniforms = struct[CameraUniformsBuffer]()
+uniforms(0) := 1.0f  // viewProj[0][0]
+// ... set all fields
+
+// Create GPU buffer
+val uniformBuffer = device.createBuffer(GPUBufferDescriptor(
+  size = constValue[TupleSize[CameraUniformsBuffer]],
+  usage = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+))
+```
+
+**4. Bind Group Creation**
+
+```scala
+// From shader definition, derive bind group structure
+val shader = Shader[Attribs, Varyings, MyUniforms](...)
+
+// Create buffers for each bind group
+val group0Buffer = createUniformBuffer[NamedTuple.DropNames[MyUniforms].Head](device)
+val group1Buffer = createUniformBuffer[NamedTuple.DropNames[MyUniforms].Tail.Head](device)
+
+// Create bind groups
+val bindGroup0 = device.createBindGroup(GPUBindGroupDescriptor(
+  layout = pipeline.getBindGroupLayout(0),
+  entries = js.Array(GPUBindGroupEntry(binding = 0, resource = GPUBufferBinding(group0Buffer)))
+))
+```
+
+### Key Reusable Components from bufferdata.scala
+
+| Component | Purpose | Reuse in GPU package |
+|-----------|---------|---------------------|
+| `StructArray[T]` | Typed array of structs | Vertex buffers |
+| `StructRef[T]` | Single struct reference | Uniform buffer access |
+| `TupleSize[T]` | Compile-time size calculation | Buffer allocation, stride |
+| `FieldOffset[T, N]` | Compile-time offset calculation | Vertex attribute offsets |
+| `PrimitiveRef[T]` | Type-safe field access | Setting uniform values |
+| `struct[T]()` | Factory for single struct | Single uniform buffer |
+
+### File Dependencies
+
+```
+trivalibs/src/utils/bufferdata.scala  ← Provides StructArray, StructRef, match types
+src/gpu/types.scala                    ← WGSLType with byteSize, alignment
+src/gpu/buffers.scala                  ← NEW: Bridge layer with FlattenToBuffer, etc.
+src/gpu/layouts.scala                  ← NEW: GPUVertexBufferLayout derivation
+```

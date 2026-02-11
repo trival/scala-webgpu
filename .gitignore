@@ -2,3 +2,6 @@
 .metals
 .scala-build
 .vscode
+.idea/
+.claude/
+node_modules
