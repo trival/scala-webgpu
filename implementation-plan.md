@@ -440,12 +440,46 @@ src/
 | Part | Description | Status |
 |------|-------------|--------|
 | 1 | WGSL Code Generation | ✅ Complete - 5/5 tests passing |
-| 2 | Minimal WebGPU Facades | ⏳ Not started |
-| 3 | Buffer Integration | ⏳ Not started |
+| 2 | Minimal WebGPU Facades | ✅ Complete (inline in examples) |
+| 3 | Buffer Integration | 🔄 In Progress |
 | 4 | Pipeline Builder | ⏳ Not started |
-| 5 | Working Example | ⏳ Not started |
+| 5 | Working Example | ✅ Basic rendering working |
 
-**Last verified:** `scala-cli test .` passes all tests
+**Last verified:** `bun run build` compiles, examples render triangles
+
+### Project Structure (Updated)
+
+```
+public/
+  index.html                    # Example listing page
+  simple_triangle/
+    index.html                  # Simple triangle HTML
+    SimpleTriangle.scala        # Hardcoded vertices in shader
+  buffer_triangle/
+    index.html                  # Buffer triangle HTML
+    BufferTriangle.scala        # Vertex data from GPU buffers
+src/
+  gpu/
+    types.scala                 # ✅ WGSLType, F32, Vec2, Vec3, Vec4, Mat4
+    builtins.scala              # ✅ BuiltinType, BuiltinPosition, BuiltinVertexIndex
+    derive.scala                # ✅ Named tuple introspection, WGSL struct generation
+    shader.scala                # ✅ ShaderDef, WGSL generation
+    layouts.scala               # 🔄 TODO: Derive vertex buffer layouts
+    buffers.scala               # 🔄 TODO: Type bridging, uniform buffer support
+  test/
+    ShaderTest.scala            # ✅ WGSL generation tests
+trivalibs/
+  src/utils/
+    bufferdata.scala            # ✅ StructArray, StructRef, zero-cost buffer access
+```
+
+### What's Working
+
+1. **Shader Definition & WGSL Generation** - Define shaders with named tuple types, generate valid WGSL
+2. **Simple Triangle** (`/simple_triangle/`) - Renders using hardcoded vertices in shader + `@builtin(vertex_index)`
+3. **Buffer Triangle** (`/buffer_triangle/`) - Renders using vertex data from GPU buffers (manual layout config)
+4. **Module Splitting** - Each example compiles to separate JS module via `@JSExportTopLevel(moduleID = "...")`
+5. **Dev Server** - `bun run dev` serves examples at `localhost:3000`
 
 ---
 
@@ -458,36 +492,30 @@ src/
 4. [x] Create `src/gpu/shader.scala` - ShaderDef with WGSL generation
 5. [x] Create `src/test/ShaderTest.scala` - Test that verifies generated WGSL
 
-**Status:** All 5 tests passing:
-- `minimal shader with defaults generates correct WGSL`
-- `shader with uniforms generates correct binding declarations`
-- `shader with custom vertex builtin input`
-- `empty tuples generate no struct content`
-- `generated WGSL compiles expected structure`
+**Status:** All 5 tests passing
 
-### Part 2: Minimal WebGPU Facades
-Implement minimal Scala.js facades for WebGPU types - only what we need for the MVP.
+### Part 2: Minimal WebGPU Facades ✅ COMPLETE (inline)
+WebGPU facades are currently defined inline in each example file. This is sufficient for now.
 
-6. [ ] Create `src/webgpu/facades.scala` - Core WebGPU types:
+6. [x] Core WebGPU types defined in `SimpleTriangle.scala` and `BufferTriangle.scala`:
    - `GPU`, `GPUAdapter`, `GPUDevice`, `GPUQueue`
-   - `GPUBuffer`, `GPUBufferDescriptor`
-   - `GPUShaderModule`, `GPUShaderModuleDescriptor`
-   - `GPURenderPipeline`, `GPURenderPipelineDescriptor`
-   - `GPUBindGroup`, `GPUBindGroupLayout`, `GPUBindGroupDescriptor`
-   - `GPUVertexBufferLayout`, `GPUVertexAttribute`
-   - `GPUCanvasContext`, `GPUTexture`, `GPURenderPassDescriptor`
-   - `GPUCommandEncoder`, `GPURenderPassEncoder`
+   - `GPUBuffer`, `GPUShaderModule`, `GPURenderPipeline`
+   - `GPUCommandEncoder`, `GPURenderPassEncoder`, `GPUCommandBuffer`
+   - `GPUCanvasContext`, `GPUTexture`, `GPUTextureView`
 
-### Part 3: Buffer Integration with trivalibs/bufferdata
+### Part 3: Buffer Integration with trivalibs/bufferdata 🔄 IN PROGRESS
 Leverage the existing `StructArray`/`StructRef` system from `trivalibs/src/utils/bufferdata.scala` for type-safe buffer management.
 
-**Key insight**: The bufferdata system provides zero-cost typed access to ArrayBuffer memory via:
-- `StructArray[T]` - typed array of structs (opaque type = `(DataView, Int)`)
-- `StructRef[T]` - reference to single struct (opaque type = `(DataView, Int)`)
-- Match types for compile-time size/offset calculation (`TupleSize`, `FieldOffset`)
-- `PrimitiveRef[T]` for type-safe field access with inline get/set
+**Current status**: BufferTriangle uses manual Float32Array and hardcoded buffer layout configuration.
 
-7. [ ] Create `src/gpu/buffers.scala` - Bridge shader types to bufferdata:
+**Next steps**: Derive buffer layouts from shader types automatically.
+
+7. [ ] Create `src/gpu/layouts.scala` - Derive vertex buffer layouts:
+   - Add `vertexFormat` to `WGSLType` trait (e.g., "float32x2" for Vec2)
+   - `VertexLayout.derive[Attribs]` → WebGPU vertex buffer layout JS object
+   - Compile-time calculation of stride, offsets, format strings
+
+8. [ ] Create `src/gpu/buffers.scala` - Bridge shader types to bufferdata:
 
    **For Vertex Buffers:**
    ```scala
@@ -522,26 +550,30 @@ Leverage the existing `StructArray`/`StructRef` system from `trivalibs/src/utils
    - Match type to insert padding fields automatically
    - Or: use explicit padded layouts in shader type definitions
 
-8. [ ] Create `src/gpu/layouts.scala` - Derive WebGPU layouts from shader types:
-   - `deriveVertexBufferLayout[VertexIn]` → `GPUVertexBufferLayout`
-   - `deriveBindGroupLayouts[Uniforms]` → `Seq[GPUBindGroupLayoutDescriptor]`
-   - Use `WGSLType[T].byteSize` and `.alignment` for layout calculation
+9. [ ] Add Vec2/Vec3/Vec4 type aliases to bufferdata (or bridge types):
+   - Map gpu.Vec2 → (bufferdata.F32, bufferdata.F32)
+   - Enable StructArray usage with shader attribute types
+
+10. [ ] Add uniform buffer support:
+    - Create uniform buffers with correct WGSL alignment
+    - Runtime updates via `device.queue.writeBuffer`
+    - Bind group creation helpers
 
 ### Part 4: Pipeline Builder
-9. [ ] Create `src/gpu/pipeline.scala` - Build complete pipeline from ShaderDef:
-   - Create shader module from generated WGSL
-   - Create bind group layouts
-   - Create pipeline layout
-   - Create render pipeline
+11. [ ] Create `src/gpu/pipeline.scala` - Build complete pipeline from ShaderDef:
+    - Create shader module from generated WGSL
+    - Create bind group layouts from Uniforms type
+    - Create pipeline layout
+    - Create render pipeline with derived vertex layout
 
-### Part 5: Working Example
-10. [ ] Create `src/example/Main.scala` - Minimal triangle rendering:
-    - Get GPU device
-    - Define shader with our type-safe API
-    - Derive pipeline from shader
-    - Create vertex buffer using StructArray
-    - Create uniform buffers for bind groups
-    - Render loop
+### Part 5: Working Examples ✅ BASIC COMPLETE
+12. [x] `public/simple_triangle/` - Hardcoded vertices in shader
+13. [x] `public/buffer_triangle/` - Vertex data from GPU buffers (manual config)
+14. [ ] Update buffer_triangle to use derived layouts and uniforms:
+    - Replace manual buffer config with `VertexLayout.derive[Attribs]`
+    - Add uniform for runtime color tint
+    - Animate tint color over time
+    - (Optional) Render multiple shapes with different colors
 
 ---
 
