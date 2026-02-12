@@ -4,97 +4,13 @@ import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
+import trivalibs.bufferdata.StructArray
 import trivalibs.utils.promise.*
+import webgpu.*
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
-import scala.scalajs.js.typedarray.Float32Array
-
-// WebGPU facades
-@js.native
-trait GPU extends js.Object:
-  def requestAdapter(
-      options: js.UndefOr[js.Object] = js.undefined
-  ): js.Promise[GPUAdapter | Null] = js.native
-
-@js.native
-trait GPUAdapter extends js.Object:
-  def requestDevice(
-      descriptor: js.UndefOr[js.Object] = js.undefined
-  ): js.Promise[GPUDevice] = js.native
-
-@js.native
-trait GPUDevice extends js.Object:
-  val queue: GPUQueue = js.native
-  def createShaderModule(descriptor: js.Dynamic): GPUShaderModule = js.native
-  def createRenderPipeline(descriptor: js.Dynamic): GPURenderPipeline =
-    js.native
-  def createCommandEncoder(): GPUCommandEncoder = js.native
-  def createBuffer(descriptor: js.Dynamic): GPUBuffer = js.native
-
-@js.native
-trait GPUQueue extends js.Object:
-  def submit(commandBuffers: js.Array[GPUCommandBuffer]): Unit = js.native
-  def writeBuffer(
-      buffer: GPUBuffer,
-      bufferOffset: Int,
-      data: Float32Array
-  ): Unit = js.native
-
-@js.native
-trait GPUShaderModule extends js.Object
-
-@js.native
-trait GPURenderPipeline extends js.Object
-
-@js.native
-trait GPUCommandEncoder extends js.Object:
-  def beginRenderPass(descriptor: js.Dynamic): GPURenderPassEncoder = js.native
-  def finish(): GPUCommandBuffer = js.native
-
-@js.native
-trait GPURenderPassEncoder extends js.Object:
-  def setPipeline(pipeline: GPURenderPipeline): Unit = js.native
-  def setVertexBuffer(slot: Int, buffer: GPUBuffer): Unit = js.native
-  def draw(
-      vertexCount: Int,
-      instanceCount: Int = 1,
-      firstVertex: Int = 0,
-      firstInstance: Int = 0
-  ): Unit = js.native
-  def end(): Unit = js.native
-
-@js.native
-trait GPUCommandBuffer extends js.Object
-
-@js.native
-trait GPUCanvasContext extends js.Object:
-  def configure(config: js.Dynamic): Unit = js.native
-  def getCurrentTexture(): GPUTexture = js.native
-
-@js.native
-trait GPUTexture extends js.Object:
-  def createView(): GPUTextureView = js.native
-
-@js.native
-trait GPUTextureView extends js.Object
-
-@js.native
-trait GPUBuffer extends js.Object
-
-object GPUBufferUsage:
-  val VERTEX = 0x0020
-  val COPY_DST = 0x0008
-
-object WebGPUHelpers:
-  def getGPU(): js.UndefOr[GPU] =
-    dom.window.navigator
-      .asInstanceOf[js.Dynamic]
-      .gpu
-      .asInstanceOf[js.UndefOr[GPU]]
-
-  def getWebGPUContext(canvas: HTMLCanvasElement): GPUCanvasContext =
-    canvas.getContext("webgpu").asInstanceOf[GPUCanvasContext]
+import scala.scalajs.js.typedarray.Uint8Array
 
 object BufferTriangle:
   @JSExportTopLevel("main", moduleID = "buffer_triangle")
@@ -108,7 +24,7 @@ object BufferTriangle:
     val canvas =
       document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
 
-    WebGPUHelpers.getGPU().toOption match
+    WebGPU.getGPU().toOption match
       case None =>
         setStatus("WebGPU is not supported in this browser", true)
       case Some(gpu) =>
@@ -138,19 +54,21 @@ object BufferTriangle:
   ): Unit =
     import gpu.{Shader, Vec2, Vec4, FragOut}
     import gpu.None as GPUNone
+    import gpu.layouts.vertexBufferLayout
+    import gpu.buffers as buf
 
-    // Define shader with vertex attributes from buffer
+    // Define shader with vertex attributes and uniform for tint color
     val triangleShader = Shader[
       (position: Vec2, color: Vec4), // Vertex attributes from buffer
       (color: Vec4), // Varyings
-      GPUNone // No uniforms
+      (scene: (tintColor: Vec4)) // Uniform for runtime tint
     ](
       vertexBody = """
   out.position = vec4<f32>(in.position, 0.0, 1.0);
   out.color = in.color;
   """,
       fragmentBody = """
-  out.color = in.color;
+  out.color = in.color * tintColor;
   """
     )
 
@@ -164,30 +82,54 @@ object BufferTriangle:
       )
     )
 
-    // Create vertex buffer with interleaved position and color data
-    // Each vertex: x, y (position) + r, g, b, a (color) = 6 floats
-    val vertices = new Float32Array(
-      js.Array(
-        // Vertex 0: top (red)
-        0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f,
-        // Vertex 1: bottom-left (green)
-        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f,
-        // Vertex 2: bottom-right (blue)
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f
-      )
-    )
+    // Create vertex buffer - layout derived from shader attribs
+    val vertices = triangleShader.allocateAttribs(3)
+
+    // Vertex 0: top (red)
+    vertices(0)(0) := (0.0f, 0.5f)
+    vertices(0)(1) := (1.0f, 0.0f, 0.0f, 1.0f)
+
+    // Vertex 1: bottom-left (green)
+    vertices(1)(0) := (-0.5f, -0.5f)
+    vertices(1)(1) := (0.0f, 1.0f, 0.0f, 1.0f)
+
+    // Vertex 2: bottom-right (blue)
+    vertices(2)(0) := (0.5f, -0.5f)
+    vertices(2)(1) := (0.0f, 0.0f, 1.0f, 1.0f)
 
     val vertexBuffer = device.createBuffer(
       js.Dynamic.literal(
-        size = vertices.byteLength,
+        size = vertices.arrayBuffer.byteLength,
         usage = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
       )
     )
 
-    device.queue.writeBuffer(vertexBuffer, 0, vertices)
+    // Upload vertex data
+    device.queue.writeBuffer(
+      vertexBuffer,
+      0,
+      vertices.arrayBuffer
+    )
+
+    // Create uniform buffer for tint color (Vec4 = 16 bytes)
+    val tintData = StructArray.allocate[buf.Vec4](1)
+    tintData(0) := (1.0f, 1.0f, 1.0f, 1.0f) // Start with white (no tint)
+
+    val uniformBuffer = device.createBuffer(
+      js.Dynamic.literal(
+        size = tintData.arrayBuffer.byteLength,
+        usage = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+      )
+    )
+
+    device.queue.writeBuffer(
+      uniformBuffer,
+      0,
+      tintData.arrayBuffer
+    )
 
     // Get WebGPU context
-    val context = WebGPUHelpers.getWebGPUContext(canvas)
+    val context = WebGPU.getContext(canvas)
     val format = "bgra8unorm"
 
     context.configure(
@@ -197,32 +139,14 @@ object BufferTriangle:
       )
     )
 
-    // Create render pipeline with vertex buffer layout
+    // Create render pipeline with DERIVED vertex buffer layout
     val pipeline = device.createRenderPipeline(
       js.Dynamic.literal(
         layout = "auto",
         vertex = js.Dynamic.literal(
           module = shaderModule,
           entryPoint = "vs_main",
-          buffers = js.Array(
-            js.Dynamic.literal(
-              arrayStride = 6 * 4, // 6 floats * 4 bytes
-              attributes = js.Array(
-                js.Dynamic.literal(
-                  // position
-                  shaderLocation = 0,
-                  offset = 0,
-                  format = "float32x2"
-                ),
-                js.Dynamic.literal(
-                  // color
-                  shaderLocation = 1,
-                  offset = 2 * 4, // after 2 floats
-                  format = "float32x4"
-                )
-              )
-            )
-          )
+          buffers = js.Array(vertexBufferLayout[(position: Vec2, color: Vec4)])
         ),
         fragment = js.Dynamic.literal(
           module = shaderModule,
@@ -239,8 +163,38 @@ object BufferTriangle:
       )
     )
 
-    // Render frame
-    def render(): Unit =
+    // Create bind group for uniform
+    val bindGroup = device.createBindGroup(
+      js.Dynamic.literal(
+        layout = pipeline.getBindGroupLayout(0),
+        entries = js.Array(
+          js.Dynamic.literal(
+            binding = 0,
+            resource = js.Dynamic.literal(
+              buffer = uniformBuffer
+            )
+          )
+        )
+      )
+    )
+
+    // Animation state
+    var startTime = js.Date.now()
+
+    // Render frame with animation
+    def render(time: Double): Unit =
+      // Animate tint color
+      val elapsed = (time - startTime) / 2000.0
+      val r = (Math.sin(elapsed * 2.0) * 0.5 + 0.5).toFloat
+      val g = (Math.sin(elapsed * 2.0 + 2.0) * 0.5 + 0.5).toFloat
+      val b = (Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5).toFloat
+      tintData(0) := (r, g, b, 1.0f)
+      device.queue.writeBuffer(
+        uniformBuffer,
+        0,
+        tintData.arrayBuffer
+      )
+
       val commandEncoder = device.createCommandEncoder()
       val textureView = context.getCurrentTexture().createView()
 
@@ -259,11 +213,16 @@ object BufferTriangle:
       )
 
       renderPass.setPipeline(pipeline)
+      renderPass.setBindGroup(0, bindGroup)
       renderPass.setVertexBuffer(0, vertexBuffer)
       renderPass.draw(3)
       renderPass.end()
 
       device.queue.submit(js.Array(commandEncoder.finish()))
 
-    render()
-    setStatus("Buffer triangle rendered successfully!", false)
+      // Request next frame
+      dom.window.requestAnimationFrame(t => render(t))
+
+    // Start animation loop
+    dom.window.requestAnimationFrame(t => render(t))
+    setStatus("Buffer triangle with animated tint!", false)

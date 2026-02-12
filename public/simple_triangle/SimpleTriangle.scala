@@ -5,81 +5,10 @@ import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
 import trivalibs.utils.promise.*
+import webgpu.*
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
-
-// Minimal WebGPU facades for initial setup testing
-@js.native
-trait GPU extends js.Object:
-  def requestAdapter(
-      options: js.UndefOr[js.Object] = js.undefined
-  ): js.Promise[GPUAdapter | Null] = js.native
-
-@js.native
-trait GPUAdapter extends js.Object:
-  def requestDevice(
-      descriptor: js.UndefOr[js.Object] = js.undefined
-  ): js.Promise[GPUDevice] = js.native
-
-@js.native
-trait GPUDevice extends js.Object:
-  val queue: GPUQueue = js.native
-  def createShaderModule(descriptor: js.Dynamic): GPUShaderModule = js.native
-  def createRenderPipeline(descriptor: js.Dynamic): GPURenderPipeline =
-    js.native
-  def createCommandEncoder(): GPUCommandEncoder = js.native
-
-@js.native
-trait GPUQueue extends js.Object:
-  def submit(commandBuffers: js.Array[GPUCommandBuffer]): Unit = js.native
-
-@js.native
-trait GPUShaderModule extends js.Object
-
-@js.native
-trait GPURenderPipeline extends js.Object
-
-@js.native
-trait GPUCommandEncoder extends js.Object:
-  def beginRenderPass(descriptor: js.Dynamic): GPURenderPassEncoder = js.native
-  def finish(): GPUCommandBuffer = js.native
-
-@js.native
-trait GPURenderPassEncoder extends js.Object:
-  def setPipeline(pipeline: GPURenderPipeline): Unit = js.native
-  def draw(
-      vertexCount: Int,
-      instanceCount: Int = 1,
-      firstVertex: Int = 0,
-      firstInstance: Int = 0
-  ): Unit = js.native
-  def end(): Unit = js.native
-
-@js.native
-trait GPUCommandBuffer extends js.Object
-
-@js.native
-trait GPUCanvasContext extends js.Object:
-  def configure(config: js.Dynamic): Unit = js.native
-  def getCurrentTexture(): GPUTexture = js.native
-
-@js.native
-trait GPUTexture extends js.Object:
-  def createView(): GPUTextureView = js.native
-
-@js.native
-trait GPUTextureView extends js.Object
-
-object WebGPUHelpers:
-  def getGPU(): js.UndefOr[GPU] =
-    dom.window.navigator
-      .asInstanceOf[js.Dynamic]
-      .gpu
-      .asInstanceOf[js.UndefOr[GPU]]
-
-  def getWebGPUContext(canvas: HTMLCanvasElement): GPUCanvasContext =
-    canvas.getContext("webgpu").asInstanceOf[GPUCanvasContext]
 
 object SimpleTriangle:
   @JSExportTopLevel("main", moduleID = "simple_triangle")
@@ -93,7 +22,7 @@ object SimpleTriangle:
     val canvas =
       document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
 
-    WebGPUHelpers.getGPU().toOption match
+    WebGPU.getGPU().toOption match
       case None =>
         setStatus("WebGPU is not supported in this browser", true)
       case Some(gpu) =>
@@ -165,7 +94,7 @@ object SimpleTriangle:
     )
 
     // Get WebGPU context
-    val context = WebGPUHelpers.getWebGPUContext(canvas)
+    val context = WebGPU.getContext(canvas)
     val format = "bgra8unorm"
 
     context.configure(

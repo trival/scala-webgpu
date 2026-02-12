@@ -2,6 +2,7 @@ package gpu
 
 import scala.compiletime.erasedValue
 import scala.scalajs.js
+import trivalibs.bufferdata.StructArray
 
 /** Complete shader definition with all type parameters
   *
@@ -20,6 +21,21 @@ case class ShaderDef[
     vertexBody: String,
     fragmentBody: String
 ):
+  /** Allocate a StructArray for vertex attributes.
+    *
+    * The buffer layout is derived from the shader's Attribs type.
+    *
+    * Usage:
+    * {{{
+    * val shader = Shader[(position: Vec2, color: Vec4), ...]
+    * val vertices = shader.allocateAttribs(3)
+    * vertices(0)(0) := (0.0f, 0.5f)      // position
+    * vertices(0)(1) := (1.0f, 0.0f, 0.0f, 1.0f)  // color
+    * }}}
+    */
+  transparent inline def allocateAttribs(count: Int) =
+    layouts.allocateAttribsFromNamedTuple[Attribs](count)
+
   /** Generate complete WGSL shader code */
   inline def generateWGSL: String =
     val vertexInputStruct =
