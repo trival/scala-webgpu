@@ -1,4 +1,4 @@
-package example
+package buffer_triangle
 
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
@@ -8,8 +8,9 @@ import trivalibs.utils.promise.*
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
+import scala.scalajs.js.typedarray.Float32Array
 
-// Minimal WebGPU facades for initial setup testing
+// WebGPU facades
 @js.native
 trait GPU extends js.Object:
   def requestAdapter(
@@ -29,10 +30,16 @@ trait GPUDevice extends js.Object:
   def createRenderPipeline(descriptor: js.Dynamic): GPURenderPipeline =
     js.native
   def createCommandEncoder(): GPUCommandEncoder = js.native
+  def createBuffer(descriptor: js.Dynamic): GPUBuffer = js.native
 
 @js.native
 trait GPUQueue extends js.Object:
   def submit(commandBuffers: js.Array[GPUCommandBuffer]): Unit = js.native
+  def writeBuffer(
+      buffer: GPUBuffer,
+      bufferOffset: Int,
+      data: Float32Array
+  ): Unit = js.native
 
 @js.native
 trait GPUShaderModule extends js.Object
@@ -48,6 +55,7 @@ trait GPUCommandEncoder extends js.Object:
 @js.native
 trait GPURenderPassEncoder extends js.Object:
   def setPipeline(pipeline: GPURenderPipeline): Unit = js.native
+  def setVertexBuffer(slot: Int, buffer: GPUBuffer): Unit = js.native
   def draw(
       vertexCount: Int,
       instanceCount: Int = 1,
@@ -71,6 +79,13 @@ trait GPUTexture extends js.Object:
 @js.native
 trait GPUTextureView extends js.Object
 
+@js.native
+trait GPUBuffer extends js.Object
+
+object GPUBufferUsage:
+  val VERTEX = 0x0020
+  val COPY_DST = 0x0008
+
 object WebGPUHelpers:
   def getGPU(): js.UndefOr[GPU] =
     dom.window.navigator
@@ -81,8 +96,9 @@ object WebGPUHelpers:
   def getWebGPUContext(canvas: HTMLCanvasElement): GPUCanvasContext =
     canvas.getContext("webgpu").asInstanceOf[GPUCanvasContext]
 
-object Main:
-  def main(args: Array[String]): Unit =
+object BufferTriangle:
+  @JSExportTopLevel("main", moduleID = "buffer_triangle")
+  def main(): Unit =
     val statusEl = document.getElementById("status").asInstanceOf[HTMLElement]
 
     def setStatus(msg: String, isError: Boolean): Unit =
@@ -108,7 +124,7 @@ object Main:
       adapter <- gpu.requestAdapter().orError("Failed to get WebGPU adapter")
       device <- adapter.requestDevice()
     yield
-      setStatus("WebGPU initialized! Rendering triangle...", false)
+      setStatus("WebGPU initialized! Rendering triangle with buffers...", false)
       renderTriangle(device, canvas, setStatus)
 
     result.recover:
@@ -120,33 +136,18 @@ object Main:
       canvas: HTMLCanvasElement,
       setStatus: (String, Boolean) => Unit
   ): Unit =
-    import gpu.{Shader, Vec4, BuiltinVertexIndex, VertOut, FragOut}
+    import gpu.{Shader, Vec2, Vec4, FragOut}
     import gpu.None as GPUNone
 
-    // Use the full API to add vertex_index builtin input
-    val triangleShader = Shader.full[
-      EmptyTuple, // No vertex attributes
+    // Define shader with vertex attributes from buffer
+    val triangleShader = Shader[
+      (position: Vec2, color: Vec4), // Vertex attributes from buffer
       (color: Vec4), // Varyings
-      GPUNone, // No uniforms
-      (vertexIndex: BuiltinVertexIndex), // Need vertex_index
-      VertOut, // Default vertex builtin out
-      GPUNone, // No fragment builtin in
-      FragOut // Default fragment out
+      GPUNone // No uniforms
     ](
       vertexBody = """
-  let positions = array<vec2<f32>, 3>(
-    vec2<f32>(0.0, 0.5),
-    vec2<f32>(-0.5, -0.5),
-    vec2<f32>(0.5, -0.5)
-  );
-  let colors = array<vec4<f32>, 3>(
-    vec4<f32>(1.0, 0.0, 0.0, 1.0),
-    vec4<f32>(0.0, 1.0, 0.0, 1.0),
-    vec4<f32>(0.0, 0.0, 1.0, 1.0)
-  );
-  let idx = in.vertexIndex;
-  out.position = vec4<f32>(positions[idx], 0.0, 1.0);
-  out.color = colors[idx];
+  out.position = vec4<f32>(in.position, 0.0, 1.0);
+  out.color = in.color;
   """,
       fragmentBody = """
   out.color = in.color;
@@ -163,6 +164,28 @@ object Main:
       )
     )
 
+    // Create vertex buffer with interleaved position and color data
+    // Each vertex: x, y (position) + r, g, b, a (color) = 6 floats
+    val vertices = new Float32Array(
+      js.Array(
+        // Vertex 0: top (red)
+        0.0f, 0.5f, 1.0f, 0.0f, 0.0f, 1.0f,
+        // Vertex 1: bottom-left (green)
+        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 1.0f,
+        // Vertex 2: bottom-right (blue)
+        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 1.0f
+      )
+    )
+
+    val vertexBuffer = device.createBuffer(
+      js.Dynamic.literal(
+        size = vertices.byteLength,
+        usage = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
+      )
+    )
+
+    device.queue.writeBuffer(vertexBuffer, 0, vertices)
+
     // Get WebGPU context
     val context = WebGPUHelpers.getWebGPUContext(canvas)
     val format = "bgra8unorm"
@@ -174,13 +197,32 @@ object Main:
       )
     )
 
-    // Create render pipeline
+    // Create render pipeline with vertex buffer layout
     val pipeline = device.createRenderPipeline(
       js.Dynamic.literal(
         layout = "auto",
         vertex = js.Dynamic.literal(
           module = shaderModule,
-          entryPoint = "vs_main"
+          entryPoint = "vs_main",
+          buffers = js.Array(
+            js.Dynamic.literal(
+              arrayStride = 6 * 4, // 6 floats * 4 bytes
+              attributes = js.Array(
+                js.Dynamic.literal(
+                  // position
+                  shaderLocation = 0,
+                  offset = 0,
+                  format = "float32x2"
+                ),
+                js.Dynamic.literal(
+                  // color
+                  shaderLocation = 1,
+                  offset = 2 * 4, // after 2 floats
+                  format = "float32x4"
+                )
+              )
+            )
+          )
         ),
         fragment = js.Dynamic.literal(
           module = shaderModule,
@@ -210,17 +252,18 @@ object Main:
               loadOp = "clear",
               storeOp = "store",
               clearValue =
-                js.Dynamic.literal(r = 0.1, g = 0.1, b = 0.15, a = 1.0)
+                js.Dynamic.literal(r = 0.15, g = 0.1, b = 0.1, a = 1.0)
             )
           )
         )
       )
 
       renderPass.setPipeline(pipeline)
+      renderPass.setVertexBuffer(0, vertexBuffer)
       renderPass.draw(3)
       renderPass.end()
 
       device.queue.submit(js.Array(commandEncoder.finish()))
 
     render()
-    setStatus("Triangle rendered successfully!", false)
+    setStatus("Buffer triangle rendered successfully!", false)

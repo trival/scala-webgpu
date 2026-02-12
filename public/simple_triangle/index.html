@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Scala WebGPU</title>
+    <title>Simple Triangle - Scala WebGPU</title>
     <style>
       * {
         margin: 0;
@@ -38,13 +38,27 @@
       .success {
         color: #6bff6b;
       }
+      .back-link {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        color: #8888aa;
+        text-decoration: none;
+      }
+      .back-link:hover {
+        color: #aaaacc;
+      }
     </style>
   </head>
   <body>
+    <a href="/" class="back-link">&larr; Back to examples</a>
     <div id="container">
       <canvas id="canvas" width="800" height="600"></canvas>
       <div id="status">Initializing WebGPU...</div>
     </div>
-    <script type="module" src="/src/out/main.js"></script>
+    <script type="module">
+      import { main } from "/out/simple_triangle.js";
+      main();
+    </script>
   </body>
 </html>
