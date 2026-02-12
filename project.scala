@@ -5,7 +5,7 @@
 //> using jsMode full
 //> using jsModuleKind es
 //> using jsEsVersionStr es2021
-//> using jsModuleSplitStyleStr smallestmodules
+//> using jsModuleSplitStyleStr fewestmodules
 
 //> using exclude trivalibs/test/**
 
