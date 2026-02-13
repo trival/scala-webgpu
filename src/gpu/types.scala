@@ -25,42 +25,42 @@ sealed trait Mat3 extends GPUType
 sealed trait Mat4 extends GPUType
 
 object F32:
-  given WGSLType[F32] with
+  given WGSLType[F32]:
     def wgslName = "f32"
     def byteSize = 4
     def alignment = 4
     def vertexFormat = "float32"
 
 object Vec2:
-  given WGSLType[Vec2] with
+  given WGSLType[Vec2]:
     def wgslName = "vec2<f32>"
     def byteSize = 8
     def alignment = 8
     def vertexFormat = "float32x2"
 
 object Vec3:
-  given WGSLType[Vec3] with
+  given WGSLType[Vec3]:
     def wgslName = "vec3<f32>"
     def byteSize = 12
     def alignment = 16 // WGSL alignment rules
     def vertexFormat = "float32x3"
 
 object Vec4:
-  given WGSLType[Vec4] with
+  given WGSLType[Vec4]:
     def wgslName = "vec4<f32>"
     def byteSize = 16
     def alignment = 16
     def vertexFormat = "float32x4"
 
 object Mat3:
-  given WGSLType[Mat3] with
+  given WGSLType[Mat3]:
     def wgslName = "mat3x3<f32>"
     def byteSize = 36
     def alignment = 16
     def vertexFormat = "" // Matrices not supported as vertex attributes
 
 object Mat4:
-  given WGSLType[Mat4] with
+  given WGSLType[Mat4]:
     def wgslName = "mat4x4<f32>"
     def byteSize = 64
     def alignment = 16
@@ -84,10 +84,31 @@ type FragOut = (color: Vec4)
 // =============================================================================
 
 /** Uniform visible only in vertex shader */
-type VertexUniform[T] = T
+sealed trait VertexUniform[T] extends GPUType
+
+object VertexUniform:
+  given [T] => (inner: WGSLType[T]) => WGSLType[VertexUniform[T]]:
+    def wgslName = inner.wgslName
+    def byteSize = inner.byteSize
+    def alignment = inner.alignment
+    def vertexFormat = inner.vertexFormat
 
 /** Uniform visible only in fragment shader */
-type FragmentUniform[T] = T
+sealed trait FragmentUniform[T] extends GPUType
+
+object FragmentUniform:
+  given [T] => (inner: WGSLType[T]) => WGSLType[FragmentUniform[T]]:
+    def wgslName = inner.wgslName
+    def byteSize = inner.byteSize
+    def alignment = inner.alignment
+    def vertexFormat = inner.vertexFormat
 
 /** Uniform visible in both vertex and fragment shaders */
-type SharedUniform[T] = T
+sealed trait SharedUniform[T] extends GPUType
+
+object SharedUniform:
+  given [T] => (inner: WGSLType[T]) => WGSLType[SharedUniform[T]]:
+    def wgslName = inner.wgslName
+    def byteSize = inner.byteSize
+    def alignment = inner.alignment
+    def vertexFormat = inner.vertexFormat

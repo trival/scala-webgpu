@@ -146,3 +146,27 @@ class ShaderTest extends FunSuite:
     assert(uniformIdx < vsMainIdx, "Uniforms should come before vs_main")
     assert(vsMainIdx < fsMainIdx, "vs_main should come before fs_main")
   }
+
+  test("shader with visibility-wrapped uniforms generates correct WGSL") {
+    type Attribs = (position: Vec3)
+    type Varyings = (dummy: Vec4)
+    type Uniforms = (
+      scene: (viewProj: SharedUniform[Mat4], time: VertexUniform[F32]),
+      material: (albedo: FragmentUniform[Vec4])
+    )
+
+    val shader = Shader[Attribs, Varyings, Uniforms](
+      vertexBody = "",
+      fragmentBody = ""
+    )
+
+    val wgsl = shader.generateWGSL
+
+    // Visibility wrappers should be transparent in WGSL output
+    assert(wgsl.contains("@group(0) @binding(0) var<uniform> viewProj: mat4x4<f32>;"),
+      s"Missing viewProj uniform:\n$wgsl")
+    assert(wgsl.contains("@group(0) @binding(1) var<uniform> time: f32;"),
+      s"Missing time uniform:\n$wgsl")
+    assert(wgsl.contains("@group(1) @binding(0) var<uniform> albedo: vec4<f32>;"),
+      s"Missing albedo uniform:\n$wgsl")
+  }

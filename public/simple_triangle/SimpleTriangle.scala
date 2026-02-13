@@ -4,10 +4,10 @@ import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
+import trivalibs.utils.js.{Arr, Obj}
 import trivalibs.utils.promise.*
 import webgpu.*
 
-import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 
 object SimpleTriangle:
@@ -88,7 +88,7 @@ object SimpleTriangle:
 
     // Create shader module
     val shaderModule = device.createShaderModule(
-      js.Dynamic.literal(
+      Obj.literal(
         code = wgslCode
       )
     )
@@ -98,7 +98,7 @@ object SimpleTriangle:
     val format = "bgra8unorm"
 
     context.configure(
-      js.Dynamic.literal(
+      Obj.literal(
         device = device,
         format = format
       )
@@ -106,22 +106,22 @@ object SimpleTriangle:
 
     // Create render pipeline
     val pipeline = device.createRenderPipeline(
-      js.Dynamic.literal(
+      Obj.literal(
         layout = "auto",
-        vertex = js.Dynamic.literal(
+        vertex = Obj.literal(
           module = shaderModule,
           entryPoint = "vs_main"
         ),
-        fragment = js.Dynamic.literal(
+        fragment = Obj.literal(
           module = shaderModule,
           entryPoint = "fs_main",
-          targets = js.Array(
-            js.Dynamic.literal(
+          targets = Arr(
+            Obj.literal(
               format = format
             )
           )
         ),
-        primitive = js.Dynamic.literal(
+        primitive = Obj.literal(
           topology = "triangle-list"
         )
       )
@@ -133,14 +133,14 @@ object SimpleTriangle:
       val textureView = context.getCurrentTexture().createView()
 
       val renderPass = commandEncoder.beginRenderPass(
-        js.Dynamic.literal(
-          colorAttachments = js.Array(
-            js.Dynamic.literal(
+        Obj.literal(
+          colorAttachments = Arr(
+            Obj.literal(
               view = textureView,
               loadOp = "clear",
               storeOp = "store",
               clearValue =
-                js.Dynamic.literal(r = 0.1, g = 0.1, b = 0.15, a = 1.0)
+                Obj.literal(r = 0.1, g = 0.1, b = 0.15, a = 1.0)
             )
           )
         )
@@ -150,7 +150,7 @@ object SimpleTriangle:
       renderPass.draw(3)
       renderPass.end()
 
-      device.queue.submit(js.Array(commandEncoder.finish()))
+      device.queue.submit(Arr(commandEncoder.finish()))
 
     render()
     setStatus("Triangle rendered successfully!", false)

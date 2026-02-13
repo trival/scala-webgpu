@@ -73,22 +73,22 @@ trait BufferLayoutFor[T]:
   type Layout <: Tuple
 
 object BufferLayoutFor:
-  given BufferLayoutFor[gpu.F32] with
+  given BufferLayoutFor[gpu.F32]:
     type Layout = BF32 *: EmptyTuple
 
-  given BufferLayoutFor[gpu.Vec2] with
+  given BufferLayoutFor[gpu.Vec2]:
     type Layout = Vec2
 
-  given BufferLayoutFor[gpu.Vec3] with
+  given BufferLayoutFor[gpu.Vec3]:
     type Layout = Vec3
 
-  given BufferLayoutFor[gpu.Vec4] with
+  given BufferLayoutFor[gpu.Vec4]:
     type Layout = Vec4
 
-  given BufferLayoutFor[gpu.Mat3] with
+  given BufferLayoutFor[gpu.Mat3]:
     type Layout = Mat3
 
-  given BufferLayoutFor[gpu.Mat4] with
+  given BufferLayoutFor[gpu.Mat4]:
     type Layout = Mat4
 
 // =============================================================================
@@ -109,6 +109,9 @@ type ToAttribLayout[T] <: Tuple = T match
 
 /** Convert shader uniform types to padded buffer layout */
 type ToUniformLayout[T] <: Tuple = T match
+  case gpu.VertexUniform[t]   => ToUniformLayout[t]
+  case gpu.FragmentUniform[t] => ToUniformLayout[t]
+  case gpu.SharedUniform[t]   => ToUniformLayout[t]
   case gpu.F32  => BF32 *: EmptyTuple
   case gpu.Vec2 => Vec2
   case gpu.Vec3 => Vec3Padded

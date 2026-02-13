@@ -3,6 +3,8 @@ package gpu
 import scala.compiletime.erasedValue
 import scala.scalajs.js
 import trivalibs.bufferdata.StructArray
+import trivalibs.utils.js.Arr
+import webgpu.{GPUBindGroupLayout, GPUPipelineLayout, GPUDevice}
 
 /** Complete shader definition with all type parameters
   *
@@ -36,6 +38,22 @@ case class ShaderDef[
   transparent inline def allocateAttribs(count: Int) =
     layouts.allocateAttribsFromNamedTuple[Attribs](count)
 
+  /** Derive WebGPU vertex buffer layout descriptor from the Attribs type */
+  inline def vertexBufferLayout: js.Dynamic =
+    layouts.vertexBufferLayout[Attribs]
+
+  /** Create bind group layouts from the Uniforms type */
+  inline def createBindGroupLayouts(
+      device: GPUDevice
+  ): Arr[GPUBindGroupLayout] =
+    layouts.createBindGroupLayouts[Uniforms](device)
+
+  /** Create both bind group layouts and pipeline layout from the Uniforms type */
+  inline def createPipelineLayout(
+      device: GPUDevice
+  ): (Arr[GPUBindGroupLayout], GPUPipelineLayout) =
+    layouts.createPipelineLayoutFromUniforms[Uniforms](device)
+
   /** Generate complete WGSL shader code */
   inline def generateWGSL: String =
     val vertexInputStruct =
@@ -63,7 +81,7 @@ case class ShaderDef[
       vertexBody: String,
       fragmentBody: String
   ): String =
-    val parts = js.Array(
+    val parts = Arr(
       vertexInputStruct,
       vertexOutputStruct,
       fragmentOutputStruct,

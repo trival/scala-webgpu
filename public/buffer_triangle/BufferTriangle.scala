@@ -5,12 +5,12 @@ import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
 import trivalibs.bufferdata.StructArray
+import trivalibs.utils.js.{Arr, Obj}
 import trivalibs.utils.promise.*
 import webgpu.*
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
-import scala.scalajs.js.typedarray.Uint8Array
 
 object BufferTriangle:
   @JSExportTopLevel("main", moduleID = "buffer_triangle")
@@ -54,7 +54,6 @@ object BufferTriangle:
   ): Unit =
     import gpu.{Shader, Vec2, Vec4, FragOut}
     import gpu.None as GPUNone
-    import gpu.layouts.vertexBufferLayout
     import gpu.buffers as buf
 
     // Define shader with vertex attributes and uniform for tint color
@@ -77,7 +76,7 @@ object BufferTriangle:
 
     // Create shader module
     val shaderModule = device.createShaderModule(
-      js.Dynamic.literal(
+      Obj.literal(
         code = wgslCode
       )
     )
@@ -98,7 +97,7 @@ object BufferTriangle:
     vertices(2)(1) := (0.0f, 0.0f, 1.0f, 1.0f)
 
     val vertexBuffer = device.createBuffer(
-      js.Dynamic.literal(
+      Obj.literal(
         size = vertices.arrayBuffer.byteLength,
         usage = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
       )
@@ -116,7 +115,7 @@ object BufferTriangle:
     tintData(0) := (1.0f, 1.0f, 1.0f, 1.0f) // Start with white (no tint)
 
     val uniformBuffer = device.createBuffer(
-      js.Dynamic.literal(
+      Obj.literal(
         size = tintData.arrayBuffer.byteLength,
         usage = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
       )
@@ -133,44 +132,48 @@ object BufferTriangle:
     val format = "bgra8unorm"
 
     context.configure(
-      js.Dynamic.literal(
+      Obj.literal(
         device = device,
         format = format
       )
     )
 
-    // Create render pipeline with DERIVED vertex buffer layout
+    // Derive explicit bind group layouts and pipeline layout from shader types
+    val (bindGroupLayouts, pipelineLayout) =
+      triangleShader.createPipelineLayout(device)
+
+    // Create render pipeline with explicit layout
     val pipeline = device.createRenderPipeline(
-      js.Dynamic.literal(
-        layout = "auto",
-        vertex = js.Dynamic.literal(
+      Obj.literal(
+        layout = pipelineLayout,
+        vertex = Obj.literal(
           module = shaderModule,
           entryPoint = "vs_main",
-          buffers = js.Array(vertexBufferLayout[(position: Vec2, color: Vec4)])
+          buffers = Arr(triangleShader.vertexBufferLayout)
         ),
-        fragment = js.Dynamic.literal(
+        fragment = Obj.literal(
           module = shaderModule,
           entryPoint = "fs_main",
-          targets = js.Array(
-            js.Dynamic.literal(
+          targets = Arr(
+            Obj.literal(
               format = format
             )
           )
         ),
-        primitive = js.Dynamic.literal(
+        primitive = Obj.literal(
           topology = "triangle-list"
         )
       )
     )
 
-    // Create bind group for uniform
+    // Create bind group using explicit layout (reusable across pipelines)
     val bindGroup = device.createBindGroup(
-      js.Dynamic.literal(
-        layout = pipeline.getBindGroupLayout(0),
-        entries = js.Array(
-          js.Dynamic.literal(
+      Obj.literal(
+        layout = bindGroupLayouts(0),
+        entries = Arr(
+          Obj.literal(
             binding = 0,
-            resource = js.Dynamic.literal(
+            resource = Obj.literal(
               buffer = uniformBuffer
             )
           )
@@ -199,14 +202,14 @@ object BufferTriangle:
       val textureView = context.getCurrentTexture().createView()
 
       val renderPass = commandEncoder.beginRenderPass(
-        js.Dynamic.literal(
-          colorAttachments = js.Array(
-            js.Dynamic.literal(
+        Obj.literal(
+          colorAttachments = Arr(
+            Obj.literal(
               view = textureView,
               loadOp = "clear",
               storeOp = "store",
               clearValue =
-                js.Dynamic.literal(r = 0.15, g = 0.1, b = 0.1, a = 1.0)
+                Obj.literal(r = 0.15, g = 0.1, b = 0.1, a = 1.0)
             )
           )
         )
@@ -218,7 +221,7 @@ object BufferTriangle:
       renderPass.draw(3)
       renderPass.end()
 
-      device.queue.submit(js.Array(commandEncoder.finish()))
+      device.queue.submit(Arr(commandEncoder.finish()))
 
       // Request next frame
       dom.window.requestAnimationFrame(t => render(t))

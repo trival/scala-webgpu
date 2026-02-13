@@ -6,6 +6,7 @@ import org.scalajs.dom.HTMLCanvasElement
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 import scala.scalajs.js.typedarray.*
+import trivalibs.utils.js.Arr
 
 // =============================================================================
 // Core WebGPU Types
@@ -43,7 +44,7 @@ trait GPUDevice extends js.Object:
 
 @js.native
 trait GPUQueue extends js.Object:
-  def submit(commandBuffers: js.Array[GPUCommandBuffer]): Unit = js.native
+  def submit(commandBuffers: Arr[GPUCommandBuffer]): Unit = js.native
   def writeBuffer(
       buffer: GPUBuffer,
       bufferOffset: Int,

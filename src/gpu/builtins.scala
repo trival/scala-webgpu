@@ -16,7 +16,7 @@ object BuiltinType:
 opaque type BuiltinVertexIndex = Unit
 
 object BuiltinVertexIndex:
-  given BuiltinType[BuiltinVertexIndex] with
+  given BuiltinType[BuiltinVertexIndex]:
     def wgslBuiltin = "vertex_index"
     def wgslType = "u32"
 
@@ -24,7 +24,7 @@ object BuiltinVertexIndex:
 opaque type BuiltinInstanceIndex = Unit
 
 object BuiltinInstanceIndex:
-  given BuiltinType[BuiltinInstanceIndex] with
+  given BuiltinType[BuiltinInstanceIndex]:
     def wgslBuiltin = "instance_index"
     def wgslType = "u32"
 
@@ -32,7 +32,7 @@ object BuiltinInstanceIndex:
 opaque type BuiltinPosition = Unit
 
 object BuiltinPosition:
-  given BuiltinType[BuiltinPosition] with
+  given BuiltinType[BuiltinPosition]:
     def wgslBuiltin = "position"
     def wgslType = "vec4<f32>"
 
@@ -44,7 +44,7 @@ object BuiltinPosition:
 opaque type BuiltinFragCoord = Unit
 
 object BuiltinFragCoord:
-  given BuiltinType[BuiltinFragCoord] with
+  given BuiltinType[BuiltinFragCoord]:
     def wgslBuiltin = "position"
     def wgslType = "vec4<f32>"
 
@@ -52,7 +52,7 @@ object BuiltinFragCoord:
 opaque type BuiltinFrontFacing = Unit
 
 object BuiltinFrontFacing:
-  given BuiltinType[BuiltinFrontFacing] with
+  given BuiltinType[BuiltinFrontFacing]:
     def wgslBuiltin = "front_facing"
     def wgslType = "bool"
 
@@ -60,6 +60,6 @@ object BuiltinFrontFacing:
 opaque type BuiltinSampleIndex = Unit
 
 object BuiltinSampleIndex:
-  given BuiltinType[BuiltinSampleIndex] with
+  given BuiltinType[BuiltinSampleIndex]:
     def wgslBuiltin = "sample_index"
     def wgslType = "u32"
