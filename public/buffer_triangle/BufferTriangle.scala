@@ -1,5 +1,6 @@
 package buffer_triangle
 
+import gpu.buffers.AttribsLayout
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
@@ -51,7 +52,8 @@ object BufferTriangle:
       canvas: HTMLCanvasElement,
       setStatus: (String, Boolean) => Unit
   ): Unit =
-    import gpu.{Shader, Vec2, Vec4, FragOut}
+    import gpu.{Shader, FragOut}
+    import gpu.math.*
     import gpu.None as GPUNone
     import gpu.buffers as buf
 
@@ -81,7 +83,8 @@ object BufferTriangle:
     )
 
     // Create vertex buffer - layout derived from shader attribs
-    val vertices = triangleShader.allocateAttribs(3)
+    val vertices =
+      StructArray.allocate[(Vec2#AttributeLayout, Vec4#AttributeLayout)](3)
 
     // Vertex 0: top (red)
     vertices(0)(0) := (0.0f, 0.5f)
@@ -110,7 +113,7 @@ object BufferTriangle:
     )
 
     // Create uniform buffer for tint color (Vec4 = 16 bytes)
-    val tintData = StructArray.allocate[buf.Vec4](1)
+    val tintData = StructArray.allocate[Vec4#AttributeLayout](1)
     tintData(0) := (1.0f, 1.0f, 1.0f, 1.0f) // Start with white (no tint)
 
     val uniformBuffer = device.createBuffer(

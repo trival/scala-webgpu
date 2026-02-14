@@ -8,35 +8,22 @@ import webgpu.{GPUBindGroupLayout, GPUPipelineLayout, GPUDevice}
 
 /** Complete shader definition with all type parameters
   *
-  * Type parameters are unconstrained to allow EmptyTuple (None) for optional fields.
-  * The derive functions handle type checking at compile time via inline matches.
+  * Type parameters are unconstrained to allow EmptyTuple (None) for optional
+  * fields. The derive functions handle type checking at compile time via inline
+  * matches.
   */
 case class ShaderDef[
-    Attribs,        // Custom vertex attributes (@location)
-    Varyings,       // Vertex out = Fragment in (custom @location)
-    Uniforms,       // Tuple of NamedTuples with visibility wrappers
-    VertBuiltinIn,  // @builtin inputs (default: None)
+    Attribs, // Custom vertex attributes (@location)
+    Varyings, // Vertex out = Fragment in (custom @location)
+    Uniforms, // Tuple of NamedTuples with visibility wrappers
+    VertBuiltinIn, // @builtin inputs (default: None)
     VertBuiltinOut, // @builtin outputs (default: VertOut)
-    FragBuiltinIn,  // @builtin inputs (default: None)
-    FragmentOut     // Custom outputs (default: FragOut)
+    FragBuiltinIn, // @builtin inputs (default: None)
+    FragmentOut // Custom outputs (default: FragOut)
 ](
     vertexBody: String,
     fragmentBody: String
 ):
-  /** Allocate a StructArray for vertex attributes.
-    *
-    * The buffer layout is derived from the shader's Attribs type.
-    *
-    * Usage:
-    * {{{
-    * val shader = Shader[(position: Vec2, color: Vec4), ...]
-    * val vertices = shader.allocateAttribs(3)
-    * vertices(0)(0) := (0.0f, 0.5f)      // position
-    * vertices(0)(1) := (1.0f, 0.0f, 0.0f, 1.0f)  // color
-    * }}}
-    */
-  transparent inline def allocateAttribs(count: Int) =
-    layouts.allocateAttribsFromNamedTuple[Attribs](count)
 
   /** Derive WebGPU vertex buffer layout descriptor from the Attribs type */
   inline def vertexBufferLayout: js.Dynamic =
@@ -48,7 +35,8 @@ case class ShaderDef[
   ): Arr[GPUBindGroupLayout] =
     layouts.createBindGroupLayouts[Uniforms](device)
 
-  /** Create both bind group layouts and pipeline layout from the Uniforms type */
+  /** Create both bind group layouts and pipeline layout from the Uniforms type
+    */
   inline def createPipelineLayout(
       device: GPUDevice
   ): (Arr[GPUBindGroupLayout], GPUPipelineLayout) =
@@ -122,7 +110,10 @@ object Shader:
       vertexBody: String,
       fragmentBody: String
   ): ShaderDef[A, V, U, None, VertOut, None, FragOut] =
-    new ShaderDef[A, V, U, None, VertOut, None, FragOut](vertexBody, fragmentBody)
+    new ShaderDef[A, V, U, None, VertOut, None, FragOut](
+      vertexBody,
+      fragmentBody
+    )
 
   /** Full API for custom builtins or fragment outputs */
   def full[A, V, U, VBI, VBO, FBI, FO](

@@ -6,6 +6,7 @@ import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
 import trivalibs.utils.js.*
 import webgpu.*
+import gpu.math.*
 
 import scala.scalajs.js.annotation.*
 
@@ -49,7 +50,7 @@ object SimpleTriangle:
       canvas: HTMLCanvasElement,
       setStatus: (String, Boolean) => Unit
   ): Unit =
-    import gpu.{Shader, Vec4, BuiltinVertexIndex, VertOut, FragOut}
+    import gpu.{Shader, BuiltinVertexIndex, VertOut, FragOut}
     import gpu.None as GPUNone
 
     // Use the full API to add vertex_index builtin input

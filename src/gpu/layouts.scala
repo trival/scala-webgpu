@@ -1,12 +1,19 @@
 package gpu
 
-import scala.compiletime.*
-import scala.NamedTuple.AnyNamedTuple
-import scala.scalajs.js
-import trivalibs.utils.js.{Arr, Obj}
-import webgpu.{GPUBindGroupLayout, GPUPipelineLayout, GPUDevice, GPUShaderStage}
+import trivalibs.utils.js.Arr
+import trivalibs.utils.js.Obj
+import webgpu.GPUBindGroupLayout
+import webgpu.GPUDevice
+import webgpu.GPUPipelineLayout
+import webgpu.GPUShaderStage
 
-/** Utilities for deriving WebGPU buffer layouts from Scala types at compile time */
+import scala.NamedTuple.AnyNamedTuple
+import scala.compiletime.*
+import scala.scalajs.js
+
+/** Utilities for deriving WebGPU buffer layouts from Scala types at compile
+  * time
+  */
 object layouts:
 
   // ===========================================================================
@@ -16,13 +23,13 @@ object layouts:
   /** Get vertex format strings for each field in a named tuple */
   inline def fieldVertexFormats[T]: Arr[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple    => Arr()
       case _: AnyNamedTuple =>
         fieldVertexFormatsImpl[NamedTuple.DropNames[T & AnyNamedTuple]]
 
   private inline def fieldVertexFormatsImpl[T <: Tuple]: Arr[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple     => Arr()
       case _: (head *: rest) =>
         Arr(
           summonInline[WGSLType[head]].vertexFormat
@@ -31,13 +38,13 @@ object layouts:
   /** Get byte sizes for each field in a named tuple */
   inline def fieldByteSizes[T]: Arr[Int] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple    => Arr()
       case _: AnyNamedTuple =>
         fieldByteSizesImpl[NamedTuple.DropNames[T & AnyNamedTuple]]
 
   private inline def fieldByteSizesImpl[T <: Tuple]: Arr[Int] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple     => Arr()
       case _: (head *: rest) =>
         Arr(summonInline[WGSLType[head]].byteSize) ++ fieldByteSizesImpl[
           rest
@@ -93,66 +100,6 @@ object layouts:
     )
 
   // ===========================================================================
-  // Vertex Buffer Allocation
-  // ===========================================================================
-
-  import trivalibs.bufferdata.StructArray
-  import buffers.BufferLayoutFor
-
-  /** Allocate a StructArray for vertex data matching shader attributes.
-    *
-    * Usage with explicit buffer layout type:
-    * {{{
-    * val vertices = allocateVertices[(buf.Vec2, buf.Vec4)](3)
-    * }}}
-    */
-  inline def allocateVertices[BufferLayout <: Tuple](
-      count: Int
-  ): StructArray[BufferLayout] =
-    StructArray.allocate[BufferLayout](count)
-
-  /** Allocate a StructArray from shader attribs named tuple.
-    * Uses inline pattern matching to derive buffer layout at compile time.
-    */
-  transparent inline def allocateAttribsFromNamedTuple[T](count: Int) =
-    inline erasedValue[T] match
-      case _: EmptyTuple =>
-        StructArray.allocate[EmptyTuple](count)
-      case _: AnyNamedTuple =>
-        allocateAttribsImpl[NamedTuple.DropNames[T & AnyNamedTuple]](count)
-
-  private transparent inline def allocateAttribsImpl[T <: Tuple](count: Int) =
-    inline erasedValue[T] match
-      case _: EmptyTuple =>
-        StructArray.allocate[EmptyTuple](count)
-      case _: (Vec2 *: EmptyTuple) =>
-        StructArray.allocate[buffers.Vec2 *: EmptyTuple](count)
-      case _: (Vec3 *: EmptyTuple) =>
-        StructArray.allocate[buffers.Vec3 *: EmptyTuple](count)
-      case _: (Vec4 *: EmptyTuple) =>
-        StructArray.allocate[buffers.Vec4 *: EmptyTuple](count)
-      case _: (Vec2 *: Vec4 *: EmptyTuple) =>
-        StructArray.allocate[(buffers.Vec2, buffers.Vec4)](count)
-      case _: (Vec3 *: Vec4 *: EmptyTuple) =>
-        StructArray.allocate[(buffers.Vec3, buffers.Vec4)](count)
-      case _: (Vec4 *: Vec4 *: EmptyTuple) =>
-        StructArray.allocate[(buffers.Vec4, buffers.Vec4)](count)
-      case _: (Vec2 *: Vec2 *: EmptyTuple) =>
-        StructArray.allocate[(buffers.Vec2, buffers.Vec2)](count)
-      case _: (Vec2 *: Vec3 *: EmptyTuple) =>
-        StructArray.allocate[(buffers.Vec2, buffers.Vec3)](count)
-      case _: (Vec2 *: Vec2 *: Vec4 *: EmptyTuple) =>
-        StructArray.allocate[(buffers.Vec2, buffers.Vec2, buffers.Vec4)](count)
-      case _: (Vec3 *: Vec3 *: Vec4 *: EmptyTuple) =>
-        StructArray.allocate[(buffers.Vec3, buffers.Vec3, buffers.Vec4)](count)
-      case _: (Vec4 *: Vec4 *: Vec4 *: EmptyTuple) =>
-        StructArray.allocate[(buffers.Vec4, buffers.Vec4, buffers.Vec4)](count)
-      case _: (Mat4 *: EmptyTuple) =>
-        StructArray.allocate[buffers.Mat4 *: EmptyTuple](count)
-      case _: (Vec2 *: Vec4 *: Mat4 *: EmptyTuple) =>
-        StructArray.allocate[(buffers.Vec2, buffers.Vec4, buffers.Mat4)](count)
-
-  // ===========================================================================
   // Bind Group Layout Derivation
   // ===========================================================================
 
@@ -161,13 +108,14 @@ object layouts:
     inline erasedValue[T] match
       case _: VertexUniform[?]   => GPUShaderStage.VERTEX
       case _: FragmentUniform[?] => GPUShaderStage.FRAGMENT
-      case _: SharedUniform[?]   => GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT
-      case _                     => GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT
+      case _: SharedUniform[?]   =>
+        GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT
+      case _ => GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT
 
   /** Derive bind group layout entries for a single group (inner named tuple) */
   private inline def bindGroupEntries[T]: Arr[js.Dynamic] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple    => Arr()
       case _: AnyNamedTuple =>
         bindGroupEntriesImpl[NamedTuple.DropNames[T & AnyNamedTuple]](0)
       case _ => Arr()
@@ -176,7 +124,7 @@ object layouts:
       bindingIdx: Int
   ): Arr[js.Dynamic] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple     => Arr()
       case _: (head *: rest) =>
         val entry = Obj.literal(
           binding = bindingIdx,
@@ -190,18 +138,16 @@ object layouts:
   /** Derive all bind group layout descriptors from the full Uniforms type.
     * Returns one entry array per group.
     */
-  inline def bindGroupLayoutDescriptors[Uniforms]
-      : Arr[Arr[js.Dynamic]] =
+  inline def bindGroupLayoutDescriptors[Uniforms]: Arr[Arr[js.Dynamic]] =
     inline erasedValue[Uniforms] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple    => Arr()
       case _: AnyNamedTuple =>
         bindGroupLayoutsImpl[NamedTuple.DropNames[Uniforms & AnyNamedTuple]]
       case _ => Arr()
 
-  private inline def bindGroupLayoutsImpl[T <: Tuple]
-      : Arr[Arr[js.Dynamic]] =
+  private inline def bindGroupLayoutsImpl[T <: Tuple]: Arr[Arr[js.Dynamic]] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple     => Arr()
       case _: (head *: rest) =>
         Arr(bindGroupEntries[head]) ++ bindGroupLayoutsImpl[rest]
 
@@ -228,7 +174,8 @@ object layouts:
       Obj.literal(bindGroupLayouts = bindGroupLayouts)
     )
 
-  /** Create both bind group layouts and pipeline layout from the Uniforms type */
+  /** Create both bind group layouts and pipeline layout from the Uniforms type
+    */
   inline def createPipelineLayoutFromUniforms[Uniforms](
       device: GPUDevice
   ): (Arr[GPUBindGroupLayout], GPUPipelineLayout) =
