@@ -4,8 +4,7 @@ import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
-import trivalibs.utils.js.{Arr, Obj}
-import trivalibs.utils.promise.*
+import trivalibs.utils.js.*
 import webgpu.*
 
 import scala.scalajs.js.annotation.*
@@ -139,8 +138,7 @@ object SimpleTriangle:
               view = textureView,
               loadOp = "clear",
               storeOp = "store",
-              clearValue =
-                Obj.literal(r = 0.1, g = 0.1, b = 0.15, a = 1.0)
+              clearValue = Obj.literal(r = 0.1, g = 0.1, b = 0.15, a = 1.0)
             )
           )
         )

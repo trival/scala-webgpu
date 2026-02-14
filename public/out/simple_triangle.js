@@ -46,13 +46,13 @@ $p.aw = (function() {
   var canvas = document.getElementById("canvas");
   matchResult1: {
     var x = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b2();
-    var x1 = ((x === (void 0)) ? $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_None$() : new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_s_Some(x));
-    if (($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_None$() === x1)) {
+    var x1 = ((x === (void 0)) ? $m_s_None$() : new $c_s_Some(x));
+    if (($m_s_None$() === x1)) {
       $p_Lsimple\uff3ftriangle_SimpleTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, "WebGPU is not supported in this browser", true);
       break matchResult1;
     }
-    if ((x1 instanceof $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_s_Some)) {
-      var gpu = x1.P;
+    if ((x1 instanceof $c_s_Some)) {
+      var gpu = x1.a9;
       $p_Lsimple\uff3ftriangle_SimpleTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, "WebGPU available, initializing...", false);
       this.au(gpu, canvas, new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc(((v1$2, v2$2) => {
         $p_Lsimple\uff3ftriangle_SimpleTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, v1$2, (!(!v2$2)));
@@ -83,7 +83,7 @@ $p.au = (function(gpu, canvas, setStatus) {
   var pf$proxy1 = new $c_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1(setStatus);
   result.catch(((err$2) => {
     if (pf$proxy1.av(err$2)) {
-      return pf$proxy1.ai(err$2, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_PartialFunction$().a9);
+      return pf$proxy1.ai(err$2, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_PartialFunction$().a8);
     } else {
       var $x_1 = err$2;
       throw (false ? $x_1.aN : $x_1);
@@ -130,7 +130,7 @@ $p.ax = (function(device, canvas, setStatus) {
   var items$proxy14 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)([]));
   var $x_1 = $x_3.i([...$x_2], [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy14)]);
   var items$proxy15 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T3.r().C)([]));
-  var wgslCode = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_ShaderDef__buildWGSL__T__T__T__T__T__T__T(triangleShader, $x_18, $x_8, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($x_7, "FragmentOutput", $x_4, $x_1, [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy15)]), "", triangleShader.a6, triangleShader.a5);
+  var wgslCode = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_ShaderDef__buildWGSL__T__T__T__T__T__T__T(triangleShader, $x_18, $x_8, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($x_7, "FragmentOutput", $x_4, $x_1, [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy15)]), "", triangleShader.a5, triangleShader.a4);
   console.log(("Generated WGSL:\n" + wgslCode));
   var shaderModule = device.createShaderModule(({
     "code": wgslCode
@@ -176,6 +176,58 @@ function $m_Lsimple\uff3ftriangle_SimpleTriangle$() {
   return $n_Lsimple\uff3ftriangle_SimpleTriangle$;
 }
 /** @constructor */
+function $c_s_Option() {
+}
+$p = $c_s_Option.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_O();
+$p.constructor = $c_s_Option;
+/** @constructor */
+function $h_s_Option() {
+}
+$h_s_Option.prototype = $p;
+$p.a2 = (function() {
+  return new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_s_Product$$anon$1(this);
+});
+$p.C = (function() {
+  return (this === $m_s_None$());
+});
+$p.w = (function() {
+  return (this.C() ? 0 : 1);
+});
+$p.m = (function() {
+  return (this.C() ? $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sc_Iterator$().K : new $c_sc_Iterator$$anon$20(this.b0()));
+});
+/** @constructor */
+function $c_sc_Iterator$$anon$20(a$2) {
+  this.aF = null;
+  this.af = false;
+  this.aF = a$2;
+  this.af = false;
+}
+$p = $c_sc_Iterator$$anon$20.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_sc_AbstractIterator();
+$p.constructor = $c_sc_Iterator$$anon$20;
+/** @constructor */
+function $h_sc_Iterator$$anon$20() {
+}
+$h_sc_Iterator$$anon$20.prototype = $p;
+$p.s = (function() {
+  return (!this.af);
+});
+$p.q = (function() {
+  if (this.af) {
+    return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sc_Iterator$().K.q();
+  } else {
+    this.af = true;
+    return this.aF;
+  }
+});
+var $d_sc_Iterator$$anon$20 = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_sc_Iterator$$anon$20, "scala.collection.Iterator$$anon$20", ({
+  aQ: 1,
+  H: 1,
+  b: 1,
+  c: 1,
+  I: 1
+}));
+/** @constructor */
 function $c_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1(setStatus$5) {
   this.aq = null;
   this.aq = setStatus$5;
@@ -191,7 +243,7 @@ $p.av = (function(x) {
 });
 $p.ai = (function(x, default$1) {
   if ((x instanceof $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_ju_NoSuchElementException)) {
-    this.aq.B(x.a7, true);
+    this.aq.B(x.a6, true);
   } else {
     this.aq.B(("WebGPU error: " + x), true);
   }
@@ -201,6 +253,94 @@ var $d_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1 = new $j_internal$002dcad230
   a6: 1,
   e: 1,
   f: 1,
+  a: 1
+}));
+/** @constructor */
+function $c_s_None$() {
+}
+$p = $c_s_None$.prototype = new $h_s_Option();
+$p.constructor = $c_s_None$;
+/** @constructor */
+function $h_s_None$() {
+}
+$h_s_None$.prototype = $p;
+$p.j = (function() {
+  return 2433880;
+});
+$p.n = (function() {
+  return "None";
+});
+$p.D = (function() {
+  return 0;
+});
+$p.F = (function() {
+  return "None";
+});
+$p.E = (function(n) {
+  throw $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$ct_jl_IndexOutOfBoundsException__T__(new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_jl_IndexOutOfBoundsException(), ("" + n));
+});
+$p.bh = (function() {
+  throw new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_ju_NoSuchElementException("None.get");
+});
+$p.b0 = (function() {
+  this.bh();
+});
+var $d_s_None$ = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_s_None$, "scala.None$", ({
+  aw: 1,
+  a0: 1,
+  b: 1,
+  d: 1,
+  G: 1,
+  a: 1
+}));
+var $n_s_None$;
+function $m_s_None$() {
+  if ((!$n_s_None$)) {
+    $n_s_None$ = new $c_s_None$();
+  }
+  return $n_s_None$;
+}
+/** @constructor */
+function $c_s_Some(value) {
+  this.a9 = null;
+  this.a9 = value;
+}
+$p = $c_s_Some.prototype = new $h_s_Option();
+$p.constructor = $c_s_Some;
+/** @constructor */
+function $h_s_Some() {
+}
+$h_s_Some.prototype = $p;
+$p.j = (function() {
+  return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_util_hashing_MurmurHash3$().ak(this, 1323286827, true);
+});
+$p.n = (function() {
+  return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().aP(this);
+});
+$p.D = (function() {
+  return 1;
+});
+$p.F = (function() {
+  return "Some";
+});
+$p.E = (function(n) {
+  if ((n === 0)) {
+    return this.a9;
+  }
+  throw $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$ct_jl_IndexOutOfBoundsException__T__(new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_jl_IndexOutOfBoundsException(), ("" + n));
+});
+$p.b0 = (function() {
+  return this.a9;
+});
+function $isArrayOf_s_Some(obj, depth) {
+  return (!(!(((obj && obj.$classData) && (obj.$classData.D === depth)) && obj.$classData.B.n.a1)));
+}
+var $d_s_Some = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_s_Some, "scala.Some", ({
+  a1: 1,
+  a0: 1,
+  b: 1,
+  d: 1,
+  G: 1,
   a: 1
 }));
 let $e_main = (function() {

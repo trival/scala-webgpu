@@ -70,22 +70,14 @@ $h_Lbuffer\uff3ftriangle_BufferTriangle$.prototype = $p;
 $p.aw = (function() {
   var statusEl = document.getElementById("status");
   var canvas = document.getElementById("canvas");
-  matchResult1: {
-    var x = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b2();
-    var x1 = ((x === (void 0)) ? $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_None$() : new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_s_Some(x));
-    if (($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_None$() === x1)) {
-      $p_Lbuffer\uff3ftriangle_BufferTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, "WebGPU is not supported in this browser", true);
-      break matchResult1;
-    }
-    if ((x1 instanceof $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_s_Some)) {
-      var gpu = x1.P;
-      $p_Lbuffer\uff3ftriangle_BufferTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, "WebGPU available, initializing...", false);
-      this.au(gpu, canvas, new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc(((v1$2, v2$2) => {
-        $p_Lbuffer\uff3ftriangle_BufferTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, v1$2, (!(!v2$2)));
-      })));
-      break matchResult1;
-    }
-    throw new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_s_MatchError(x1);
+  var gpu = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b2();
+  if ((gpu === (void 0))) {
+    $p_Lbuffer\uff3ftriangle_BufferTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, "WebGPU is not supported in this browser", true);
+  } else {
+    $p_Lbuffer\uff3ftriangle_BufferTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, "WebGPU available, initializing...", false);
+    this.au(gpu, canvas, new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc(((v1$2, v2$2) => {
+      $p_Lbuffer\uff3ftriangle_BufferTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, v1$2, (!(!v2$2)));
+    })));
   }
 });
 $p.au = (function(gpu, canvas, setStatus) {
@@ -109,7 +101,7 @@ $p.au = (function(gpu, canvas, setStatus) {
   var pf$proxy1 = new $c_Lbuffer\uff3ftriangle_BufferTriangle$$anon$1(setStatus);
   result.catch(((err$2) => {
     if (pf$proxy1.av(err$2)) {
-      return pf$proxy1.ai(err$2, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_PartialFunction$().a9);
+      return pf$proxy1.ai(err$2, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_PartialFunction$().a8);
     } else {
       var $x_1 = err$2;
       throw (false ? $x_1.aN : $x_1);
@@ -176,7 +168,7 @@ $p.ax = (function(device, canvas, setStatus) {
   var items$proxy21 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)(["vec4<f32>"]));
   var $x_1 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy21);
   var items$proxy22 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)([]));
-  var wgslCode = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_ShaderDef__buildWGSL__T__T__T__T__T__T__T(triangleShader, $x_25, $x_15, $x_7, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T($x_6, 0, $x_3, $x_2.i([...$x_1], [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy22)])), triangleShader.a6, triangleShader.a5);
+  var wgslCode = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_ShaderDef__buildWGSL__T__T__T__T__T__T__T(triangleShader, $x_25, $x_15, $x_7, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T($x_6, 0, $x_3, $x_2.i([...$x_1], [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy22)])), triangleShader.a5, triangleShader.a4);
   console.log(("Generated WGSL:\n" + wgslCode));
   var shaderModule = device.createShaderModule(({
     "code": wgslCode
@@ -489,7 +481,7 @@ $p.av = (function(x) {
 });
 $p.ai = (function(x, default$1) {
   if ((x instanceof $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_ju_NoSuchElementException)) {
-    this.am.B(x.a7, true);
+    this.am.B(x.a6, true);
   } else {
     this.am.B(("WebGPU error: " + x), true);
   }

@@ -5,8 +5,7 @@ import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
 import trivalibs.bufferdata.StructArray
-import trivalibs.utils.js.{Arr, Obj}
-import trivalibs.utils.promise.*
+import trivalibs.utils.js.*
 import webgpu.*
 
 import scala.scalajs.js
@@ -24,12 +23,12 @@ object BufferTriangle:
     val canvas =
       document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
 
-    WebGPU.getGPU().toOption match
-      case None =>
-        setStatus("WebGPU is not supported in this browser", true)
-      case Some(gpu) =>
-        setStatus("WebGPU available, initializing...", false)
-        initWebGPU(gpu, canvas, setStatus)
+    val gpu = WebGPU.getGPU()
+    if gpu.isEmpty then
+      setStatus("WebGPU is not supported in this browser", true)
+    else
+      setStatus("WebGPU available, initializing...", false)
+      initWebGPU(gpu.safe, canvas, setStatus)
 
   def initWebGPU(
       gpu: GPU,
@@ -208,8 +207,7 @@ object BufferTriangle:
               view = textureView,
               loadOp = "clear",
               storeOp = "store",
-              clearValue =
-                Obj.literal(r = 0.15, g = 0.1, b = 0.1, a = 1.0)
+              clearValue = Obj.literal(r = 0.15, g = 0.1, b = 0.1, a = 1.0)
             )
           )
         )
