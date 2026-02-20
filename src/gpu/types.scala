@@ -1,12 +1,9 @@
 package gpu
 
+import gpu.math.Vec3
+import trivalibs.bufferdata.F32
+
 import scala.compiletime.*
-
-trait AttributeLayout[T <: Tuple]:
-  type AttributeLayout = T
-
-trait UniformLayout[T <: Tuple]:
-  type UniformLayout = T
 
 /** Type class for WGSL-compatible types */
 trait WGSLType[T]:
