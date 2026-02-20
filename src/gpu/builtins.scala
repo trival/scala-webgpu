@@ -3,10 +3,10 @@ package gpu
 /** Type class for WGSL builtin types */
 trait BuiltinType[T]:
   def wgslBuiltin: String // e.g., "position", "vertex_index"
-  def wgslType: String    // e.g., "vec4<f32>", "u32"
+  def wgslType: String // e.g., "vec4<f32>", "u32"
 
 object BuiltinType:
-  inline def apply[T](using bt: BuiltinType[T]): BuiltinType[T] = bt
+  inline def apply[T: BuiltinType as bt]: BuiltinType[T] = bt
 
 // =============================================================================
 // Vertex Shader Builtins
@@ -40,7 +40,8 @@ object BuiltinPosition:
 // Fragment Shader Builtins
 // =============================================================================
 
-/** @builtin(position) - fragment position input (same as BuiltinPosition but as input) */
+/** @builtin(position) - fragment position input (same as BuiltinPosition but as input)
+  */
 opaque type BuiltinFragCoord = Unit
 
 object BuiltinFragCoord:

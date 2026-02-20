@@ -1,84 +1,22 @@
 package gpu.buffers
 
+import gpu.math.Mat2
+import gpu.math.Mat3
+import gpu.math.Mat3PaddedBuffer
+import gpu.math.Mat4
 import gpu.math.Vec2
 import gpu.math.Vec3
 import gpu.math.Vec4
 import trivalibs.bufferdata.F32 as BF32
 
-// =============================================================================
-// Base vector/matrix layouts (tightly packed - for vertex attributes)
-// =============================================================================
-
-type Mat3 = (
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32
-) // 9 floats = 36 bytes
-type Mat4 = (
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32,
-    BF32
-) // 16 floats = 64 bytes
-
-// =============================================================================
-// Padded layouts for uniform buffers (WGSL alignment rules)
-// =============================================================================
-
-/** Mat3 with each column padded to 16 bytes = 48 bytes total */
-type Mat3Padded = (
-    BF32,
-    BF32,
-    BF32,
-    BF32, // Column 0 + padding
-    BF32,
-    BF32,
-    BF32,
-    BF32, // Column 1 + padding
-    BF32,
-    BF32,
-    BF32,
-    BF32 // Column 2 + padding
-)
-
-// =============================================================================
-// Typeclass for shader type to buffer layout conversion
-// =============================================================================
-
-
-// =============================================================================
-// Match types to convert shader types to buffer layouts
-// (For type-level computation - note: may not fully reduce with opaque types)
-// =============================================================================
-
 import scala.NamedTuple.DropNames
 
 /** Convert shader attribute types to tightly packed buffer layout */
 type ToAttribLayout[T] <: Tuple = T match
-  case Float    => BF32 *: EmptyTuple
-  case Vec2     => Vec2.Attrib
-  case Vec3     => Vec3.Attrib
-  case Vec4     => Vec4.Attrib
-  case gpu.Mat3 => Mat3
-  case gpu.Mat4 => Mat4
+  case Float         => BF32 *: EmptyTuple
+  case gpu.math.Vec2 => Vec2.Attrib
+  case gpu.math.Vec3 => Vec3.Attrib
+  case gpu.math.Vec4 => Vec4.Attrib
 
 /** Convert shader uniform types to padded buffer layout */
 type ToUniformLayout[T] <: Tuple = T match
@@ -86,11 +24,12 @@ type ToUniformLayout[T] <: Tuple = T match
   case gpu.FragmentUniform[t] => ToUniformLayout[t]
   case gpu.SharedUniform[t]   => ToUniformLayout[t]
   case Float                  => BF32 *: EmptyTuple
-  case Vec2                   => Vec2.Uniform
-  case Vec3                   => Vec3.Uniform
-  case Vec4                   => Vec4.Uniform
-  case gpu.Mat3               => Mat3Padded
-  case gpu.Mat4               => Mat4
+  case gpu.math.Vec2          => Vec2.Uniform
+  case gpu.math.Vec3          => Vec3.Uniform
+  case gpu.math.Vec4          => Vec4.Uniform
+  case gpu.math.Mat2          => Mat2.Uniform
+  case gpu.math.Mat3          => Mat3.Uniform
+  case gpu.math.Mat4          => Mat4.Uniform
 
 /** Convert a named tuple of shader types to buffer layout tuple for vertex
   * attributes. Preserves tuple structure: (position: Vec2, color: Vec4) ->

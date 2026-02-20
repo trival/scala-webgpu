@@ -25,23 +25,6 @@ given WGSLType[Float]:
   def alignment = 4
   def vertexFormat = "float32"
 
-// TODO: Move to math package
-sealed trait Mat3
-object Mat3:
-  given WGSLType[Mat3]:
-    def wgslName = "mat3x3<f32>"
-    def byteSize = 36
-    def alignment = 16
-    def vertexFormat = "" // Matrices not supported as vertex attributes
-
-// TODO: Move to math package
-sealed trait Mat4
-object Mat4:
-  given WGSLType[Mat4]:
-    def wgslName = "mat4x4<f32>"
-    def byteSize = 64
-    def alignment = 16
-    def vertexFormat = "" // Matrices not supported as vertex attributes
 
 // =============================================================================
 // Utility Type Aliases
