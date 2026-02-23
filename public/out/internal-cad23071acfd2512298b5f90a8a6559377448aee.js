@@ -630,7 +630,7 @@ var $d_F = new $TypeData().p(0.0, "F", "float", $ac_F, Float32Array);
 export { $d_F as $d_F };
 var $d_D = new $TypeData().p(0.0, "D", "double", $ac_D, Float64Array);
 export { $d_D as $d_D };
-function $p_Lgpu_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($thiz, structName, locNames, locTypes, builtins) {
+function $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($thiz, structName, locNames, locTypes, builtins) {
   var array$1 = $m_sjs_js_ArrayOps$().b8($m_sjs_js_ArrayOps$().b7(locNames, new $c_sjs_js_WrappedArray(locTypes)));
   var len = (array$1.length | 0);
   var res = new Array(len);
@@ -677,8 +677,8 @@ function $p_Lgpu_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_
   var allFields = $m_sjs_js_ArrayOpsCommon$().i(res, res$1);
   return (((allFields.length | 0) === 0) ? "" : (((("struct " + structName) + " {\n") + $f_sc_IterableOnceOps__mkString__T__T__T__T(new $c_sjs_js_WrappedArray(allFields), "", "\n", "")) + "\n}"));
 }
-export { $p_Lgpu_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T as $p_Lgpu_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T };
-function $p_Lgpu_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T($thiz, groupIdx, names, types) {
+export { $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T as $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T };
+function $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T($thiz, groupIdx, names, types) {
   var array$1 = $m_sjs_js_ArrayOps$().b8($m_sjs_js_ArrayOps$().b7(names, new $c_sjs_js_WrappedArray(types)));
   var len = (array$1.length | 0);
   var res = new Array(len);
@@ -705,30 +705,30 @@ function $p_Lgpu_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js
   }
   return $f_sc_IterableOnceOps__mkString__T__T__T__T(new $c_sjs_js_WrappedArray(res), "", "\n", "");
 }
-export { $p_Lgpu_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T as $p_Lgpu_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T };
+export { $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T as $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T };
 /** @constructor */
-function $c_Lgpu_derive$() {
+function $c_Lgpu_shader_derive$() {
 }
-export { $c_Lgpu_derive$ as $c_Lgpu_derive$ };
-$p = $c_Lgpu_derive$.prototype = new $h_O();
-$p.constructor = $c_Lgpu_derive$;
+export { $c_Lgpu_shader_derive$ as $c_Lgpu_shader_derive$ };
+$p = $c_Lgpu_shader_derive$.prototype = new $h_O();
+$p.constructor = $c_Lgpu_shader_derive$;
 /** @constructor */
-function $h_Lgpu_derive$() {
+function $h_Lgpu_shader_derive$() {
 }
-export { $h_Lgpu_derive$ as $h_Lgpu_derive$ };
-$h_Lgpu_derive$.prototype = $p;
-var $d_Lgpu_derive$ = new $TypeData().i($c_Lgpu_derive$, "gpu.derive$", ({
+export { $h_Lgpu_shader_derive$ as $h_Lgpu_shader_derive$ };
+$h_Lgpu_shader_derive$.prototype = $p;
+var $d_Lgpu_shader_derive$ = new $TypeData().i($c_Lgpu_shader_derive$, "gpu.shader.derive$", ({
   ab: 1
 }));
-export { $d_Lgpu_derive$ as $d_Lgpu_derive$ };
-var $n_Lgpu_derive$;
-function $m_Lgpu_derive$() {
-  if ((!$n_Lgpu_derive$)) {
-    $n_Lgpu_derive$ = new $c_Lgpu_derive$();
+export { $d_Lgpu_shader_derive$ as $d_Lgpu_shader_derive$ };
+var $n_Lgpu_shader_derive$;
+function $m_Lgpu_shader_derive$() {
+  if ((!$n_Lgpu_shader_derive$)) {
+    $n_Lgpu_shader_derive$ = new $c_Lgpu_shader_derive$();
   }
-  return $n_Lgpu_derive$;
+  return $n_Lgpu_shader_derive$;
 }
-export { $m_Lgpu_derive$ as $m_Lgpu_derive$ };
+export { $m_Lgpu_shader_derive$ as $m_Lgpu_shader_derive$ };
 function $f_jl_Void__hashCode__I($thiz) {
   return 0;
 }
@@ -2216,8 +2216,8 @@ function $m_sjs_js_Any$() {
   return $n_sjs_js_Any$;
 }
 export { $m_sjs_js_Any$ as $m_sjs_js_Any$ };
-function $p_Lgpu_ShaderDef__buildWGSL__T__T__T__T__T__T__T($thiz, vertexInputStruct, vertexOutputStruct, fragmentOutputStruct, uniformDecls, vertexBody, fragmentBody) {
-  var items$proxy1 = $m_sr_ScalaRunTime$().e(new ($d_T.r().C)([vertexInputStruct, vertexOutputStruct, fragmentOutputStruct, uniformDecls, $p_Lgpu_ShaderDef__buildVertexMain__T__T($thiz, vertexBody), $p_Lgpu_ShaderDef__buildFragmentMain__T__T($thiz, fragmentBody)]));
+function $p_Lgpu_shader_ShaderDef__buildWGSL__T__T__T__T__T__T__T($thiz, vertexInputStruct, vertexOutputStruct, fragmentOutputStruct, uniformDecls, vertexBody, fragmentBody) {
+  var items$proxy1 = $m_sr_ScalaRunTime$().e(new ($d_T.r().C)([vertexInputStruct, vertexOutputStruct, fragmentOutputStruct, uniformDecls, $p_Lgpu_shader_ShaderDef__buildVertexMain__T__T($thiz, vertexBody), $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T($thiz, fragmentBody)]));
   var array = [...$m_sjsr_Compat$().d(items$proxy1)];
   var res = [];
   var len = (array.length | 0);
@@ -2231,30 +2231,30 @@ function $p_Lgpu_ShaderDef__buildWGSL__T__T__T__T__T__T__T($thiz, vertexInputStr
   }
   return $f_sc_IterableOnceOps__mkString__T__T__T__T(new $c_sjs_js_WrappedArray(res), "", "\n\n", "");
 }
-export { $p_Lgpu_ShaderDef__buildWGSL__T__T__T__T__T__T__T as $p_Lgpu_ShaderDef__buildWGSL__T__T__T__T__T__T__T };
-function $p_Lgpu_ShaderDef__buildVertexMain__T__T($thiz, body) {
+export { $p_Lgpu_shader_ShaderDef__buildWGSL__T__T__T__T__T__T__T as $p_Lgpu_shader_ShaderDef__buildWGSL__T__T__T__T__T__T__T };
+function $p_Lgpu_shader_ShaderDef__buildVertexMain__T__T($thiz, body) {
   return (("@vertex\nfn vs_main(in: VertexInput) -> VertexOutput {\n  var out: VertexOutput;\n" + body) + "\n  return out;\n}");
 }
-export { $p_Lgpu_ShaderDef__buildVertexMain__T__T as $p_Lgpu_ShaderDef__buildVertexMain__T__T };
-function $p_Lgpu_ShaderDef__buildFragmentMain__T__T($thiz, body) {
+export { $p_Lgpu_shader_ShaderDef__buildVertexMain__T__T as $p_Lgpu_shader_ShaderDef__buildVertexMain__T__T };
+function $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T($thiz, body) {
   return (("@fragment\nfn fs_main(in: VertexOutput) -> FragmentOutput {\n  var out: FragmentOutput;\n" + body) + "\n  return out;\n}");
 }
-export { $p_Lgpu_ShaderDef__buildFragmentMain__T__T as $p_Lgpu_ShaderDef__buildFragmentMain__T__T };
+export { $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T as $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T };
 /** @constructor */
-function $c_Lgpu_ShaderDef(vertexBody, fragmentBody) {
+function $c_Lgpu_shader_ShaderDef(vertexBody, fragmentBody) {
   this.a5 = null;
   this.a4 = null;
   this.a5 = vertexBody;
   this.a4 = fragmentBody;
 }
-export { $c_Lgpu_ShaderDef as $c_Lgpu_ShaderDef };
-$p = $c_Lgpu_ShaderDef.prototype = new $h_O();
-$p.constructor = $c_Lgpu_ShaderDef;
+export { $c_Lgpu_shader_ShaderDef as $c_Lgpu_shader_ShaderDef };
+$p = $c_Lgpu_shader_ShaderDef.prototype = new $h_O();
+$p.constructor = $c_Lgpu_shader_ShaderDef;
 /** @constructor */
-function $h_Lgpu_ShaderDef() {
+function $h_Lgpu_shader_ShaderDef() {
 }
-export { $h_Lgpu_ShaderDef as $h_Lgpu_ShaderDef };
-$h_Lgpu_ShaderDef.prototype = $p;
+export { $h_Lgpu_shader_ShaderDef as $h_Lgpu_shader_ShaderDef };
+$h_Lgpu_shader_ShaderDef.prototype = $p;
 $p.a2 = (function() {
   return new $c_s_Product$$anon$1(this);
 });
@@ -2279,13 +2279,13 @@ $p.E = (function(n) {
   }
   throw $ct_jl_IndexOutOfBoundsException__T__(new $c_jl_IndexOutOfBoundsException(), ("" + n));
 });
-var $d_Lgpu_ShaderDef = new $TypeData().i($c_Lgpu_ShaderDef, "gpu.ShaderDef", ({
+var $d_Lgpu_shader_ShaderDef = new $TypeData().i($c_Lgpu_shader_ShaderDef, "gpu.shader.ShaderDef", ({
   aa: 1,
   d: 1,
   G: 1,
   a: 1
 }));
-export { $d_Lgpu_ShaderDef as $d_Lgpu_ShaderDef };
+export { $d_Lgpu_shader_ShaderDef as $d_Lgpu_shader_ShaderDef };
 function $f_jl_Boolean__hashCode__I($thiz) {
   return ($thiz ? 1231 : 1237);
 }

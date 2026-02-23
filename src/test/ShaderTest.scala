@@ -1,4 +1,4 @@
-package gpu
+package gpu.shader
 
 import gpu.math.*
 import munit.FunSuite

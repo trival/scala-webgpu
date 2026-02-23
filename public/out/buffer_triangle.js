@@ -26,7 +26,7 @@ function $p_Lbuffer\uff3ftriangle_BufferTriangle$__render$1__sr_DoubleRef__T2__L
   var value$4;
   var value$4 = 1.0;
   _1.setFloat32(12, value$4, true);
-  device$2.queue.writeBuffer(uniformBuffer$1, 0, tintData$1.t.buffer);
+  device$2.queue.writeBuffer(uniformBuffer$1, 0.0, tintData$1.t.buffer);
   var commandEncoder = device$2.createCommandEncoder();
   var textureView = context$1.getCurrentTexture().createView();
   var $x_1 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$();
@@ -109,8 +109,8 @@ $p.au = (function(gpu, canvas, setStatus) {
   }));
 });
 $p.ax = (function(device, canvas, setStatus) {
-  var triangleShader = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_Lgpu_ShaderDef("\n  out.position = vec4<f32>(in.position, 0.0, 1.0);\n  out.color = in.color;\n  ", "\n  out.color = in.color * tintColor;\n  ");
-  var $x_36 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lgpu_derive$();
+  var triangleShader = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_Lgpu_shader_ShaderDef("\n  out.position = vec4<f32>(in.position, 0.0, 1.0);\n  out.color = in.color;\n  ", "\n  out.color = in.color * tintColor;\n  ");
+  var $x_36 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lgpu_shader_derive$();
   var $x_35 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjs_js_ArrayOpsCommon$();
   var items$proxy1 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)(["position"]));
   var $x_34 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy1);
@@ -128,8 +128,8 @@ $p.ax = (function(device, canvas, setStatus) {
   var items$proxy6 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)([]));
   var $x_26 = $x_30.i([...$x_29], $x_28.i([...$x_27], [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy6)]));
   var items$proxy7 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T3.r().C)([]));
-  var $x_25 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($x_36, "VertexInput", $x_31, $x_26, [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy7)]);
-  var $x_24 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lgpu_derive$();
+  var $x_25 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($x_36, "VertexInput", $x_31, $x_26, [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy7)]);
+  var $x_24 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lgpu_shader_derive$();
   var $x_23 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjs_js_ArrayOpsCommon$();
   var items$proxy8 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)(["color"]));
   var $x_22 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy8);
@@ -144,8 +144,8 @@ $p.ax = (function(device, canvas, setStatus) {
   var items$proxy12 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T3.r().C)([new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_T3("position", "position", "vec4<f32>")]));
   var $x_16 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy12);
   var items$proxy13 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T3.r().C)([]));
-  var $x_15 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($x_24, "VertexOutput", $x_21, $x_18, $x_17.i([...$x_16], [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy13)]));
-  var $x_14 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lgpu_derive$();
+  var $x_15 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($x_24, "VertexOutput", $x_21, $x_18, $x_17.i([...$x_16], [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy13)]));
+  var $x_14 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lgpu_shader_derive$();
   var $x_13 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjs_js_ArrayOpsCommon$();
   var items$proxy14 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)(["color"]));
   var $x_12 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy14);
@@ -157,8 +157,8 @@ $p.ax = (function(device, canvas, setStatus) {
   var items$proxy17 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)([]));
   var $x_8 = $x_10.i([...$x_9], [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy17)]);
   var items$proxy18 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T3.r().C)([]));
-  var $x_7 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($x_14, "FragmentOutput", $x_11, $x_8, [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy18)]);
-  var $x_6 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lgpu_derive$();
+  var $x_7 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($x_14, "FragmentOutput", $x_11, $x_8, [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy18)]);
+  var $x_6 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lgpu_shader_derive$();
   var $x_5 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjs_js_ArrayOpsCommon$();
   var items$proxy19 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)(["tintColor"]));
   var $x_4 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy19);
@@ -168,7 +168,7 @@ $p.ax = (function(device, canvas, setStatus) {
   var items$proxy21 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)(["vec4<f32>"]));
   var $x_1 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy21);
   var items$proxy22 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)([]));
-  var wgslCode = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_ShaderDef__buildWGSL__T__T__T__T__T__T__T(triangleShader, $x_25, $x_15, $x_7, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T($x_6, 0, $x_3, $x_2.i([...$x_1], [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy22)])), triangleShader.a5, triangleShader.a4);
+  var wgslCode = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_shader_ShaderDef__buildWGSL__T__T__T__T__T__T__T(triangleShader, $x_25, $x_15, $x_7, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T($x_6, 0, $x_3, $x_2.i([...$x_1], [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy22)])), triangleShader.a5, triangleShader.a4);
   console.log(("Generated WGSL:\n" + wgslCode));
   var shaderModule = device.createShaderModule(({
     "code": wgslCode
@@ -222,7 +222,7 @@ $p.ax = (function(device, canvas, setStatus) {
     "size": value,
     "usage": 40
   }));
-  device.queue.writeBuffer(vertexBuffer, 0, _1.buffer);
+  device.queue.writeBuffer(vertexBuffer, 0.0, _1.buffer);
   var buffer$2 = new ArrayBuffer(16);
   var tintData = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_T2(new DataView(buffer$2), 1);
   var _1$2 = tintData.t;
@@ -243,7 +243,7 @@ $p.ax = (function(device, canvas, setStatus) {
     "size": value$1,
     "usage": 72
   }));
-  device.queue.writeBuffer(uniformBuffer, 0, tintData.t.buffer);
+  device.queue.writeBuffer(uniformBuffer, 0.0, tintData.t.buffer);
   var context = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b1(canvas);
   context.configure(({
     "device": device,
@@ -279,7 +279,7 @@ $p.ax = (function(device, canvas, setStatus) {
     i = ((1 + i) | 0);
   }
   var \u03b42$___1 = result;
-  var \u03b42$___2 = $m_Lgpu_layouts$().bb(device, result);
+  var \u03b42$___2 = $m_Lgpu_shader_layouts$().bb(device, result);
   var bindGroupLayouts = \u03b42$___1;
   var pipelineLayout$2 = \u03b42$___2;
   var $x_51 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$();
@@ -299,8 +299,8 @@ $p.ax = (function(device, canvas, setStatus) {
   var $x_46 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy32);
   var items$proxy33 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().al(new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$ac_I(new Int32Array([])));
   var sizes = $x_49.i([...$x_48], $x_47.i([...$x_46], [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy33)]));
-  var offsets = $p_Lgpu_layouts$__calculateOffsets__sjs_js_Array__sjs_js_Array($m_Lgpu_layouts$(), sizes);
-  var stride$3 = $p_Lgpu_layouts$__calculateStride__sjs_js_Array__I($m_Lgpu_layouts$(), sizes);
+  var offsets = $p_Lgpu_shader_layouts$__calculateOffsets__sjs_js_Array__sjs_js_Array($m_Lgpu_shader_layouts$(), sizes);
+  var stride$3 = $p_Lgpu_shader_layouts$__calculateStride__sjs_js_Array__I($m_Lgpu_shader_layouts$(), sizes);
   var items$proxy34 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($d_sjs_js_Dynamic.r().C)([]));
   var attributes = [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy34)];
   var end = (formats.length | 0);
@@ -381,7 +381,7 @@ function $m_Lbuffer\uff3ftriangle_BufferTriangle$() {
   }
   return $n_Lbuffer\uff3ftriangle_BufferTriangle$;
 }
-function $p_Lgpu_layouts$__calculateOffsets__sjs_js_Array__sjs_js_Array($thiz, sizes) {
+function $p_Lgpu_shader_layouts$__calculateOffsets__sjs_js_Array__sjs_js_Array($thiz, sizes) {
   var items$proxy1 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().al(new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$ac_I(new Int32Array([])));
   var offsets = [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy1)];
   var elem = 0;
@@ -397,7 +397,7 @@ function $p_Lgpu_layouts$__calculateOffsets__sjs_js_Array__sjs_js_Array($thiz, s
   }
   return offsets;
 }
-function $p_Lgpu_layouts$__calculateStride__sjs_js_Array__I($thiz, sizes) {
+function $p_Lgpu_shader_layouts$__calculateStride__sjs_js_Array__I($thiz, sizes) {
   var elem = 0;
   elem = 0;
   var len = (sizes.length | 0);
@@ -411,28 +411,28 @@ function $p_Lgpu_layouts$__calculateStride__sjs_js_Array__I($thiz, sizes) {
   return elem;
 }
 /** @constructor */
-function $c_Lgpu_layouts$() {
+function $c_Lgpu_shader_layouts$() {
 }
-$p = $c_Lgpu_layouts$.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_O();
-$p.constructor = $c_Lgpu_layouts$;
+$p = $c_Lgpu_shader_layouts$.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_O();
+$p.constructor = $c_Lgpu_shader_layouts$;
 /** @constructor */
-function $h_Lgpu_layouts$() {
+function $h_Lgpu_shader_layouts$() {
 }
-$h_Lgpu_layouts$.prototype = $p;
+$h_Lgpu_shader_layouts$.prototype = $p;
 $p.bb = (function(device, bindGroupLayouts) {
   return device.createPipelineLayout(({
     "bindGroupLayouts": bindGroupLayouts
   }));
 });
-var $d_Lgpu_layouts$ = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lgpu_layouts$, "gpu.layouts$", ({
+var $d_Lgpu_shader_layouts$ = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lgpu_shader_layouts$, "gpu.shader.layouts$", ({
   ac: 1
 }));
-var $n_Lgpu_layouts$;
-function $m_Lgpu_layouts$() {
-  if ((!$n_Lgpu_layouts$)) {
-    $n_Lgpu_layouts$ = new $c_Lgpu_layouts$();
+var $n_Lgpu_shader_layouts$;
+function $m_Lgpu_shader_layouts$() {
+  if ((!$n_Lgpu_shader_layouts$)) {
+    $n_Lgpu_shader_layouts$ = new $c_Lgpu_shader_layouts$();
   }
-  return $n_Lgpu_layouts$;
+  return $n_Lgpu_shader_layouts$;
 }
 var $d_Lwebgpu_GPUBindGroupLayout = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i(2, "webgpu.GPUBindGroupLayout", ({
   bS: 1

@@ -1,6 +1,5 @@
 package gpu.math
 
-import gpu.WGSLType
 import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.F64
 import trivalibs.bufferdata.StructRef
@@ -116,12 +115,6 @@ object Vec3:
   type Attrib = Vec3Buffer
   type Uniform = Vec4Buffer // Padded layout
 
-  given WGSLType[Vec3]:
-    def wgslName = "vec3<f32>"
-    def byteSize = 12
-    def alignment = 16 // WGSL alignment rules
-    def vertexFormat = "float32x3"
-
   given Vec3Mutable[Float, Vec3]:
     extension (v: Vec3)
       inline def x: Float = v.x
@@ -182,12 +175,6 @@ class Vec3d(var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0)
 object Vec3d:
   type Attrib = Vec3dBuffer
   type Uniform = Vec4dBuffer // Padded layout
-
-  given WGSLType[Vec3d]:
-    def wgslName = "vec3<f64>"
-    def byteSize = 24
-    def alignment = 32
-    def vertexFormat = "float64x3"
 
   given Vec3Mutable[Double, Vec3d]:
     extension (v: Vec3d)

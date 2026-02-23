@@ -1,4 +1,4 @@
-package gpu
+package gpu.shader
 
 import scala.compiletime.*
 import scala.NamedTuple.AnyNamedTuple
@@ -8,39 +8,39 @@ import trivalibs.utils.js.Arr
 object derive:
 
   // ===========================================================================
-  // Named Tuple Introspection (handles both empty and non-empty tuples)
+  // Named Tuple Introspection (handles both empty and non-empty tFreitaguples)
   // ===========================================================================
 
   /** Get field names from a named tuple type as a tuple of strings */
   inline def fieldNames[T]: Arr[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple    => Arr()
       case _: AnyNamedTuple =>
         fieldNamesImpl[NamedTuple.Names[T & AnyNamedTuple]]
 
   private inline def fieldNamesImpl[T <: Tuple]: Arr[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple     => Arr()
       case _: (name *: rest) =>
         Arr(constValue[name].asInstanceOf[String]) ++ fieldNamesImpl[rest]
 
   /** Get WGSL type names for each field in a named tuple */
   inline def fieldWgslTypes[T]: Arr[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple    => Arr()
       case _: AnyNamedTuple =>
         fieldWgslTypesImpl[NamedTuple.DropNames[T & AnyNamedTuple]]
 
   private inline def fieldWgslTypesImpl[T <: Tuple]: Arr[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple     => Arr()
       case _: (head *: rest) =>
         Arr(summonInline[WGSLType[head]].wgslName) ++ fieldWgslTypesImpl[rest]
 
   /** Get builtin info for each field in a named tuple of builtins */
   inline def fieldBuiltins[T]: Arr[(String, String, String)] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple    => Arr()
       case _: AnyNamedTuple =>
         fieldBuiltinsImpl[
           NamedTuple.Names[T & AnyNamedTuple],
@@ -50,14 +50,16 @@ object derive:
   private inline def fieldBuiltinsImpl[N <: Tuple, T <: Tuple]
       : Arr[(String, String, String)] =
     inline (erasedValue[N], erasedValue[T]) match
-      case (_: EmptyTuple, _: EmptyTuple) => Arr()
+      case (_: EmptyTuple, _: EmptyTuple)                   => Arr()
       case (_: (name *: namesRest), _: (head *: typesRest)) =>
         val bt = summonInline[BuiltinType[head]]
-        Arr((
-          constValue[name].asInstanceOf[String],
-          bt.wgslBuiltin,
-          bt.wgslType
-        )) ++ fieldBuiltinsImpl[namesRest, typesRest]
+        Arr(
+          (
+            constValue[name].asInstanceOf[String],
+            bt.wgslBuiltin,
+            bt.wgslType
+          )
+        ) ++ fieldBuiltinsImpl[namesRest, typesRest]
 
   // ===========================================================================
   // WGSL Struct Generation
@@ -76,9 +78,10 @@ object derive:
   ): String =
     if names.isEmpty then ""
     else
-      val fields = names.zip(types).zipWithIndex.map { case ((name, typ), idx) =>
-        s"  @location($idx) $name: $typ,"
-      }
+      val fields =
+        names.zip(types).zipWithIndex.map { case ((name, typ), idx) =>
+          s"  @location($idx) $name: $typ,"
+        }
       s"struct $structName {\n${fields.mkString("\n")}\n}"
 
   /** Generate a WGSL struct with @builtin annotations */
@@ -112,10 +115,10 @@ object derive:
       locTypes: Arr[String],
       builtins: Arr[(String, String, String)]
   ): String =
-    val locationFields = locNames.zip(locTypes).zipWithIndex.map {
-      case ((name, typ), idx) =>
+    val locationFields =
+      locNames.zip(locTypes).zipWithIndex.map { case ((name, typ), idx) =>
         s"  @location($idx) $name: $typ,"
-    }
+      }
     val builtinFields = builtins.map { case (name, builtin, typ) =>
       s"  @builtin($builtin) $name: $typ,"
     }
@@ -130,7 +133,7 @@ object derive:
   /** Generate uniform declarations from nested named tuples */
   inline def generateUniforms[T]: String =
     inline erasedValue[T] match
-      case _: EmptyTuple => ""
+      case _: EmptyTuple    => ""
       case _: AnyNamedTuple =>
         // T is a named tuple like (group1: (...), group2: (...))
         // We need to iterate over the values (the inner named tuples)
@@ -144,7 +147,7 @@ object derive:
 
   private inline def generateUniformsImpl[T <: Tuple](groupIdx: Int): String =
     inline erasedValue[T] match
-      case _: EmptyTuple => ""
+      case _: EmptyTuple     => ""
       case _: (head *: rest) =>
         val groupDecls = generateUniformGroup[head](groupIdx)
         val restDecls = generateUniformsImpl[rest](groupIdx + 1)
@@ -153,17 +156,19 @@ object derive:
 
   private inline def generateUniformGroup[T](groupIdx: Int): String =
     inline erasedValue[T] match
-      case _: EmptyTuple => ""
+      case _: EmptyTuple    => ""
       case _: AnyNamedTuple =>
         val names = fieldNames[T]
         val types = uniformFieldTypes[NamedTuple.DropNames[T & AnyNamedTuple]]
         generateUniformGroupFromLists(groupIdx, names, types)
       case _ => ""
 
-  /** Extract WGSL type names, unwrapping VertexUniform/FragmentUniform/SharedUniform */
+  /** Extract WGSL type names, unwrapping
+    * VertexUniform/FragmentUniform/SharedUniform
+    */
   private inline def uniformFieldTypes[T <: Tuple]: Arr[String] =
     inline erasedValue[T] match
-      case _: EmptyTuple => Arr()
+      case _: EmptyTuple     => Arr()
       case _: (head *: rest) =>
         Arr(unwrapUniformType[head]) ++ uniformFieldTypes[rest]
 
@@ -177,6 +182,10 @@ object derive:
       names: Arr[String],
       types: Arr[String]
   ): String =
-    names.zip(types).zipWithIndex.map { case ((name, typ), bindingIdx) =>
-      s"@group($groupIdx) @binding($bindingIdx) var<uniform> $name: $typ;"
-    }.mkString("\n")
+    names
+      .zip(types)
+      .zipWithIndex
+      .map { case ((name, typ), bindingIdx) =>
+        s"@group($groupIdx) @binding($bindingIdx) var<uniform> $name: $typ;"
+      }
+      .mkString("\n")

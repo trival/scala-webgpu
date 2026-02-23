@@ -10,5 +10,8 @@
 	},
 	"devDependencies": {
 		"@types/bun": "latest"
+	},
+	"dependencies": {
+		"@webgpu/types": "^0.1.69"
 	}
 }

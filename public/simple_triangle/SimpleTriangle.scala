@@ -50,8 +50,8 @@ object SimpleTriangle:
       canvas: HTMLCanvasElement,
       setStatus: (String, Boolean) => Unit
   ): Unit =
-    import gpu.{Shader, BuiltinVertexIndex, VertOut, FragOut}
-    import gpu.None as GPUNone
+    import gpu.shader.{*, given}
+    import gpu.shader.None as GPUNone
 
     // Use the full API to add vertex_index builtin input
     val triangleShader = Shader.full[

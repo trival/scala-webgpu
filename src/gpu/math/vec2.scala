@@ -1,6 +1,5 @@
 package gpu.math
 
-import gpu.WGSLType
 import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.F64
 import trivalibs.bufferdata.StructRef
@@ -95,12 +94,6 @@ object Vec2:
   type Attrib = Vec2Buffer
   type Uniform = Vec2Buffer
 
-  given WGSLType[Vec2]:
-    def wgslName = "vec2<f32>"
-    def byteSize = 8
-    def alignment = 8
-    def vertexFormat = "float32x2"
-
   given Vec2Mutable[Float, Vec2]:
     extension (v: Vec2)
       inline def x: Float = v.x
@@ -155,12 +148,6 @@ class Vec2d(var x: Double = 0.0, var y: Double = 0.0)
 object Vec2d:
   type Attrib = Vec2dBuffer
   type Uniform = Vec2dBuffer
-
-  given WGSLType[Vec2d]:
-    def wgslName = "vec2<f64>"
-    def byteSize = 16
-    def alignment = 16
-    def vertexFormat = "float64x2"
 
   given Vec2Mutable[Double, Vec2d]:
     extension (v: Vec2d)

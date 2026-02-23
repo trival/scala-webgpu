@@ -1,4 +1,4 @@
-package gpu
+package gpu.shader
 
 /** Type class for WGSL builtin types */
 trait BuiltinType[T]:

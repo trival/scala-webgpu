@@ -1,6 +1,5 @@
 package gpu.math
 
-import gpu.WGSLType
 import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.StructRef
 
@@ -172,12 +171,6 @@ class Mat2(
 
 object Mat2:
   type Uniform = Mat2Buffer
-
-  given WGSLType[Mat2]:
-    def wgslName = "mat2x2<f32>"
-    def byteSize = 16
-    def alignment = 8
-    def vertexFormat = ""
 
   given Mat2Mutable[Float, Mat2]:
     extension (m: Mat2)

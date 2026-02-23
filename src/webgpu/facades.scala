@@ -14,15 +14,15 @@ import trivalibs.utils.js.Arr
 
 @js.native
 trait GPU extends js.Object:
+  def requestAdapter(): js.Promise[GPUAdapter | Null] = js.native
   def requestAdapter(
-      options: js.UndefOr[js.Object] = js.undefined
+      options: js.Dynamic
   ): js.Promise[GPUAdapter | Null] = js.native
 
 @js.native
 trait GPUAdapter extends js.Object:
-  def requestDevice(
-      descriptor: js.UndefOr[js.Object] = js.undefined
-  ): js.Promise[GPUDevice] = js.native
+  def requestDevice(): js.Promise[GPUDevice] = js.native
+  def requestDevice(descriptor: js.Dynamic): js.Promise[GPUDevice] = js.native
 
 @js.native
 trait GPUDevice extends js.Object:
@@ -31,6 +31,8 @@ trait GPUDevice extends js.Object:
   def createRenderPipeline(descriptor: js.Dynamic): GPURenderPipeline =
     js.native
   def createCommandEncoder(): GPUCommandEncoder = js.native
+  def createCommandEncoder(descriptor: js.Dynamic): GPUCommandEncoder =
+    js.native
   def createBuffer(descriptor: js.Dynamic): GPUBuffer = js.native
   def createBindGroup(descriptor: js.Dynamic): GPUBindGroup = js.native
   def createBindGroupLayout(descriptor: js.Dynamic): GPUBindGroupLayout =
@@ -47,8 +49,21 @@ trait GPUQueue extends js.Object:
   def submit(commandBuffers: Arr[GPUCommandBuffer]): Unit = js.native
   def writeBuffer(
       buffer: GPUBuffer,
-      bufferOffset: Int,
+      bufferOffset: Double,
       data: Float32Array | Uint8Array | ArrayBuffer
+  ): Unit = js.native
+  def writeBuffer(
+      buffer: GPUBuffer,
+      bufferOffset: Double,
+      data: Float32Array | Uint8Array | ArrayBuffer,
+      dataOffset: Double
+  ): Unit = js.native
+  def writeBuffer(
+      buffer: GPUBuffer,
+      bufferOffset: Double,
+      data: Float32Array | Uint8Array | ArrayBuffer,
+      dataOffset: Double,
+      size: Double
   ): Unit = js.native
 
 // =============================================================================
@@ -73,17 +88,35 @@ trait GPUPipelineLayout extends js.Object
 trait GPUCommandEncoder extends js.Object:
   def beginRenderPass(descriptor: js.Dynamic): GPURenderPassEncoder = js.native
   def finish(): GPUCommandBuffer = js.native
+  def finish(descriptor: js.Dynamic): GPUCommandBuffer = js.native
 
 @js.native
 trait GPURenderPassEncoder extends js.Object:
   def setPipeline(pipeline: GPURenderPipeline): Unit = js.native
   def setVertexBuffer(slot: Int, buffer: GPUBuffer): Unit = js.native
+  def setVertexBuffer(slot: Int, buffer: GPUBuffer, offset: Double): Unit =
+    js.native
+  def setVertexBuffer(
+      slot: Int,
+      buffer: GPUBuffer,
+      offset: Double,
+      size: Double
+  ): Unit = js.native
   def setBindGroup(index: Int, bindGroup: GPUBindGroup): Unit = js.native
+  def setBindGroup(
+      index: Int,
+      bindGroup: GPUBindGroup,
+      dynamicOffsets: js.Array[Double]
+  ): Unit = js.native
+  def draw(vertexCount: Int): Unit = js.native
+  def draw(vertexCount: Int, instanceCount: Int): Unit = js.native
+  def draw(vertexCount: Int, instanceCount: Int, firstVertex: Int): Unit =
+    js.native
   def draw(
       vertexCount: Int,
-      instanceCount: Int = 1,
-      firstVertex: Int = 0,
-      firstInstance: Int = 0
+      instanceCount: Int,
+      firstVertex: Int,
+      firstInstance: Int
   ): Unit = js.native
   def end(): Unit = js.native
 
@@ -115,6 +148,7 @@ trait GPUCanvasContext extends js.Object:
 @js.native
 trait GPUTexture extends js.Object:
   def createView(): GPUTextureView = js.native
+  def createView(descriptor: js.Dynamic): GPUTextureView = js.native
 
 @js.native
 trait GPUTextureView extends js.Object

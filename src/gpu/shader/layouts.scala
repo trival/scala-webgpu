@@ -1,4 +1,4 @@
-package gpu
+package gpu.shader
 
 import trivalibs.utils.js.Arr
 import trivalibs.utils.js.Obj

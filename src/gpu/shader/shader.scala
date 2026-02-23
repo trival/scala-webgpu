@@ -1,4 +1,4 @@
-package gpu
+package gpu.shader
 
 import scala.compiletime.erasedValue
 import scala.scalajs.js
