@@ -1,7 +1,6 @@
 package buffer_triangle
 
-import gpu.buffers.allocateAttribs
-import gpu.buffers.allocateUniform
+import gpu.buffers.*
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
@@ -34,7 +33,7 @@ object BufferTriangle:
   def initWebGPU(
       gpu: GPU,
       canvas: HTMLCanvasElement,
-      setStatus: (String, Boolean) => Unit
+      setStatus: (String, Boolean) => Unit,
   ): Unit =
     val result = for
       adapter <- gpu.requestAdapter().orError("Failed to get WebGPU adapter")
@@ -50,7 +49,7 @@ object BufferTriangle:
   def renderTriangle(
       device: GPUDevice,
       canvas: HTMLCanvasElement,
-      setStatus: (String, Boolean) => Unit
+      setStatus: (String, Boolean) => Unit,
   ): Unit =
     import gpu.shader.{*, given}
     import gpu.math.*
@@ -63,7 +62,7 @@ object BufferTriangle:
     val triangleShader = Shader[
       Attribs, // Vertex attributes from buffer
       (color: Vec4), // Varyings
-      (scene: Uniforms) // Uniform for runtime tint
+      (scene: Uniforms), // Uniform for runtime tint
     ](
       vertexBody = """
   out.position = vec4<f32>(in.position, 0.0, 1.0);
@@ -71,7 +70,7 @@ object BufferTriangle:
   """,
       fragmentBody = """
   out.color = in.color * tintColor;
-  """
+  """,
     )
 
     val wgslCode = triangleShader.generateWGSL
@@ -80,8 +79,8 @@ object BufferTriangle:
     // Create shader module
     val shaderModule = device.createShaderModule(
       Obj.literal(
-        code = wgslCode
-      )
+        code = wgslCode,
+      ),
     )
 
     // Create vertex buffer - layout derived from shader attribs
@@ -102,33 +101,19 @@ object BufferTriangle:
     val vertexBuffer = device.createBuffer(
       Obj.literal(
         size = vertices.arrayBuffer.byteLength,
-        usage = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST
-      )
+        usage = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+      ),
     )
 
     // Upload vertex data
     device.queue.writeBuffer(
       vertexBuffer,
       0,
-      vertices.arrayBuffer
+      vertices.arrayBuffer,
     )
 
-    // Create uniform buffer for tint color (Vec4 = 16 bytes)
-    val tintData = allocateUniform[Uniforms](1)
-    tintData(0)(0) := (1.0f, 1.0f, 1.0f, 1.0f) // Start with white (no tint)
-
-    val uniformBuffer = device.createBuffer(
-      Obj.literal(
-        size = tintData.arrayBuffer.byteLength,
-        usage = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-      )
-    )
-
-    device.queue.writeBuffer(
-      uniformBuffer,
-      0,
-      tintData.arrayBuffer
-    )
+    // Create uniform buffer for tint color
+    val tintColor = Vec4(1, 1, 1, 1).asBinding(device)
 
     // Get WebGPU context
     val context = WebGPU.getContext(canvas)
@@ -137,8 +122,8 @@ object BufferTriangle:
     context.configure(
       Obj.literal(
         device = device,
-        format = format
-      )
+        format = format,
+      ),
     )
 
     // Derive explicit bind group layouts and pipeline layout from shader types
@@ -152,21 +137,21 @@ object BufferTriangle:
         vertex = Obj.literal(
           module = shaderModule,
           entryPoint = "vs_main",
-          buffers = Arr(triangleShader.vertexBufferLayout)
+          buffers = Arr(triangleShader.vertexBufferLayout),
         ),
         fragment = Obj.literal(
           module = shaderModule,
           entryPoint = "fs_main",
           targets = Arr(
             Obj.literal(
-              format = format
-            )
-          )
+              format = format,
+            ),
+          ),
         ),
         primitive = Obj.literal(
-          topology = "triangle-list"
-        )
-      )
+          topology = "triangle-list",
+        ),
+      ),
     )
 
     // Create bind group using explicit layout (reusable across pipelines)
@@ -177,11 +162,11 @@ object BufferTriangle:
           Obj.literal(
             binding = 0,
             resource = Obj.literal(
-              buffer = uniformBuffer
-            )
-          )
-        )
-      )
+              buffer = tintColor.gpuBuffer,
+            ),
+          ),
+        ),
+      ),
     )
 
     // Animation state
@@ -191,15 +176,10 @@ object BufferTriangle:
     def render(time: Double): Unit =
       // Animate tint color
       val elapsed = (time - startTime) / 2000.0
-      val r = (Math.sin(elapsed * 2.0) * 0.5 + 0.5).toFloat
-      val g = (Math.sin(elapsed * 2.0 + 2.0) * 0.5 + 0.5).toFloat
-      val b = (Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5).toFloat
-      tintData(0)(0) := (r, g, b, 1.0f)
-      device.queue.writeBuffer(
-        uniformBuffer,
-        0,
-        tintData.arrayBuffer
-      )
+      val r = (Math.sin(elapsed * 2.0) * 0.5 + 0.5)
+      val g = (Math.sin(elapsed * 2.0 + 2.0) * 0.5 + 0.5)
+      val b = (Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5)
+      tintColor.set(Vec4(r, g, b, 1))
 
       val commandEncoder = device.createCommandEncoder()
       val textureView = context.getCurrentTexture().createView()
@@ -211,10 +191,10 @@ object BufferTriangle:
               view = textureView,
               loadOp = "clear",
               storeOp = "store",
-              clearValue = Obj.literal(r = 0.15, g = 0.1, b = 0.1, a = 1.0)
-            )
-          )
-        )
+              clearValue = Obj.literal(r = 0.15, g = 0.1, b = 0.1, a = 1.0),
+            ),
+          ),
+        ),
       )
 
       renderPass.setPipeline(pipeline)

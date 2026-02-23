@@ -41,11 +41,11 @@ $p.constructor = $c_Lsimple\uff3ftriangle_SimpleTriangle$;
 function $h_Lsimple\uff3ftriangle_SimpleTriangle$() {
 }
 $h_Lsimple\uff3ftriangle_SimpleTriangle$.prototype = $p;
-$p.aw = (function() {
+$p.ax = (function() {
   var statusEl = document.getElementById("status");
   var canvas = document.getElementById("canvas");
   matchResult1: {
-    var x = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b6();
+    var x = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().bd();
     var x1 = ((x === (void 0)) ? $m_s_None$() : new $c_s_Some(x));
     if (($m_s_None$() === x1)) {
       $p_Lsimple\uff3ftriangle_SimpleTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, "WebGPU is not supported in this browser", true);
@@ -54,7 +54,7 @@ $p.aw = (function() {
     if ((x1 instanceof $c_s_Some)) {
       var gpu = x1.a9;
       $p_Lsimple\uff3ftriangle_SimpleTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, "WebGPU available, initializing...", false);
-      this.au(gpu, canvas, new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc(((v1$2, v2$2) => {
+      this.av(gpu, canvas, new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc(((v1$2, v2$2) => {
         $p_Lsimple\uff3ftriangle_SimpleTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, v1$2, (!(!v2$2)));
       })));
       break matchResult1;
@@ -62,7 +62,7 @@ $p.aw = (function() {
     throw new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_s_MatchError(x1);
   }
 });
-$p.au = (function(gpu, canvas, setStatus) {
+$p.av = (function(gpu, canvas, setStatus) {
   var promise$proxy1 = gpu.requestAdapter();
   var promise$proxy3 = promise$proxy1.then(((value$2) => {
     if ((value$2 === null)) {
@@ -74,23 +74,23 @@ $p.au = (function(gpu, canvas, setStatus) {
   var f$proxy2 = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((adapter$2) => {
     var promise$proxy2 = adapter$2.requestDevice();
     var f$proxy1 = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((device$3) => {
-      setStatus.B("WebGPU initialized! Rendering triangle...", false);
-      this.ax(device$3, canvas, setStatus);
+      setStatus.C("WebGPU initialized! Rendering triangle...", false);
+      this.ay(device$3, canvas, setStatus);
     }));
     return promise$proxy2.then($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjs_js_Any$().aj(f$proxy1));
   }));
   var result = promise$proxy3.then($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjs_js_Any$().aj(f$proxy2));
   var pf$proxy1 = new $c_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1(setStatus);
   result.catch(((err$2) => {
-    if (pf$proxy1.av(err$2)) {
+    if (pf$proxy1.aw(err$2)) {
       return pf$proxy1.ai(err$2, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_PartialFunction$().a8);
     } else {
       var $x_1 = err$2;
-      throw (false ? $x_1.aR : $x_1);
+      throw (false ? $x_1.aY : $x_1);
     }
   }));
 });
-$p.ax = (function(device, canvas, setStatus) {
+$p.ay = (function(device, canvas, setStatus) {
   var triangleShader = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_Lgpu_shader_ShaderDef("\n  let positions = array<vec2<f32>, 3>(\n    vec2<f32>(0.0, 0.5),\n    vec2<f32>(-0.5, -0.5),\n    vec2<f32>(0.5, -0.5)\n  );\n  let colors = array<vec4<f32>, 3>(\n    vec4<f32>(1.0, 0.0, 0.0, 1.0),\n    vec4<f32>(0.0, 1.0, 0.0, 1.0),\n    vec4<f32>(0.0, 0.0, 1.0, 1.0)\n  );\n  let idx = in.vertexIndex;\n  out.position = vec4<f32>(positions[idx], 0.0, 1.0);\n  out.color = colors[idx];\n  ", "\n  out.color = in.color;\n  ");
   var $x_23 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lgpu_shader_derive$();
   var items$proxy1 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().e(new ($j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$d_T.r().C)([]));
@@ -135,7 +135,7 @@ $p.ax = (function(device, canvas, setStatus) {
   var shaderModule = device.createShaderModule(({
     "code": wgslCode
   }));
-  var context = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b5(canvas);
+  var context = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().bc(canvas);
   context.configure(({
     "device": device,
     "format": "bgra8unorm"
@@ -163,10 +163,10 @@ $p.ax = (function(device, canvas, setStatus) {
     "primitive": _2$3
   }));
   $p_Lsimple\uff3ftriangle_SimpleTriangle$__render$1__Lwebgpu_GPUDevice__Lwebgpu_GPUCanvasContext__Lwebgpu_GPURenderPipeline__V(this, device, context, $x_24);
-  setStatus.B("Triangle rendered successfully!", false);
+  setStatus.C("Triangle rendered successfully!", false);
 });
 var $d_Lsimple\uff3ftriangle_SimpleTriangle$ = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lsimple\uff3ftriangle_SimpleTriangle$, "simple_triangle.SimpleTriangle$", ({
-  bW: 1
+  bX: 1
 }));
 var $n_Lsimple\uff3ftriangle_SimpleTriangle$;
 function $m_Lsimple\uff3ftriangle_SimpleTriangle$() {
@@ -187,20 +187,20 @@ $h_s_Option.prototype = $p;
 $p.a2 = (function() {
   return new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_s_Product$$anon$1(this);
 });
-$p.C = (function() {
+$p.D = (function() {
   return (this === $m_s_None$());
 });
-$p.w = (function() {
-  return (this.C() ? 0 : 1);
+$p.x = (function() {
+  return (this.D() ? 0 : 1);
 });
 $p.m = (function() {
-  return (this.C() ? $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sc_Iterator$().K : new $c_sc_Iterator$$anon$20(this.b4()));
+  return (this.D() ? $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sc_Iterator$().K : new $c_sc_Iterator$$anon$20(this.bb()));
 });
 /** @constructor */
 function $c_sc_Iterator$$anon$20(a$2) {
-  this.aJ = null;
+  this.aQ = null;
   this.af = false;
-  this.aJ = a$2;
+  this.aQ = a$2;
   this.af = false;
 }
 $p = $c_sc_Iterator$$anon$20.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_sc_AbstractIterator();
@@ -217,11 +217,11 @@ $p.q = (function() {
     return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sc_Iterator$().K.q();
   } else {
     this.af = true;
-    return this.aJ;
+    return this.aQ;
   }
 });
 var $d_sc_Iterator$$anon$20 = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_sc_Iterator$$anon$20, "scala.collection.Iterator$$anon$20", ({
-  aW: 1,
+  aX: 1,
   H: 1,
   b: 1,
   c: 1,
@@ -229,8 +229,8 @@ var $d_sc_Iterator$$anon$20 = new $j_internal$002dcad23071acfd2512298b5f90a8a655
 }));
 /** @constructor */
 function $c_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1(setStatus$5) {
-  this.aq = null;
-  this.aq = setStatus$5;
+  this.ar = null;
+  this.ar = setStatus$5;
 }
 $p = $c_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_sr_AbstractPartialFunction();
 $p.constructor = $c_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1;
@@ -238,18 +238,18 @@ $p.constructor = $c_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1;
 function $h_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1() {
 }
 $h_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1.prototype = $p;
-$p.av = (function(x) {
+$p.aw = (function(x) {
   return true;
 });
 $p.ai = (function(x, default$1) {
   if ((x instanceof $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_ju_NoSuchElementException)) {
-    this.aq.B(x.a6, true);
+    this.ar.C(x.a6, true);
   } else {
-    this.aq.B(("WebGPU error: " + x), true);
+    this.ar.C(("WebGPU error: " + x), true);
   }
 });
 var $d_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1 = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1, "simple_triangle.SimpleTriangle$$anon$1", ({
-  bX: 1,
+  bY: 1,
   a6: 1,
   e: 1,
   f: 1,
@@ -270,23 +270,23 @@ $p.j = (function() {
 $p.n = (function() {
   return "None";
 });
-$p.D = (function() {
+$p.E = (function() {
   return 0;
 });
-$p.F = (function() {
+$p.G = (function() {
   return "None";
 });
-$p.E = (function(n) {
+$p.F = (function(n) {
   throw $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$ct_jl_IndexOutOfBoundsException__T__(new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_jl_IndexOutOfBoundsException(), ("" + n));
 });
-$p.bl = (function() {
+$p.bt = (function() {
   throw new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_ju_NoSuchElementException("None.get");
 });
-$p.b4 = (function() {
-  this.bl();
+$p.bb = (function() {
+  this.bt();
 });
 var $d_s_None$ = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_s_None$, "scala.None$", ({
-  aC: 1,
+  aD: 1,
   a0: 1,
   b: 1,
   d: 1,
@@ -315,21 +315,21 @@ $p.j = (function() {
   return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_util_hashing_MurmurHash3$().ak(this, 1323286827, true);
 });
 $p.n = (function() {
-  return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().aT(this);
+  return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().b0(this);
 });
-$p.D = (function() {
+$p.E = (function() {
   return 1;
 });
-$p.F = (function() {
+$p.G = (function() {
   return "Some";
 });
-$p.E = (function(n) {
+$p.F = (function(n) {
   if ((n === 0)) {
     return this.a9;
   }
   throw $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$ct_jl_IndexOutOfBoundsException__T__(new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_jl_IndexOutOfBoundsException(), ("" + n));
 });
-$p.b4 = (function() {
+$p.bb = (function() {
   return this.a9;
 });
 function $isArrayOf_s_Some(obj, depth) {
@@ -344,6 +344,6 @@ var $d_s_Some = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$Ty
   a: 1
 }));
 let $e_main = (function() {
-  $m_Lsimple\uff3ftriangle_SimpleTriangle$().aw();
+  $m_Lsimple\uff3ftriangle_SimpleTriangle$().ax();
 });
 export { $e_main as main };
