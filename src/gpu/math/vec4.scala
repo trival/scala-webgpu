@@ -75,6 +75,7 @@ trait Vec4MutableOps[Num: {NumExt, Fractional}, Vec]:
 // === implementations for common vector types ===
 
 // ==== Float Vec4 types ====
+// Note: *Buffer types use F32 by default; Vec4dBuffer uses F64
 
 type Vec4Buffer = (F32, F32, F32, F32)
 
@@ -96,34 +97,34 @@ object Vec4Buffer:
   given Vec4MutableOps[Float, StructRef[Vec4Buffer]] =
     new Vec4MutableOps[Float, StructRef[Vec4Buffer]] {}
 
-type Vec4Tuple = (Float, Float, Float, Float)
+type Vec4fTuple = (Float, Float, Float, Float)
 
-object Vec4Tuple:
+object Vec4fTuple:
 
-  given Vec4Base[Float, Vec4Tuple]:
-    extension (v: Vec4Tuple)
+  given Vec4Base[Float, Vec4fTuple]:
+    extension (v: Vec4fTuple)
       inline def x: Float = v._1
       inline def y: Float = v._2
       inline def z: Float = v._3
       inline def w: Float = v._4
 
-  given Vec4SharedOps[Float, Vec4Tuple] =
-    new Vec4SharedOps[Float, Vec4Tuple] {}
+  given Vec4SharedOps[Float, Vec4fTuple] =
+    new Vec4SharedOps[Float, Vec4fTuple] {}
 
-  given Vec4ImmutableOps[Float, Vec4Tuple]:
-    extension (v: Vec4Tuple)(using Vec4Base[Float, Vec4Tuple])
+  given Vec4ImmutableOps[Float, Vec4fTuple]:
+    extension (v: Vec4fTuple)(using Vec4Base[Float, Vec4fTuple])
       inline def create(x: Float, y: Float, z: Float, w: Float) = (x, y, z, w)
 
-class Vec4(
+class Vec4f(
     var x: Float = 0f,
     var y: Float = 0f,
     var z: Float = 0f,
     var w: Float = 0f
 )
 
-object Vec4:
-  given Vec4Mutable[Float, Vec4]:
-    extension (v: Vec4)
+object Vec4f:
+  given Vec4Mutable[Float, Vec4f]:
+    extension (v: Vec4f)
       inline def x: Float = v.x
       inline def y: Float = v.y
       inline def z: Float = v.z
@@ -133,16 +134,16 @@ object Vec4:
       inline def z_=(value: Float): Unit = v.z = value
       inline def w_=(value: Float): Unit = v.w = value
 
-  given Vec4ImmutableOps[Float, Vec4]:
-    extension (v: Vec4)(using Vec4Base[Float, Vec4])
+  given Vec4ImmutableOps[Float, Vec4f]:
+    extension (v: Vec4f)(using Vec4Base[Float, Vec4f])
       inline def create(x: Float, y: Float, z: Float, w: Float) =
-        Vec4(x, y, z, w)
+        Vec4f(x, y, z, w)
 
-  given Vec4MutableOps[Float, Vec4] = new Vec4MutableOps[Float, Vec4] {}
+  given Vec4MutableOps[Float, Vec4f] = new Vec4MutableOps[Float, Vec4f] {}
 
-  given Vec4SharedOps[Float, Vec4] = new Vec4SharedOps[Float, Vec4] {}
+  given Vec4SharedOps[Float, Vec4f] = new Vec4SharedOps[Float, Vec4f] {}
 
-// ===== Double Vec4 types =====
+// ===== Double Vec4 types (default) =====
 
 type Vec4dBuffer = (F64, F64, F64, F64)
 
@@ -164,35 +165,35 @@ object Vec4dBuffer:
   given Vec4MutableOps[Double, StructRef[Vec4dBuffer]] =
     new Vec4MutableOps[Double, StructRef[Vec4dBuffer]] {}
 
-type Vec4dTuple = (Double, Double, Double, Double)
+type Vec4Tuple = (Double, Double, Double, Double)
 
-object Vec4dTuple:
+object Vec4Tuple:
 
-  given Vec4Base[Double, Vec4dTuple]:
-    extension (v: Vec4dTuple)
+  given Vec4Base[Double, Vec4Tuple]:
+    extension (v: Vec4Tuple)
       inline def x: Double = v._1
       inline def y: Double = v._2
       inline def z: Double = v._3
       inline def w: Double = v._4
 
-  given Vec4SharedOps[Double, Vec4dTuple] =
-    new Vec4SharedOps[Double, Vec4dTuple] {}
+  given Vec4SharedOps[Double, Vec4Tuple] =
+    new Vec4SharedOps[Double, Vec4Tuple] {}
 
-  given Vec4ImmutableOps[Double, Vec4dTuple]:
-    extension (v: Vec4dTuple)(using Vec4Base[Double, Vec4dTuple])
+  given Vec4ImmutableOps[Double, Vec4Tuple]:
+    extension (v: Vec4Tuple)(using Vec4Base[Double, Vec4Tuple])
       inline def create(x: Double, y: Double, z: Double, w: Double) =
         (x, y, z, w)
 
-class Vec4d(
+class Vec4(
     var x: Double = 0.0,
     var y: Double = 0.0,
     var z: Double = 0.0,
     var w: Double = 0.0
 )
 
-object Vec4d:
-  given Vec4Mutable[Double, Vec4d]:
-    extension (v: Vec4d)
+object Vec4:
+  given Vec4Mutable[Double, Vec4]:
+    extension (v: Vec4)
       inline def x: Double = v.x
       inline def y: Double = v.y
       inline def z: Double = v.z
@@ -202,11 +203,11 @@ object Vec4d:
       inline def z_=(value: Double): Unit = v.z = value
       inline def w_=(value: Double): Unit = v.w = value
 
-  given Vec4SharedOps[Double, Vec4d] = new Vec4SharedOps[Double, Vec4d] {}
+  given Vec4SharedOps[Double, Vec4] = new Vec4SharedOps[Double, Vec4] {}
 
-  given Vec4ImmutableOps[Double, Vec4d]:
-    extension (v: Vec4d)(using Vec4Base[Double, Vec4d])
+  given Vec4ImmutableOps[Double, Vec4]:
+    extension (v: Vec4)(using Vec4Base[Double, Vec4])
       inline def create(x: Double, y: Double, z: Double, w: Double) =
-        Vec4d(x, y, z, w)
+        Vec4(x, y, z, w)
 
-  given Vec4MutableOps[Double, Vec4d] = new Vec4MutableOps[Double, Vec4d] {}
+  given Vec4MutableOps[Double, Vec4] = new Vec4MutableOps[Double, Vec4] {}

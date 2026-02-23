@@ -1,7 +1,7 @@
 package gpu.shader
 
 import gpu.math.*
-import trivalibs.bufferdata.{F32, F64}
+import trivalibs.bufferdata.F32
 
 import scala.compiletime.*
 
@@ -29,6 +29,16 @@ given WGSLType[Float]:
   type AttribBuffer = F32 *: EmptyTuple
   type UniformBuffer = F32 *: EmptyTuple
 
+// JS does only have 64-bit floats, so we map Scala Double to f32 in WGSL for simplicity
+given WGSLType[Double]:
+  def wgslName = "f32"
+  def byteSize = 4
+  def alignment = 4
+  def vertexFormat = "float32"
+  type AttribBuffer = F32 *: EmptyTuple
+  type UniformBuffer = F32 *: EmptyTuple
+
+// Vec2 (Double, default) and Vec2f (Float) both map to vec2<f32> in WGSL
 given WGSLType[Vec2]:
   def wgslName = "vec2<f32>"
   def byteSize = 8
@@ -37,14 +47,15 @@ given WGSLType[Vec2]:
   type AttribBuffer = Vec2Buffer
   type UniformBuffer = Vec2Buffer
 
-given WGSLType[Vec2d]:
-  def wgslName = "vec2<f64>"
-  def byteSize = 16
-  def alignment = 16
-  def vertexFormat = "float64x2"
-  type AttribBuffer = Vec2dBuffer
-  type UniformBuffer = Vec2dBuffer
+given WGSLType[Vec2f]:
+  def wgslName = "vec2<f32>"
+  def byteSize = 8
+  def alignment = 8
+  def vertexFormat = "float32x2"
+  type AttribBuffer = Vec2Buffer
+  type UniformBuffer = Vec2Buffer
 
+// Vec3 (Double, default) and Vec3f (Float) both map to vec3<f32> in WGSL
 given WGSLType[Vec3]:
   def wgslName = "vec3<f32>"
   def byteSize = 12
@@ -53,14 +64,15 @@ given WGSLType[Vec3]:
   type AttribBuffer = Vec3Buffer
   type UniformBuffer = Vec4Buffer // padded to vec4 per WGSL std140
 
-given WGSLType[Vec3d]:
-  def wgslName = "vec3<f64>"
-  def byteSize = 24
-  def alignment = 32
-  def vertexFormat = "float64x3"
-  type AttribBuffer = Vec3dBuffer
-  type UniformBuffer = Vec4dBuffer // padded to vec4 per WGSL std140
+given WGSLType[Vec3f]:
+  def wgslName = "vec3<f32>"
+  def byteSize = 12
+  def alignment = 16 // WGSL alignment rules
+  def vertexFormat = "float32x3"
+  type AttribBuffer = Vec3Buffer
+  type UniformBuffer = Vec4Buffer // padded to vec4 per WGSL std140
 
+// Vec4 (Double, default) and Vec4f (Float) both map to vec4<f32> in WGSL
 given WGSLType[Vec4]:
   def wgslName = "vec4<f32>"
   def byteSize = 16
@@ -69,13 +81,13 @@ given WGSLType[Vec4]:
   type AttribBuffer = Vec4Buffer
   type UniformBuffer = Vec4Buffer
 
-given WGSLType[Vec4d]:
-  def wgslName = "vec4<f64>"
-  def byteSize = 32
-  def alignment = 32
-  def vertexFormat = "float64x4"
-  type AttribBuffer = Vec4dBuffer
-  type UniformBuffer = Vec4dBuffer
+given WGSLType[Vec4f]:
+  def wgslName = "vec4<f32>"
+  def byteSize = 16
+  def alignment = 16
+  def vertexFormat = "float32x4"
+  type AttribBuffer = Vec4Buffer
+  type UniformBuffer = Vec4Buffer
 
 given WGSLType[Mat2]:
   def wgslName = "mat2x2<f32>"

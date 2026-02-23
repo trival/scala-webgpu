@@ -7,90 +7,82 @@ import trivalibs.bufferdata.StructRef
 // Storage order: m00, m01, m02, m03, m10, m11, ..., m33
 // mColRow convention: m10 = column 1, row 0
 
-trait Mat4Base[Primitive, T]:
-  extension (m: T)
-    def m00: Primitive
-    def m01: Primitive
-    def m02: Primitive
-    def m03: Primitive
-    def m10: Primitive
-    def m11: Primitive
-    def m12: Primitive
-    def m13: Primitive
-    def m20: Primitive
-    def m21: Primitive
-    def m22: Primitive
-    def m23: Primitive
-    def m30: Primitive
-    def m31: Primitive
-    def m32: Primitive
-    def m33: Primitive
+trait Mat4Base[Num, Mat]:
+  extension (m: Mat)
+    def m00: Num
+    def m01: Num
+    def m02: Num
+    def m03: Num
+    def m10: Num
+    def m11: Num
+    def m12: Num
+    def m13: Num
+    def m20: Num
+    def m21: Num
+    def m22: Num
+    def m23: Num
+    def m30: Num
+    def m31: Num
+    def m32: Num
+    def m33: Num
 
     // Column getters (derived from abstract mNN accessors)
-    inline def col0: (Primitive, Primitive, Primitive, Primitive) =
-      (m00, m01, m02, m03)
-    inline def col1: (Primitive, Primitive, Primitive, Primitive) =
-      (m10, m11, m12, m13)
-    inline def col2: (Primitive, Primitive, Primitive, Primitive) =
-      (m20, m21, m22, m23)
-    inline def col3: (Primitive, Primitive, Primitive, Primitive) =
-      (m30, m31, m32, m33)
+    inline def col0: (Num, Num, Num, Num) = (m00, m01, m02, m03)
+    inline def col1: (Num, Num, Num, Num) = (m10, m11, m12, m13)
+    inline def col2: (Num, Num, Num, Num) = (m20, m21, m22, m23)
+    inline def col3: (Num, Num, Num, Num) = (m30, m31, m32, m33)
 
     // Row getters (derived from abstract mNN accessors)
-    inline def row0: (Primitive, Primitive, Primitive, Primitive) =
-      (m00, m10, m20, m30)
-    inline def row1: (Primitive, Primitive, Primitive, Primitive) =
-      (m01, m11, m21, m31)
-    inline def row2: (Primitive, Primitive, Primitive, Primitive) =
-      (m02, m12, m22, m32)
-    inline def row3: (Primitive, Primitive, Primitive, Primitive) =
-      (m03, m13, m23, m33)
+    inline def row0: (Num, Num, Num, Num) = (m00, m10, m20, m30)
+    inline def row1: (Num, Num, Num, Num) = (m01, m11, m21, m31)
+    inline def row2: (Num, Num, Num, Num) = (m02, m12, m22, m32)
+    inline def row3: (Num, Num, Num, Num) = (m03, m13, m23, m33)
 
-trait Mat4Mutable[Primitive, T] extends Mat4Base[Primitive, T]:
-  extension (m: T)
-    def m00_=(v: Primitive): Unit
-    def m01_=(v: Primitive): Unit
-    def m02_=(v: Primitive): Unit
-    def m03_=(v: Primitive): Unit
-    def m10_=(v: Primitive): Unit
-    def m11_=(v: Primitive): Unit
-    def m12_=(v: Primitive): Unit
-    def m13_=(v: Primitive): Unit
-    def m20_=(v: Primitive): Unit
-    def m21_=(v: Primitive): Unit
-    def m22_=(v: Primitive): Unit
-    def m23_=(v: Primitive): Unit
-    def m30_=(v: Primitive): Unit
-    def m31_=(v: Primitive): Unit
-    def m32_=(v: Primitive): Unit
-    def m33_=(v: Primitive): Unit
+trait Mat4Mutable[Num, Mat] extends Mat4Base[Num, Mat]:
+  extension (m: Mat)
+    def m00_=(v: Num): Unit
+    def m01_=(v: Num): Unit
+    def m02_=(v: Num): Unit
+    def m03_=(v: Num): Unit
+    def m10_=(v: Num): Unit
+    def m11_=(v: Num): Unit
+    def m12_=(v: Num): Unit
+    def m13_=(v: Num): Unit
+    def m20_=(v: Num): Unit
+    def m21_=(v: Num): Unit
+    def m22_=(v: Num): Unit
+    def m23_=(v: Num): Unit
+    def m30_=(v: Num): Unit
+    def m31_=(v: Num): Unit
+    def m32_=(v: Num): Unit
+    def m33_=(v: Num): Unit
 
     // Column setters (derived from abstract mNN_= setters)
-    inline def col0_=(c: (Primitive, Primitive, Primitive, Primitive)): Unit =
+    inline def col0_=(c: (Num, Num, Num, Num)): Unit =
       m.m00 = c._1; m.m01 = c._2; m.m02 = c._3; m.m03 = c._4
-    inline def col1_=(c: (Primitive, Primitive, Primitive, Primitive)): Unit =
+    inline def col1_=(c: (Num, Num, Num, Num)): Unit =
       m.m10 = c._1; m.m11 = c._2; m.m12 = c._3; m.m13 = c._4
-    inline def col2_=(c: (Primitive, Primitive, Primitive, Primitive)): Unit =
+    inline def col2_=(c: (Num, Num, Num, Num)): Unit =
       m.m20 = c._1; m.m21 = c._2; m.m22 = c._3; m.m23 = c._4
-    inline def col3_=(c: (Primitive, Primitive, Primitive, Primitive)): Unit =
+    inline def col3_=(c: (Num, Num, Num, Num)): Unit =
       m.m30 = c._1; m.m31 = c._2; m.m32 = c._3; m.m33 = c._4
 
     // Row setters (derived from abstract mNN_= setters)
-    inline def row0_=(r: (Primitive, Primitive, Primitive, Primitive)): Unit =
+    inline def row0_=(r: (Num, Num, Num, Num)): Unit =
       m.m00 = r._1; m.m10 = r._2; m.m20 = r._3; m.m30 = r._4
-    inline def row1_=(r: (Primitive, Primitive, Primitive, Primitive)): Unit =
+    inline def row1_=(r: (Num, Num, Num, Num)): Unit =
       m.m01 = r._1; m.m11 = r._2; m.m21 = r._3; m.m31 = r._4
-    inline def row2_=(r: (Primitive, Primitive, Primitive, Primitive)): Unit =
+    inline def row2_=(r: (Num, Num, Num, Num)): Unit =
       m.m02 = r._1; m.m12 = r._2; m.m22 = r._3; m.m32 = r._4
-    inline def row3_=(r: (Primitive, Primitive, Primitive, Primitive)): Unit =
+    inline def row3_=(r: (Num, Num, Num, Num)): Unit =
       m.m03 = r._1; m.m13 = r._2; m.m23 = r._3; m.m33 = r._4
 
 // format: off
-trait Mat4SharedOps[Mat, Primitive: Numeric]:
-  import Numeric.Implicits.given
+trait Mat4SharedOps[Num: Fractional, Mat]:
+  import Fractional.Implicits.given
 
-  extension (m: Mat)(using Mat4Base[Primitive, Mat])
-    inline def determinant: Primitive =
+  extension (m: Mat)(using Mat4Base[Num, Mat])
+    inline def determinant: Num =
       val a00 = m.m00; val a01 = m.m01; val a02 = m.m02; val a03 = m.m03
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12; val a13 = m.m13
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22; val a23 = m.m23
@@ -101,20 +93,20 @@ trait Mat4SharedOps[Mat, Primitive: Numeric]:
         a20 * (a01 * (a12 * a33 - a13 * a32) - a11 * (a02 * a33 - a03 * a32) + a31 * (a02 * a13 - a03 * a12)) -
         a30 * (a01 * (a12 * a23 - a13 * a22) - a11 * (a02 * a23 - a03 * a22) + a21 * (a02 * a13 - a03 * a12))
 
-trait Mat4ImmutableOps[Mat, Primitive: Numeric]:
-  import Numeric.Implicits.given
+trait Mat4ImmutableOps[Num: Fractional, Mat]:
+  import Fractional.Implicits.given
 
-  extension (m: Mat)(using Mat4Base[Primitive, Mat])
+  extension (m: Mat)(using Mat4Base[Num, Mat])
     inline def create(
-        m00: Primitive, m01: Primitive, m02: Primitive, m03: Primitive,
-        m10: Primitive, m11: Primitive, m12: Primitive, m13: Primitive,
-        m20: Primitive, m21: Primitive, m22: Primitive, m23: Primitive,
-        m30: Primitive, m31: Primitive, m32: Primitive, m33: Primitive
+        m00: Num, m01: Num, m02: Num, m03: Num,
+        m10: Num, m11: Num, m12: Num, m13: Num,
+        m20: Num, m21: Num, m22: Num, m23: Num,
+        m30: Num, m31: Num, m32: Num, m33: Num
     ): Mat
 
     inline def identity: Mat =
-      val z = summon[Numeric[Primitive]].zero
-      val o = summon[Numeric[Primitive]].one
+      val z = summon[Fractional[Num]].zero
+      val o = summon[Fractional[Num]].one
       create(o, z, z, z, z, o, z, z, z, z, o, z, z, z, z, o)
 
     inline def +(other: Mat): Mat = create(
@@ -132,7 +124,7 @@ trait Mat4ImmutableOps[Mat, Primitive: Numeric]:
     )
 
     @scala.annotation.targetName("scalarMul")
-    inline def *(scalar: Primitive): Mat = create(
+    inline def *(scalar: Num): Mat = create(
       m.m00 * scalar, m.m01 * scalar, m.m02 * scalar, m.m03 * scalar,
       m.m10 * scalar, m.m11 * scalar, m.m12 * scalar, m.m13 * scalar,
       m.m20 * scalar, m.m21 * scalar, m.m22 * scalar, m.m23 * scalar,
@@ -175,10 +167,10 @@ trait Mat4ImmutableOps[Mat, Primitive: Numeric]:
       m.m03, m.m13, m.m23, m.m33
     )
 
-trait Mat4MutableOps[Mat, Primitive: Numeric]:
-  import Numeric.Implicits.given
+trait Mat4MutableOps[Num: Fractional, Mat]:
+  import Fractional.Implicits.given
 
-  extension (m: Mat)(using mb: Mat4Mutable[Primitive, Mat])
+  extension (m: Mat)(using mb: Mat4Mutable[Num, Mat])
     inline def +=(other: Mat): Unit =
       m.m00 = m.m00 + other.m00; m.m01 = m.m01 + other.m01; m.m02 = m.m02 + other.m02; m.m03 = m.m03 + other.m03
       m.m10 = m.m10 + other.m10; m.m11 = m.m11 + other.m11; m.m12 = m.m12 + other.m12; m.m13 = m.m13 + other.m13
@@ -191,15 +183,15 @@ trait Mat4MutableOps[Mat, Primitive: Numeric]:
       m.m20 = m.m20 - other.m20; m.m21 = m.m21 - other.m21; m.m22 = m.m22 - other.m22; m.m23 = m.m23 - other.m23
       m.m30 = m.m30 - other.m30; m.m31 = m.m31 - other.m31; m.m32 = m.m32 - other.m32; m.m33 = m.m33 - other.m33
 
-    inline def *=(scalar: Primitive): Unit =
+    inline def *=(scalar: Num): Unit =
       m.m00 = m.m00 * scalar; m.m01 = m.m01 * scalar; m.m02 = m.m02 * scalar; m.m03 = m.m03 * scalar
       m.m10 = m.m10 * scalar; m.m11 = m.m11 * scalar; m.m12 = m.m12 * scalar; m.m13 = m.m13 * scalar
       m.m20 = m.m20 * scalar; m.m21 = m.m21 * scalar; m.m22 = m.m22 * scalar; m.m23 = m.m23 * scalar
       m.m30 = m.m30 * scalar; m.m31 = m.m31 * scalar; m.m32 = m.m32 * scalar; m.m33 = m.m33 * scalar
 
     inline def setIdentity(): Unit =
-      val z = summon[Numeric[Primitive]].zero
-      val o = summon[Numeric[Primitive]].one
+      val z = summon[Fractional[Num]].zero
+      val o = summon[Fractional[Num]].one
       m.m00 = o; m.m01 = z; m.m02 = z; m.m03 = z
       m.m10 = z; m.m11 = o; m.m12 = z; m.m13 = z
       m.m20 = z; m.m21 = z; m.m22 = o; m.m23 = z
@@ -207,6 +199,7 @@ trait Mat4MutableOps[Mat, Primitive: Numeric]:
 // format: on
 
 // === implementations for common matrix types ===
+// Note: Mat4Buffer uses F32 by default (for GPU upload)
 
 // format: off
 type Mat4Buffer = (
@@ -253,25 +246,25 @@ object Mat4Buffer:
       inline def m32_=(v: Float) = m(14)(v)
       inline def m33_=(v: Float) = m(15)(v)
 
-  given Mat4SharedOps[StructRef[Mat4Buffer], Float] =
-    new Mat4SharedOps[StructRef[Mat4Buffer], Float] {}
+  given Mat4SharedOps[Float, StructRef[Mat4Buffer]] =
+    new Mat4SharedOps[Float, StructRef[Mat4Buffer]] {}
 
-  given Mat4MutableOps[StructRef[Mat4Buffer], Float] =
-    new Mat4MutableOps[StructRef[Mat4Buffer], Float] {}
+  given Mat4MutableOps[Float, StructRef[Mat4Buffer]] =
+    new Mat4MutableOps[Float, StructRef[Mat4Buffer]] {}
 
 // format: off
 type Mat4Tuple = (
-    Float, Float, Float, Float,
-    Float, Float, Float, Float,
-    Float, Float, Float, Float,
-    Float, Float, Float, Float
+    Double, Double, Double, Double,
+    Double, Double, Double, Double,
+    Double, Double, Double, Double,
+    Double, Double, Double, Double
 )
 // format: on
 
 object Mat4Tuple:
 
   // format: off
-  given Mat4Base[Float, Mat4Tuple]:
+  given Mat4Base[Double, Mat4Tuple]:
     extension (m: Mat4Tuple)
       inline def m00 = m._1;  inline def m01 = m._2;  inline def m02 = m._3;  inline def m03 = m._4
       inline def m10 = m._5;  inline def m11 = m._6;  inline def m12 = m._7;  inline def m13 = m._8
@@ -279,76 +272,76 @@ object Mat4Tuple:
       inline def m30 = m._13; inline def m31 = m._14; inline def m32 = m._15; inline def m33 = m._16
   // format: on
 
-  given Mat4SharedOps[Mat4Tuple, Float] =
-    new Mat4SharedOps[Mat4Tuple, Float] {}
+  given Mat4SharedOps[Double, Mat4Tuple] =
+    new Mat4SharedOps[Double, Mat4Tuple] {}
 
   // format: off
-  given Mat4ImmutableOps[Mat4Tuple, Float]:
-    extension (m: Mat4Tuple)(using Mat4Base[Float, Mat4Tuple])
+  given Mat4ImmutableOps[Double, Mat4Tuple]:
+    extension (m: Mat4Tuple)(using Mat4Base[Double, Mat4Tuple])
       inline def create(
-          m00: Float, m01: Float, m02: Float, m03: Float,
-          m10: Float, m11: Float, m12: Float, m13: Float,
-          m20: Float, m21: Float, m22: Float, m23: Float,
-          m30: Float, m31: Float, m32: Float, m33: Float
+          m00: Double, m01: Double, m02: Double, m03: Double,
+          m10: Double, m11: Double, m12: Double, m13: Double,
+          m20: Double, m21: Double, m22: Double, m23: Double,
+          m30: Double, m31: Double, m32: Double, m33: Double
       ) = (m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33)
   // format: on
 
 // format: off
 class Mat4(
-    var m00: Float = 1f, var m01: Float = 0f, var m02: Float = 0f, var m03: Float = 0f,
-    var m10: Float = 0f, var m11: Float = 1f, var m12: Float = 0f, var m13: Float = 0f,
-    var m20: Float = 0f, var m21: Float = 0f, var m22: Float = 1f, var m23: Float = 0f,
-    var m30: Float = 0f, var m31: Float = 0f, var m32: Float = 0f, var m33: Float = 1f
+    var m00: Double = 1.0, var m01: Double = 0.0, var m02: Double = 0.0, var m03: Double = 0.0,
+    var m10: Double = 0.0, var m11: Double = 1.0, var m12: Double = 0.0, var m13: Double = 0.0,
+    var m20: Double = 0.0, var m21: Double = 0.0, var m22: Double = 1.0, var m23: Double = 0.0,
+    var m30: Double = 0.0, var m31: Double = 0.0, var m32: Double = 0.0, var m33: Double = 1.0
 )
 // format: on
 
 object Mat4:
-  given Mat4Mutable[Float, Mat4]:
+  given Mat4Mutable[Double, Mat4]:
     extension (m: Mat4)
-      inline def m00: Float = m.m00
-      inline def m01: Float = m.m01
-      inline def m02: Float = m.m02
-      inline def m03: Float = m.m03
-      inline def m10: Float = m.m10
-      inline def m11: Float = m.m11
-      inline def m12: Float = m.m12
-      inline def m13: Float = m.m13
-      inline def m20: Float = m.m20
-      inline def m21: Float = m.m21
-      inline def m22: Float = m.m22
-      inline def m23: Float = m.m23
-      inline def m30: Float = m.m30
-      inline def m31: Float = m.m31
-      inline def m32: Float = m.m32
-      inline def m33: Float = m.m33
-      inline def m00_=(v: Float) = m.m00 = v
-      inline def m01_=(v: Float) = m.m01 = v
-      inline def m02_=(v: Float) = m.m02 = v
-      inline def m03_=(v: Float) = m.m03 = v
-      inline def m10_=(v: Float) = m.m10 = v
-      inline def m11_=(v: Float) = m.m11 = v
-      inline def m12_=(v: Float) = m.m12 = v
-      inline def m13_=(v: Float) = m.m13 = v
-      inline def m20_=(v: Float) = m.m20 = v
-      inline def m21_=(v: Float) = m.m21 = v
-      inline def m22_=(v: Float) = m.m22 = v
-      inline def m23_=(v: Float) = m.m23 = v
-      inline def m30_=(v: Float) = m.m30 = v
-      inline def m31_=(v: Float) = m.m31 = v
-      inline def m32_=(v: Float) = m.m32 = v
-      inline def m33_=(v: Float) = m.m33 = v
+      inline def m00: Double = m.m00
+      inline def m01: Double = m.m01
+      inline def m02: Double = m.m02
+      inline def m03: Double = m.m03
+      inline def m10: Double = m.m10
+      inline def m11: Double = m.m11
+      inline def m12: Double = m.m12
+      inline def m13: Double = m.m13
+      inline def m20: Double = m.m20
+      inline def m21: Double = m.m21
+      inline def m22: Double = m.m22
+      inline def m23: Double = m.m23
+      inline def m30: Double = m.m30
+      inline def m31: Double = m.m31
+      inline def m32: Double = m.m32
+      inline def m33: Double = m.m33
+      inline def m00_=(v: Double) = m.m00 = v
+      inline def m01_=(v: Double) = m.m01 = v
+      inline def m02_=(v: Double) = m.m02 = v
+      inline def m03_=(v: Double) = m.m03 = v
+      inline def m10_=(v: Double) = m.m10 = v
+      inline def m11_=(v: Double) = m.m11 = v
+      inline def m12_=(v: Double) = m.m12 = v
+      inline def m13_=(v: Double) = m.m13 = v
+      inline def m20_=(v: Double) = m.m20 = v
+      inline def m21_=(v: Double) = m.m21 = v
+      inline def m22_=(v: Double) = m.m22 = v
+      inline def m23_=(v: Double) = m.m23 = v
+      inline def m30_=(v: Double) = m.m30 = v
+      inline def m31_=(v: Double) = m.m31 = v
+      inline def m32_=(v: Double) = m.m32 = v
+      inline def m33_=(v: Double) = m.m33 = v
 
   // format: off
-  given Mat4ImmutableOps[Mat4, Float]:
-    extension (m: Mat4)(using Mat4Base[Float, Mat4])
+  given Mat4ImmutableOps[Double, Mat4]:
+    extension (m: Mat4)(using Mat4Base[Double, Mat4])
       inline def create(
-          m00: Float, m01: Float, m02: Float, m03: Float,
-          m10: Float, m11: Float, m12: Float, m13: Float,
-          m20: Float, m21: Float, m22: Float, m23: Float,
-          m30: Float, m31: Float, m32: Float, m33: Float
+          m00: Double, m01: Double, m02: Double, m03: Double,
+          m10: Double, m11: Double, m12: Double, m13: Double,
+          m20: Double, m21: Double, m22: Double, m23: Double,
+          m30: Double, m31: Double, m32: Double, m33: Double
       ) = Mat4(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33)
   // format: on
 
-  given Mat4MutableOps[Mat4, Float] = new Mat4MutableOps[Mat4, Float] {}
+  given Mat4MutableOps[Double, Mat4] = new Mat4MutableOps[Double, Mat4] {}
 
-  given Mat4SharedOps[Mat4, Float] = new Mat4SharedOps[Mat4, Float] {}
+  given Mat4SharedOps[Double, Mat4] = new Mat4SharedOps[Double, Mat4] {}

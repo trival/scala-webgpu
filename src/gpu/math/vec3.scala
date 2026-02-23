@@ -68,6 +68,7 @@ trait Vec3MutableOps[Num: {NumExt, Fractional}, Vec]:
 // === implementations for common vector types ===
 
 // ==== Float Vec3 types ====
+// Note: *Buffer types use F32 by default; Vec3dBuffer uses F64
 
 type Vec3Buffer = (F32, F32, F32)
 
@@ -87,28 +88,28 @@ object Vec3Buffer:
   given Vec3MutableOps[Float, StructRef[Vec3Buffer]] =
     new Vec3MutableOps[Float, StructRef[Vec3Buffer]] {}
 
-type Vec3Tuple = (Float, Float, Float)
+type Vec3fTuple = (Float, Float, Float)
 
-object Vec3Tuple:
+object Vec3fTuple:
 
-  given Vec3Base[Float, Vec3Tuple]:
-    extension (v: Vec3Tuple)
+  given Vec3Base[Float, Vec3fTuple]:
+    extension (v: Vec3fTuple)
       inline def x: Float = v._1
       inline def y: Float = v._2
       inline def z: Float = v._3
 
-  given Vec3SharedOps[Float, Vec3Tuple] =
-    new Vec3SharedOps[Float, Vec3Tuple] {}
+  given Vec3SharedOps[Float, Vec3fTuple] =
+    new Vec3SharedOps[Float, Vec3fTuple] {}
 
-  given Vec3ImmutableOps[Float, Vec3Tuple]:
-    extension (v: Vec3Tuple)(using Vec3Base[Float, Vec3Tuple])
+  given Vec3ImmutableOps[Float, Vec3fTuple]:
+    extension (v: Vec3fTuple)(using Vec3Base[Float, Vec3fTuple])
       inline def create(x: Float, y: Float, z: Float) = (x, y, z)
 
-class Vec3(var x: Float = 0f, var y: Float = 0f, var z: Float = 0f)
+class Vec3f(var x: Float = 0f, var y: Float = 0f, var z: Float = 0f)
 
-object Vec3:
-  given Vec3Mutable[Float, Vec3]:
-    extension (v: Vec3)
+object Vec3f:
+  given Vec3Mutable[Float, Vec3f]:
+    extension (v: Vec3f)
       inline def x: Float = v.x
       inline def y: Float = v.y
       inline def z: Float = v.z
@@ -116,15 +117,15 @@ object Vec3:
       inline def y_=(value: Float): Unit = v.y = value
       inline def z_=(value: Float): Unit = v.z = value
 
-  given Vec3ImmutableOps[Float, Vec3]:
-    extension (v: Vec3)(using Vec3Base[Float, Vec3])
-      inline def create(x: Float, y: Float, z: Float) = Vec3(x, y, z)
+  given Vec3ImmutableOps[Float, Vec3f]:
+    extension (v: Vec3f)(using Vec3Base[Float, Vec3f])
+      inline def create(x: Float, y: Float, z: Float) = Vec3f(x, y, z)
 
-  given Vec3MutableOps[Float, Vec3] = new Vec3MutableOps[Float, Vec3] {}
+  given Vec3MutableOps[Float, Vec3f] = new Vec3MutableOps[Float, Vec3f] {}
 
-  given Vec3SharedOps[Float, Vec3] = new Vec3SharedOps[Float, Vec3] {}
+  given Vec3SharedOps[Float, Vec3f] = new Vec3SharedOps[Float, Vec3f] {}
 
-// ===== Double Vec3 types =====
+// ===== Double Vec3 types (default) =====
 
 type Vec3dBuffer = (F64, F64, F64)
 
@@ -144,28 +145,28 @@ object Vec3dBuffer:
   given Vec3MutableOps[Double, StructRef[Vec3dBuffer]] =
     new Vec3MutableOps[Double, StructRef[Vec3dBuffer]] {}
 
-type Vec3dTuple = (Double, Double, Double)
+type Vec3Tuple = (Double, Double, Double)
 
-object Vec3dTuple:
+object Vec3Tuple:
 
-  given Vec3Base[Double, Vec3dTuple]:
-    extension (v: Vec3dTuple)
+  given Vec3Base[Double, Vec3Tuple]:
+    extension (v: Vec3Tuple)
       inline def x: Double = v._1
       inline def y: Double = v._2
       inline def z: Double = v._3
 
-  given Vec3SharedOps[Double, Vec3dTuple] =
-    new Vec3SharedOps[Double, Vec3dTuple] {}
+  given Vec3SharedOps[Double, Vec3Tuple] =
+    new Vec3SharedOps[Double, Vec3Tuple] {}
 
-  given Vec3ImmutableOps[Double, Vec3dTuple]:
-    extension (v: Vec3dTuple)(using Vec3Base[Double, Vec3dTuple])
+  given Vec3ImmutableOps[Double, Vec3Tuple]:
+    extension (v: Vec3Tuple)(using Vec3Base[Double, Vec3Tuple])
       inline def create(x: Double, y: Double, z: Double) = (x, y, z)
 
-class Vec3d(var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0)
+class Vec3(var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0)
 
-object Vec3d:
-  given Vec3Mutable[Double, Vec3d]:
-    extension (v: Vec3d)
+object Vec3:
+  given Vec3Mutable[Double, Vec3]:
+    extension (v: Vec3)
       inline def x: Double = v.x
       inline def y: Double = v.y
       inline def z: Double = v.z
@@ -173,10 +174,10 @@ object Vec3d:
       inline def y_=(value: Double): Unit = v.y = value
       inline def z_=(value: Double): Unit = v.z = value
 
-  given Vec3SharedOps[Double, Vec3d] = new Vec3SharedOps[Double, Vec3d] {}
+  given Vec3SharedOps[Double, Vec3] = new Vec3SharedOps[Double, Vec3] {}
 
-  given Vec3ImmutableOps[Double, Vec3d]:
-    extension (v: Vec3d)(using Vec3Base[Double, Vec3d])
-      inline def create(x: Double, y: Double, z: Double) = Vec3d(x, y, z)
+  given Vec3ImmutableOps[Double, Vec3]:
+    extension (v: Vec3)(using Vec3Base[Double, Vec3])
+      inline def create(x: Double, y: Double, z: Double) = Vec3(x, y, z)
 
-  given Vec3MutableOps[Double, Vec3d] = new Vec3MutableOps[Double, Vec3d] {}
+  given Vec3MutableOps[Double, Vec3] = new Vec3MutableOps[Double, Vec3] {}

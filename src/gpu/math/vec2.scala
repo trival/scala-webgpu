@@ -54,6 +54,7 @@ trait Vec2MutableOps[Num: {NumExt, Fractional}, Vec]:
 // === implementations for common vector types ===
 
 // ==== Float Vec2 types ====
+// Note: *Buffer types use F32 by default; Vec2dBuffer uses F64
 
 type Vec2Buffer = (F32, F32)
 
@@ -71,41 +72,41 @@ object Vec2Buffer:
   given Vec2MutableOps[Float, StructRef[Vec2Buffer]] =
     new Vec2MutableOps[Float, StructRef[Vec2Buffer]] {}
 
-type Vec2Tuple = (Float, Float)
+type Vec2fTuple = (Float, Float)
 
-object Vec2Tuple:
+object Vec2fTuple:
 
-  given Vec2Base[Float, Vec2Tuple]:
-    extension (v: Vec2Tuple)
+  given Vec2Base[Float, Vec2fTuple]:
+    extension (v: Vec2fTuple)
       inline def x: Float = v._1
       inline def y: Float = v._2
 
-  given Vec2SharedOps[Float, Vec2Tuple] =
-    new Vec2SharedOps[Float, Vec2Tuple] {}
+  given Vec2SharedOps[Float, Vec2fTuple] =
+    new Vec2SharedOps[Float, Vec2fTuple] {}
 
-  given Vec2ImmutableOps[Float, Vec2Tuple]:
-    extension (v: Vec2Tuple)(using Vec2Base[Float, Vec2Tuple])
+  given Vec2ImmutableOps[Float, Vec2fTuple]:
+    extension (v: Vec2fTuple)(using Vec2Base[Float, Vec2fTuple])
       inline def create(x: Float, y: Float) = (x, y)
 
-class Vec2(var x: Float = 0f, var y: Float = 0f)
+class Vec2f(var x: Float = 0f, var y: Float = 0f)
 
-object Vec2:
-  given Vec2Mutable[Float, Vec2]:
-    extension (v: Vec2)
+object Vec2f:
+  given Vec2Mutable[Float, Vec2f]:
+    extension (v: Vec2f)
       inline def x: Float = v.x
       inline def y: Float = v.y
       inline def x_=(value: Float): Unit = v.x = value
       inline def y_=(value: Float): Unit = v.y = value
 
-  given Vec2ImmutableOps[Float, Vec2]:
-    extension (v: Vec2)(using Vec2Base[Float, Vec2])
-      inline def create(x: Float, y: Float) = Vec2(x, y)
+  given Vec2ImmutableOps[Float, Vec2f]:
+    extension (v: Vec2f)(using Vec2Base[Float, Vec2f])
+      inline def create(x: Float, y: Float) = Vec2f(x, y)
 
-  given Vec2MutableOps[Float, Vec2] = new Vec2MutableOps[Float, Vec2] {}
+  given Vec2MutableOps[Float, Vec2f] = new Vec2MutableOps[Float, Vec2f] {}
 
-  given Vec2SharedOps[Float, Vec2] = new Vec2SharedOps[Float, Vec2] {}
+  given Vec2SharedOps[Float, Vec2f] = new Vec2SharedOps[Float, Vec2f] {}
 
-// ===== Double Vec2 types =====
+// ===== Double Vec2 types (default) =====
 
 type Vec2dBuffer = (F64, F64)
 
@@ -123,36 +124,36 @@ object Vec2dBuffer:
   given Vec2MutableOps[Double, StructRef[Vec2dBuffer]] =
     new Vec2MutableOps[Double, StructRef[Vec2dBuffer]] {}
 
-type Vec2dTuple = (Double, Double)
+type Vec2Tuple = (Double, Double)
 
-object Vec2dTuple:
+object Vec2Tuple:
 
-  given Vec2Base[Double, Vec2dTuple]:
-    extension (v: Vec2dTuple)
+  given Vec2Base[Double, Vec2Tuple]:
+    extension (v: Vec2Tuple)
       inline def x: Double = v._1
       inline def y: Double = v._2
 
-  given Vec2SharedOps[Double, Vec2dTuple] =
-    new Vec2SharedOps[Double, Vec2dTuple] {}
+  given Vec2SharedOps[Double, Vec2Tuple] =
+    new Vec2SharedOps[Double, Vec2Tuple] {}
 
-  given Vec2ImmutableOps[Double, Vec2dTuple]:
-    extension (v: Vec2dTuple)(using Vec2Base[Double, Vec2dTuple])
+  given Vec2ImmutableOps[Double, Vec2Tuple]:
+    extension (v: Vec2Tuple)(using Vec2Base[Double, Vec2Tuple])
       inline def create(x: Double, y: Double) = (x, y)
 
-class Vec2d(var x: Double = 0.0, var y: Double = 0.0)
+class Vec2(var x: Double = 0.0, var y: Double = 0.0)
 
-object Vec2d:
-  given Vec2Mutable[Double, Vec2d]:
-    extension (v: Vec2d)
+object Vec2:
+  given Vec2Mutable[Double, Vec2]:
+    extension (v: Vec2)
       inline def x: Double = v.x
       inline def y: Double = v.y
       inline def x_=(value: Double): Unit = v.x = value
       inline def y_=(value: Double): Unit = v.y = value
 
-  given Vec2SharedOps[Double, Vec2d] = new Vec2SharedOps[Double, Vec2d] {}
+  given Vec2SharedOps[Double, Vec2] = new Vec2SharedOps[Double, Vec2] {}
 
-  given Vec2ImmutableOps[Double, Vec2d]:
-    extension (v: Vec2d)(using Vec2Base[Double, Vec2d])
-      inline def create(x: Double, y: Double) = Vec2d(x, y)
+  given Vec2ImmutableOps[Double, Vec2]:
+    extension (v: Vec2)(using Vec2Base[Double, Vec2])
+      inline def create(x: Double, y: Double) = Vec2(x, y)
 
-  given Vec2MutableOps[Double, Vec2d] = new Vec2MutableOps[Double, Vec2d] {}
+  given Vec2MutableOps[Double, Vec2] = new Vec2MutableOps[Double, Vec2] {}
