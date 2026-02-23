@@ -208,10 +208,13 @@ trait Mat4MutableOps[Mat, Primitive: Numeric]:
 
 // === implementations for common matrix types ===
 
-// ==== Float Mat4 types ====
-
 // format: off
-type Mat4Buffer = (F32, F32, F32, F32, F32, F32, F32, F32, F32, F32, F32, F32, F32, F32, F32, F32)
+type Mat4Buffer = (
+  F32, F32, F32, F32,
+  F32, F32, F32, F32,
+  F32, F32, F32, F32,
+  F32, F32, F32, F32
+)
 // format: on
 
 object Mat4Buffer:
@@ -300,8 +303,6 @@ class Mat4(
 // format: on
 
 object Mat4:
-  type Uniform = Mat4Buffer
-
   given Mat4Mutable[Float, Mat4]:
     extension (m: Mat4)
       inline def m00: Float = m.m00

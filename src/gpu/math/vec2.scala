@@ -3,6 +3,8 @@ package gpu.math
 import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.F64
 import trivalibs.bufferdata.StructRef
+import trivalibs.utils.numbers.Number
+import trivalibs.utils.numbers.Floating
 
 trait Vec2Base[Primitive, T]:
   extension (v: T)
@@ -18,14 +20,18 @@ trait Vec2Mutable[Primitive, T] extends Vec2Base[Primitive, T]:
     inline def u_=(value: Primitive): Unit = x_=(value)
     inline def v_=(value: Primitive): Unit = y_=(value)
 
-trait Vec2SharedOps[Vec, Primitive: Numeric]:
+trait Vec2SharedOps[Vec, Primitive: Floating]:
+  private given Numeric[Primitive] = summon[Floating[Primitive]].numeric
   import Numeric.Implicits.given
 
   extension (v: Vec)(using Vec2Base[Primitive, Vec])
     inline def dot(other: Vec): Primitive =
       v.x * other.x + v.y * other.y
+    inline def length_squared: Primitive = v.dot(v)
+    inline def length: Double = v.length_squared.sqrt
 
-trait Vec2ImmutableOps[Vec, Primitive: Numeric]:
+trait Vec2ImmutableOps[Vec, Primitive: Number]:
+  private given Numeric[Primitive] = summon[Number[Primitive]].numeric
   import Numeric.Implicits.given
 
   extension (v: Vec)(using Vec2Base[Primitive, Vec])
@@ -34,7 +40,8 @@ trait Vec2ImmutableOps[Vec, Primitive: Numeric]:
     inline def -(other: Vec): Vec = create(v.x - other.x, v.y - other.y)
     inline def *(scalar: Primitive): Vec = create(v.x * scalar, v.y * scalar)
 
-trait Vec2MutableOps[Vec, Primitive: Numeric]:
+trait Vec2MutableOps[Vec, Primitive: Number]:
+  private given Numeric[Primitive] = summon[Number[Primitive]].numeric
   import Numeric.Implicits.given
 
   extension (
@@ -91,9 +98,6 @@ object Vec2Tuple:
 class Vec2(var x: Float = 0f, var y: Float = 0f)
 
 object Vec2:
-  type Attrib = Vec2Buffer
-  type Uniform = Vec2Buffer
-
   given Vec2Mutable[Float, Vec2]:
     extension (v: Vec2)
       inline def x: Float = v.x
@@ -146,9 +150,6 @@ object Vec2dTuple:
 class Vec2d(var x: Double = 0.0, var y: Double = 0.0)
 
 object Vec2d:
-  type Attrib = Vec2dBuffer
-  type Uniform = Vec2dBuffer
-
   given Vec2Mutable[Double, Vec2d]:
     extension (v: Vec2d)
       inline def x: Double = v.x

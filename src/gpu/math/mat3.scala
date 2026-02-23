@@ -160,8 +160,6 @@ trait Mat3MutableOps[Mat, Primitive: Numeric]:
 
 // === implementations for common matrix types ===
 
-// ==== Float Mat3 types ====
-
 type Mat3Buffer = (F32, F32, F32, F32, F32, F32, F32, F32, F32)
 
 object Mat3Buffer:
@@ -265,9 +263,6 @@ class Mat3(
 // format: on
 
 object Mat3:
-  type Attrib = Mat3Buffer
-  type Uniform = Mat3PaddedBuffer
-
   given Mat3Mutable[Float, Mat3]:
     extension (m: Mat3)
       inline def m00: Float = m.m00

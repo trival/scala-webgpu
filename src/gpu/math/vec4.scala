@@ -3,6 +3,8 @@ package gpu.math
 import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.F64
 import trivalibs.bufferdata.StructRef
+import trivalibs.utils.numbers.Number
+import trivalibs.utils.numbers.Floating
 
 trait Vec4Base[Primitive, T]:
   extension (v: T)
@@ -26,14 +28,18 @@ trait Vec4Mutable[Primitive, T] extends Vec4Base[Primitive, T]:
     inline def b_=(value: Primitive): Unit = z_=(value)
     inline def a_=(value: Primitive): Unit = w_=(value)
 
-trait Vec4SharedOps[Vec, Primitive: Numeric]:
+trait Vec4SharedOps[Vec, Primitive: Floating]:
+  private given Numeric[Primitive] = summon[Floating[Primitive]].numeric
   import Numeric.Implicits.given
 
   extension (v: Vec)(using Vec4Base[Primitive, Vec])
     inline def dot(other: Vec): Primitive =
       v.x * other.x + v.y * other.y + v.z * other.z + v.w * other.w
+    inline def length_squared: Primitive = v.dot(v)
+    inline def length: Double = v.length_squared.sqrt
 
-trait Vec4ImmutableOps[Vec, Primitive: Numeric]:
+trait Vec4ImmutableOps[Vec, Primitive: Number]:
+  private given Numeric[Primitive] = summon[Number[Primitive]].numeric
   import Numeric.Implicits.given
 
   extension (v: Vec)(using Vec4Base[Primitive, Vec])
@@ -50,7 +56,8 @@ trait Vec4ImmutableOps[Vec, Primitive: Numeric]:
     inline def *(scalar: Primitive): Vec =
       create(v.x * scalar, v.y * scalar, v.z * scalar, v.w * scalar)
 
-trait Vec4MutableOps[Vec, Primitive: Numeric]:
+trait Vec4MutableOps[Vec, Primitive: Number]:
+  private given Numeric[Primitive] = summon[Number[Primitive]].numeric
   import Numeric.Implicits.given
 
   extension (
@@ -127,9 +134,6 @@ class Vec4(
 )
 
 object Vec4:
-  type Attrib = Vec4Buffer
-  type Uniform = Vec4Buffer
-
   given Vec4Mutable[Float, Vec4]:
     extension (v: Vec4)
       inline def x: Float = v.x
@@ -201,9 +205,6 @@ class Vec4d(
 )
 
 object Vec4d:
-  type Attrib = Vec4dBuffer
-  type Uniform = Vec4dBuffer
-
   given Vec4Mutable[Double, Vec4d]:
     extension (v: Vec4d)
       inline def x: Double = v.x

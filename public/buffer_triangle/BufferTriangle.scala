@@ -1,11 +1,11 @@
 package buffer_triangle
 
-import gpu.buffers.AttribsLayout
+import gpu.buffers.allocateAttribs
+import gpu.buffers.allocateUniform
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
-import trivalibs.bufferdata.StructArray
 import trivalibs.utils.js.*
 import webgpu.*
 
@@ -52,16 +52,18 @@ object BufferTriangle:
       canvas: HTMLCanvasElement,
       setStatus: (String, Boolean) => Unit
   ): Unit =
-    import gpu.{Shader, FragOut}
+    import gpu.shader.{*, given}
     import gpu.math.*
-    import gpu.None as GPUNone
-    import gpu.buffers as buf
+    import gpu.shader.None as GPUNone
+
+    type Attribs = (position: Vec2, color: Vec4)
+    type Uniforms = (tintColor: Vec4)
 
     // Define shader with vertex attributes and uniform for tint color
     val triangleShader = Shader[
-      (position: Vec2, color: Vec4), // Vertex attributes from buffer
+      Attribs, // Vertex attributes from buffer
       (color: Vec4), // Varyings
-      (scene: (tintColor: Vec4)) // Uniform for runtime tint
+      (scene: Uniforms) // Uniform for runtime tint
     ](
       vertexBody = """
   out.position = vec4<f32>(in.position, 0.0, 1.0);
@@ -83,9 +85,7 @@ object BufferTriangle:
     )
 
     // Create vertex buffer - layout derived from shader attribs
-    val vertices =
-      StructArray
-        .allocate[(Vec2Buffer, Vec4Buffer)](3)
+    val vertices = allocateAttribs[Attribs](3)
 
     // Vertex 0: top (red)
     vertices(0)(0) := (0.0f, 0.5f)
@@ -114,8 +114,8 @@ object BufferTriangle:
     )
 
     // Create uniform buffer for tint color (Vec4 = 16 bytes)
-    val tintData = StructArray.allocate[Vec4Buffer](1)
-    tintData(0) := (1.0f, 1.0f, 1.0f, 1.0f) // Start with white (no tint)
+    val tintData = allocateUniform[Uniforms](1)
+    tintData(0)(0) := (1.0f, 1.0f, 1.0f, 1.0f) // Start with white (no tint)
 
     val uniformBuffer = device.createBuffer(
       Obj.literal(
@@ -194,7 +194,7 @@ object BufferTriangle:
       val r = (Math.sin(elapsed * 2.0) * 0.5 + 0.5).toFloat
       val g = (Math.sin(elapsed * 2.0 + 2.0) * 0.5 + 0.5).toFloat
       val b = (Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5).toFloat
-      tintData(0) := (r, g, b, 1.0f)
+      tintData(0)(0) := (r, g, b, 1.0f)
       device.queue.writeBuffer(
         uniformBuffer,
         0,

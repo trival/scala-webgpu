@@ -70,7 +70,7 @@ $h_Lbuffer\uff3ftriangle_BufferTriangle$.prototype = $p;
 $p.aw = (function() {
   var statusEl = document.getElementById("status");
   var canvas = document.getElementById("canvas");
-  var gpu = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b2();
+  var gpu = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b6();
   if ((gpu === (void 0))) {
     $p_Lbuffer\uff3ftriangle_BufferTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, "WebGPU is not supported in this browser", true);
   } else {
@@ -104,7 +104,7 @@ $p.au = (function(gpu, canvas, setStatus) {
       return pf$proxy1.ai(err$2, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_PartialFunction$().a8);
     } else {
       var $x_1 = err$2;
-      throw (false ? $x_1.aN : $x_1);
+      throw (false ? $x_1.aR : $x_1);
     }
   }));
 });
@@ -173,6 +173,7 @@ $p.ax = (function(device, canvas, setStatus) {
   var shaderModule = device.createShaderModule(({
     "code": wgslCode
   }));
+  $m_Lgpu_buffers_AttribLayoutHelper$().bm();
   var buffer = new ArrayBuffer(72);
   var _1 = new DataView(buffer);
   _1.setFloat32(0, 0.0, true);
@@ -223,6 +224,7 @@ $p.ax = (function(device, canvas, setStatus) {
     "usage": 40
   }));
   device.queue.writeBuffer(vertexBuffer, 0.0, _1.buffer);
+  $m_Lgpu_buffers_UniformLayoutHelper$().bn();
   var buffer$2 = new ArrayBuffer(16);
   var tintData = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_T2(new DataView(buffer$2), 1);
   var _1$2 = tintData.t;
@@ -244,7 +246,7 @@ $p.ax = (function(device, canvas, setStatus) {
     "usage": 72
   }));
   device.queue.writeBuffer(uniformBuffer, 0.0, tintData.t.buffer);
-  var context = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b1(canvas);
+  var context = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b5(canvas);
   context.configure(({
     "device": device,
     "format": "bgra8unorm"
@@ -279,7 +281,7 @@ $p.ax = (function(device, canvas, setStatus) {
     i = ((1 + i) | 0);
   }
   var \u03b42$___1 = result;
-  var \u03b42$___2 = $m_Lgpu_shader_layouts$().bb(device, result);
+  var \u03b42$___2 = $m_Lgpu_shader_layouts$().bf(device, result);
   var bindGroupLayouts = \u03b42$___1;
   var pipelineLayout$2 = \u03b42$___2;
   var $x_51 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$();
@@ -381,6 +383,62 @@ function $m_Lbuffer\uff3ftriangle_BufferTriangle$() {
   }
   return $n_Lbuffer\uff3ftriangle_BufferTriangle$;
 }
+/** @constructor */
+function $c_Lgpu_buffers_AttribLayoutHelper$() {
+  this.az = null;
+  this.aA = false;
+}
+$p = $c_Lgpu_buffers_AttribLayoutHelper$.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_O();
+$p.constructor = $c_Lgpu_buffers_AttribLayoutHelper$;
+/** @constructor */
+function $h_Lgpu_buffers_AttribLayoutHelper$() {
+}
+$h_Lgpu_buffers_AttribLayoutHelper$.prototype = $p;
+$p.bm = (function() {
+  if ((!this.aA)) {
+    this.az = new $c_Lgpu_buffers_AttribLayoutHelper$$anon$2();
+    this.aA = true;
+  }
+  return this.az;
+});
+var $d_Lgpu_buffers_AttribLayoutHelper$ = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lgpu_buffers_AttribLayoutHelper$, "gpu.buffers.AttribLayoutHelper$", ({
+  ab: 1
+}));
+var $n_Lgpu_buffers_AttribLayoutHelper$;
+function $m_Lgpu_buffers_AttribLayoutHelper$() {
+  if ((!$n_Lgpu_buffers_AttribLayoutHelper$)) {
+    $n_Lgpu_buffers_AttribLayoutHelper$ = new $c_Lgpu_buffers_AttribLayoutHelper$();
+  }
+  return $n_Lgpu_buffers_AttribLayoutHelper$;
+}
+/** @constructor */
+function $c_Lgpu_buffers_UniformLayoutHelper$() {
+  this.aB = null;
+  this.aC = false;
+}
+$p = $c_Lgpu_buffers_UniformLayoutHelper$.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_O();
+$p.constructor = $c_Lgpu_buffers_UniformLayoutHelper$;
+/** @constructor */
+function $h_Lgpu_buffers_UniformLayoutHelper$() {
+}
+$h_Lgpu_buffers_UniformLayoutHelper$.prototype = $p;
+$p.bn = (function() {
+  if ((!this.aC)) {
+    this.aB = new $c_Lgpu_buffers_UniformLayoutHelper$$anon$5();
+    this.aC = true;
+  }
+  return this.aB;
+});
+var $d_Lgpu_buffers_UniformLayoutHelper$ = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lgpu_buffers_UniformLayoutHelper$, "gpu.buffers.UniformLayoutHelper$", ({
+  ae: 1
+}));
+var $n_Lgpu_buffers_UniformLayoutHelper$;
+function $m_Lgpu_buffers_UniformLayoutHelper$() {
+  if ((!$n_Lgpu_buffers_UniformLayoutHelper$)) {
+    $n_Lgpu_buffers_UniformLayoutHelper$ = new $c_Lgpu_buffers_UniformLayoutHelper$();
+  }
+  return $n_Lgpu_buffers_UniformLayoutHelper$;
+}
 function $p_Lgpu_shader_layouts$__calculateOffsets__sjs_js_Array__sjs_js_Array($thiz, sizes) {
   var items$proxy1 = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().al(new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$ac_I(new Int32Array([])));
   var offsets = [...$j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sjsr_Compat$().d(items$proxy1)];
@@ -419,13 +477,13 @@ $p.constructor = $c_Lgpu_shader_layouts$;
 function $h_Lgpu_shader_layouts$() {
 }
 $h_Lgpu_shader_layouts$.prototype = $p;
-$p.bb = (function(device, bindGroupLayouts) {
+$p.bf = (function(device, bindGroupLayouts) {
   return device.createPipelineLayout(({
     "bindGroupLayouts": bindGroupLayouts
   }));
 });
 var $d_Lgpu_shader_layouts$ = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lgpu_shader_layouts$, "gpu.shader.layouts$", ({
-  ac: 1
+  ai: 1
 }));
 var $n_Lgpu_shader_layouts$;
 function $m_Lgpu_shader_layouts$() {
@@ -435,8 +493,34 @@ function $m_Lgpu_shader_layouts$() {
   return $n_Lgpu_shader_layouts$;
 }
 var $d_Lwebgpu_GPUBindGroupLayout = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i(2, "webgpu.GPUBindGroupLayout", ({
-  bS: 1
+  bY: 1
 }), $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$noIsInstance);
+/** @constructor */
+function $c_Lgpu_buffers_AttribLayoutHelper$$anon$2() {
+}
+$p = $c_Lgpu_buffers_AttribLayoutHelper$$anon$2.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_O();
+$p.constructor = $c_Lgpu_buffers_AttribLayoutHelper$$anon$2;
+/** @constructor */
+function $h_Lgpu_buffers_AttribLayoutHelper$$anon$2() {
+}
+$h_Lgpu_buffers_AttribLayoutHelper$$anon$2.prototype = $p;
+var $d_Lgpu_buffers_AttribLayoutHelper$$anon$2 = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lgpu_buffers_AttribLayoutHelper$$anon$2, "gpu.buffers.AttribLayoutHelper$$anon$2", ({
+  ac: 1,
+  aa: 1
+}));
+/** @constructor */
+function $c_Lgpu_buffers_UniformLayoutHelper$$anon$5() {
+}
+$p = $c_Lgpu_buffers_UniformLayoutHelper$$anon$5.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_O();
+$p.constructor = $c_Lgpu_buffers_UniformLayoutHelper$$anon$5;
+/** @constructor */
+function $h_Lgpu_buffers_UniformLayoutHelper$$anon$5() {
+}
+$h_Lgpu_buffers_UniformLayoutHelper$$anon$5.prototype = $p;
+var $d_Lgpu_buffers_UniformLayoutHelper$$anon$5 = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lgpu_buffers_UniformLayoutHelper$$anon$5, "gpu.buffers.UniformLayoutHelper$$anon$5", ({
+  af: 1,
+  ad: 1
+}));
 /** @constructor */
 function $c_sr_DoubleRef(elem) {
   this.ap = 0.0;
@@ -452,18 +536,18 @@ $p.n = (function() {
   return ("" + this.ap);
 });
 var $d_sr_DoubleRef = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_sr_DoubleRef, "scala.runtime.DoubleRef", ({
-  bx: 1,
+  bD: 1,
   a: 1
 }));
 var $d_sjs_js_Dynamic = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i(2, "scala.scalajs.js.Dynamic", ({
-  bG: 1,
+  bM: 1,
   T: 1
 }), $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$noIsInstance);
 var $d_sjs_js_Array = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i(2, "scala.scalajs.js.Array", ({
-  bD: 1,
+  bJ: 1,
   a7: 1,
   T: 1,
-  bH: 1
+  bN: 1
 }), ((x) => (x instanceof Array)));
 /** @constructor */
 function $c_Lbuffer\uff3ftriangle_BufferTriangle$$anon$1(setStatus$5) {

@@ -117,8 +117,6 @@ trait Mat2MutableOps[Mat, Primitive: Numeric]:
 
 // === implementations for common matrix types ===
 
-// ==== Float Mat2 types ====
-
 type Mat2Buffer = (F32, F32, F32, F32)
 
 object Mat2Buffer:
@@ -170,8 +168,6 @@ class Mat2(
 // format: on
 
 object Mat2:
-  type Uniform = Mat2Buffer
-
   given Mat2Mutable[Float, Mat2]:
     extension (m: Mat2)
       inline def m00: Float = m.m00

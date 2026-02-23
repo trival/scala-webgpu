@@ -3,6 +3,8 @@ package gpu.math
 import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.F64
 import trivalibs.bufferdata.StructRef
+import trivalibs.utils.numbers.Number
+import trivalibs.utils.numbers.Floating
 
 trait Vec3Base[Primitive, T]:
   extension (v: T)
@@ -22,14 +24,18 @@ trait Vec3Mutable[Primitive, T] extends Vec3Base[Primitive, T]:
     inline def g_=(value: Primitive): Unit = y_=(value)
     inline def b_=(value: Primitive): Unit = z_=(value)
 
-trait Vec3SharedOps[Vec, Primitive: Numeric]:
+trait Vec3SharedOps[Vec, Primitive: Floating]:
+  private given Numeric[Primitive] = summon[Floating[Primitive]].numeric
   import Numeric.Implicits.given
 
   extension (v: Vec)(using Vec3Base[Primitive, Vec])
     inline def dot(other: Vec): Primitive =
       v.x * other.x + v.y * other.y + v.z * other.z
+    inline def length_squared: Primitive = v.dot(v)
+    inline def length: Double = v.length_squared.sqrt
 
-trait Vec3ImmutableOps[Vec, Primitive: Numeric]:
+trait Vec3ImmutableOps[Vec, Primitive: Number]:
+  private given Numeric[Primitive] = summon[Number[Primitive]].numeric
   import Numeric.Implicits.given
 
   extension (v: Vec)(using Vec3Base[Primitive, Vec])
@@ -48,7 +54,8 @@ trait Vec3ImmutableOps[Vec, Primitive: Numeric]:
         v.x * other.y - v.y * other.x
       )
 
-trait Vec3MutableOps[Vec, Primitive: Numeric]:
+trait Vec3MutableOps[Vec, Primitive: Number]:
+  private given Numeric[Primitive] = summon[Number[Primitive]].numeric
   import Numeric.Implicits.given
 
   extension (
@@ -112,9 +119,6 @@ object Vec3Tuple:
 class Vec3(var x: Float = 0f, var y: Float = 0f, var z: Float = 0f)
 
 object Vec3:
-  type Attrib = Vec3Buffer
-  type Uniform = Vec4Buffer // Padded layout
-
   given Vec3Mutable[Float, Vec3]:
     extension (v: Vec3)
       inline def x: Float = v.x
@@ -173,9 +177,6 @@ object Vec3dTuple:
 class Vec3d(var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0)
 
 object Vec3d:
-  type Attrib = Vec3dBuffer
-  type Uniform = Vec4dBuffer // Padded layout
-
   given Vec3Mutable[Double, Vec3d]:
     extension (v: Vec3d)
       inline def x: Double = v.x

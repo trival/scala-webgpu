@@ -45,7 +45,7 @@ $p.aw = (function() {
   var statusEl = document.getElementById("status");
   var canvas = document.getElementById("canvas");
   matchResult1: {
-    var x = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b2();
+    var x = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b6();
     var x1 = ((x === (void 0)) ? $m_s_None$() : new $c_s_Some(x));
     if (($m_s_None$() === x1)) {
       $p_Lsimple\uff3ftriangle_SimpleTriangle$__setStatus$6__Lorg_scalajs_dom_HTMLElement__T__Z__V(this, statusEl, "WebGPU is not supported in this browser", true);
@@ -86,7 +86,7 @@ $p.au = (function(gpu, canvas, setStatus) {
       return pf$proxy1.ai(err$2, $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_PartialFunction$().a8);
     } else {
       var $x_1 = err$2;
-      throw (false ? $x_1.aN : $x_1);
+      throw (false ? $x_1.aR : $x_1);
     }
   }));
 });
@@ -135,7 +135,7 @@ $p.ax = (function(device, canvas, setStatus) {
   var shaderModule = device.createShaderModule(({
     "code": wgslCode
   }));
-  var context = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b1(canvas);
+  var context = $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_Lwebgpu_WebGPU$().b5(canvas);
   context.configure(({
     "device": device,
     "format": "bgra8unorm"
@@ -166,7 +166,7 @@ $p.ax = (function(device, canvas, setStatus) {
   setStatus.B("Triangle rendered successfully!", false);
 });
 var $d_Lsimple\uff3ftriangle_SimpleTriangle$ = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lsimple\uff3ftriangle_SimpleTriangle$, "simple_triangle.SimpleTriangle$", ({
-  bQ: 1
+  bW: 1
 }));
 var $n_Lsimple\uff3ftriangle_SimpleTriangle$;
 function $m_Lsimple\uff3ftriangle_SimpleTriangle$() {
@@ -194,13 +194,13 @@ $p.w = (function() {
   return (this.C() ? 0 : 1);
 });
 $p.m = (function() {
-  return (this.C() ? $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sc_Iterator$().K : new $c_sc_Iterator$$anon$20(this.b0()));
+  return (this.C() ? $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sc_Iterator$().K : new $c_sc_Iterator$$anon$20(this.b4()));
 });
 /** @constructor */
 function $c_sc_Iterator$$anon$20(a$2) {
-  this.aF = null;
+  this.aJ = null;
   this.af = false;
-  this.aF = a$2;
+  this.aJ = a$2;
   this.af = false;
 }
 $p = $c_sc_Iterator$$anon$20.prototype = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$h_sc_AbstractIterator();
@@ -217,11 +217,11 @@ $p.q = (function() {
     return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sc_Iterator$().K.q();
   } else {
     this.af = true;
-    return this.aF;
+    return this.aJ;
   }
 });
 var $d_sc_Iterator$$anon$20 = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_sc_Iterator$$anon$20, "scala.collection.Iterator$$anon$20", ({
-  aQ: 1,
+  aW: 1,
   H: 1,
   b: 1,
   c: 1,
@@ -249,7 +249,7 @@ $p.ai = (function(x, default$1) {
   }
 });
 var $d_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1 = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_Lsimple\uff3ftriangle_SimpleTriangle$$anon$1, "simple_triangle.SimpleTriangle$$anon$1", ({
-  bR: 1,
+  bX: 1,
   a6: 1,
   e: 1,
   f: 1,
@@ -279,14 +279,14 @@ $p.F = (function() {
 $p.E = (function(n) {
   throw $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$ct_jl_IndexOutOfBoundsException__T__(new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_jl_IndexOutOfBoundsException(), ("" + n));
 });
-$p.bh = (function() {
+$p.bl = (function() {
   throw new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_ju_NoSuchElementException("None.get");
 });
-$p.b0 = (function() {
-  this.bh();
+$p.b4 = (function() {
+  this.bl();
 });
 var $d_s_None$ = new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$TypeData().i($c_s_None$, "scala.None$", ({
-  aw: 1,
+  aC: 1,
   a0: 1,
   b: 1,
   d: 1,
@@ -315,7 +315,7 @@ $p.j = (function() {
   return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_s_util_hashing_MurmurHash3$().ak(this, 1323286827, true);
 });
 $p.n = (function() {
-  return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().aP(this);
+  return $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$m_sr_ScalaRunTime$().aT(this);
 });
 $p.D = (function() {
   return 1;
@@ -329,7 +329,7 @@ $p.E = (function(n) {
   }
   throw $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$ct_jl_IndexOutOfBoundsException__T__(new $j_internal$002dcad23071acfd2512298b5f90a8a6559377448aee.$c_jl_IndexOutOfBoundsException(), ("" + n));
 });
-$p.b0 = (function() {
+$p.b4 = (function() {
   return this.a9;
 });
 function $isArrayOf_s_Some(obj, depth) {
