@@ -5,7 +5,9 @@ import trivalibs.bufferdata.F64
 import trivalibs.bufferdata.StructRef
 import trivalibs.utils.numbers.NumExt
 
-trait Vec4Base[Num, Vec]:
+trait Vec4Base[Num: {NumExt, Fractional}, Vec]:
+  import Fractional.Implicits.given
+
   extension (v: Vec)
     def x: Num
     def y: Num
@@ -16,7 +18,12 @@ trait Vec4Base[Num, Vec]:
     inline def b: Num = z
     inline def a: Num = w
 
-trait Vec4Mutable[Num, Vec] extends Vec4Base[Num, Vec]:
+    inline def dot(other: Vec): Num =
+      v.x * other.x + v.y * other.y + v.z * other.z + v.w * other.w
+    inline def length_squared: Num = v.dot(v)
+    inline def length: Num = v.length_squared.sqrt
+
+trait Vec4Mutable[Num: {NumExt, Fractional}, Vec] extends Vec4Base[Num, Vec]:
   extension (v: Vec)
     def x_=(value: Num): Unit
     def y_=(value: Num): Unit
@@ -26,15 +33,6 @@ trait Vec4Mutable[Num, Vec] extends Vec4Base[Num, Vec]:
     inline def g_=(value: Num): Unit = y_=(value)
     inline def b_=(value: Num): Unit = z_=(value)
     inline def a_=(value: Num): Unit = w_=(value)
-
-trait Vec4SharedOps[Num: {NumExt, Fractional}, Vec]:
-  import Fractional.Implicits.given
-
-  extension (v: Vec)(using Vec4Base[Num, Vec])
-    inline def dot(other: Vec): Num =
-      v.x * other.x + v.y * other.y + v.z * other.z + v.w * other.w
-    inline def length_squared: Num = v.dot(v)
-    inline def length: Num = v.length_squared.sqrt
 
 trait Vec4ImmutableOps[Num: {NumExt, Fractional}, Vec]:
   import Fractional.Implicits.given
@@ -46,31 +44,113 @@ trait Vec4ImmutableOps[Num: {NumExt, Fractional}, Vec]:
         z: Num,
         w: Num
     ): Vec
+    @scala.annotation.targetName("addVec")
     inline def +(other: Vec): Vec =
       create(v.x + other.x, v.y + other.y, v.z + other.z, v.w + other.w)
+    @scala.annotation.targetName("addScalar")
+    inline def +(scalar: Num): Vec =
+      create(v.x + scalar, v.y + scalar, v.z + scalar, v.w + scalar)
+    @scala.annotation.targetName("subVec")
     inline def -(other: Vec): Vec =
       create(v.x - other.x, v.y - other.y, v.z - other.z, v.w - other.w)
+    @scala.annotation.targetName("subScalar")
+    inline def -(scalar: Num): Vec =
+      create(v.x - scalar, v.y - scalar, v.z - scalar, v.w - scalar)
+    @scala.annotation.targetName("mulVec")
+    inline def *(other: Vec): Vec =
+      create(v.x * other.x, v.y * other.y, v.z * other.z, v.w * other.w)
+    @scala.annotation.targetName("mulScalar")
     inline def *(scalar: Num): Vec =
       create(v.x * scalar, v.y * scalar, v.z * scalar, v.w * scalar)
+    @scala.annotation.targetName("divVec")
+    inline def /(other: Vec): Vec =
+      create(v.x / other.x, v.y / other.y, v.z / other.z, v.w / other.w)
+    @scala.annotation.targetName("divScalar")
     inline def /(scalar: Num): Vec =
       create(v.x / scalar, v.y / scalar, v.z / scalar, v.w / scalar)
+    inline def normalized: Vec =
+      v / v.length
 
 trait Vec4MutableOps[Num: {NumExt, Fractional}, Vec]:
   import Fractional.Implicits.given
 
   extension (v: Vec)(using Vec4Mutable[Num, Vec])
+    inline def add(other: Vec, out: Vec = v): Vec =
+      out.x = v.x + other.x
+      out.y = v.y + other.y
+      out.z = v.z + other.z
+      out.w = v.w + other.w
+      out
+    inline def sub(other: Vec, out: Vec = v): Vec =
+      out.x = v.x - other.x
+      out.y = v.y - other.y
+      out.z = v.z - other.z
+      out.w = v.w - other.w
+      out
+    inline def mul(other: Vec, out: Vec = v): Vec =
+      out.x = v.x * other.x
+      out.y = v.y * other.y
+      out.z = v.z * other.z
+      out.w = v.w * other.w
+      out
+    inline def div(other: Vec, out: Vec = v): Vec =
+      out.x = v.x / other.x
+      out.y = v.y / other.y
+      out.z = v.z / other.z
+      out.w = v.w / other.w
+      out
+
+    inline def addS(scalar: Num, out: Vec = v): Vec =
+      out.x = v.x + scalar
+      out.y = v.y + scalar
+      out.z = v.z + scalar
+      out.w = v.w + scalar
+      out
+    inline def subS(scalar: Num, out: Vec = v): Vec =
+      out.x = v.x - scalar
+      out.y = v.y - scalar
+      out.z = v.z - scalar
+      out.w = v.w - scalar
+      out
+    inline def mulS(scalar: Num, out: Vec = v): Vec =
+      out.x = v.x * scalar
+      out.y = v.y * scalar
+      out.z = v.z * scalar
+      out.w = v.w * scalar
+      out
+    inline def divS(scalar: Num, out: Vec = v): Vec =
+      out.x = v.x / scalar
+      out.y = v.y / scalar
+      out.z = v.z / scalar
+      out.w = v.w / scalar
+      out
+
+    @scala.annotation.targetName("addVecAssign")
     inline def +=(other: Vec): Unit =
-      v.x = v.x + other.x; v.y = v.y + other.y
-      v.z = v.z + other.z; v.w = v.w + other.w
+      v.add(other)
+    @scala.annotation.targetName("addScalarAssign")
+    inline def +=(scalar: Num): Unit =
+      v.addS(scalar)
+    @scala.annotation.targetName("subVecAssign")
     inline def -=(other: Vec): Unit =
-      v.x = v.x - other.x; v.y = v.y - other.y
-      v.z = v.z - other.z; v.w = v.w - other.w
+      v.sub(other)
+    @scala.annotation.targetName("subScalarAssign")
+    inline def -=(scalar: Num): Unit =
+      v.subS(scalar)
+    @scala.annotation.targetName("mulScalarAssign")
     inline def *=(scalar: Num): Unit =
-      v.x = v.x * scalar; v.y = v.y * scalar
-      v.z = v.z * scalar; v.w = v.w * scalar
+      v.mulS(scalar)
+    @scala.annotation.targetName("divScalarAssign")
     inline def /=(scalar: Num): Unit =
-      v.x = v.x / scalar; v.y = v.y / scalar
-      v.z = v.z / scalar; v.w = v.w / scalar
+      v.divS(scalar)
+    @scala.annotation.targetName("mulComponentwiseAssign")
+    inline def *=(other: Vec): Unit =
+      v.mul(other)
+    @scala.annotation.targetName("divComponentwiseAssign")
+    inline def /=(other: Vec): Unit =
+      v.div(other)
+
+    inline def normalize(out: Vec = v): Vec = v.divS(v.length, out)
 
 // === implementations for common vector types ===
 
@@ -91,9 +171,6 @@ object Vec4Buffer:
       inline def z_=(value: Float): Unit = v(2)(value)
       inline def w_=(value: Float): Unit = v(3)(value)
 
-  given Vec4SharedOps[Float, StructRef[Vec4Buffer]] =
-    new Vec4SharedOps[Float, StructRef[Vec4Buffer]] {}
-
   given Vec4MutableOps[Float, StructRef[Vec4Buffer]] =
     new Vec4MutableOps[Float, StructRef[Vec4Buffer]] {}
 
@@ -107,9 +184,6 @@ object Vec4fTuple:
       inline def y: Float = v._2
       inline def z: Float = v._3
       inline def w: Float = v._4
-
-  given Vec4SharedOps[Float, Vec4fTuple] =
-    new Vec4SharedOps[Float, Vec4fTuple] {}
 
   given Vec4ImmutableOps[Float, Vec4fTuple]:
     extension (v: Vec4fTuple)(using Vec4Base[Float, Vec4fTuple])
@@ -141,8 +215,6 @@ object Vec4f:
 
   given Vec4MutableOps[Float, Vec4f] = new Vec4MutableOps[Float, Vec4f] {}
 
-  given Vec4SharedOps[Float, Vec4f] = new Vec4SharedOps[Float, Vec4f] {}
-
 // ===== Double Vec4 types (default) =====
 
 type Vec4dBuffer = (F64, F64, F64, F64)
@@ -159,9 +231,6 @@ object Vec4dBuffer:
       inline def z_=(value: Double): Unit = v(2)(value)
       inline def w_=(value: Double): Unit = v(3)(value)
 
-  given Vec4SharedOps[Double, StructRef[Vec4dBuffer]] =
-    new Vec4SharedOps[Double, StructRef[Vec4dBuffer]] {}
-
   given Vec4MutableOps[Double, StructRef[Vec4dBuffer]] =
     new Vec4MutableOps[Double, StructRef[Vec4dBuffer]] {}
 
@@ -175,9 +244,6 @@ object Vec4Tuple:
       inline def y: Double = v._2
       inline def z: Double = v._3
       inline def w: Double = v._4
-
-  given Vec4SharedOps[Double, Vec4Tuple] =
-    new Vec4SharedOps[Double, Vec4Tuple] {}
 
   given Vec4ImmutableOps[Double, Vec4Tuple]:
     extension (v: Vec4Tuple)(using Vec4Base[Double, Vec4Tuple])
@@ -202,8 +268,6 @@ object Vec4:
       inline def y_=(value: Double): Unit = v.y = value
       inline def z_=(value: Double): Unit = v.z = value
       inline def w_=(value: Double): Unit = v.w = value
-
-  given Vec4SharedOps[Double, Vec4] = new Vec4SharedOps[Double, Vec4] {}
 
   given Vec4ImmutableOps[Double, Vec4]:
     extension (v: Vec4)(using Vec4Base[Double, Vec4])

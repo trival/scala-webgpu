@@ -160,12 +160,51 @@ trait Mat4ImmutableOps[Num: Fractional, Mat]:
         a03 * b30 + a13 * b31 + a23 * b32 + a33 * b33
       )
 
-    inline def transpose: Mat = create(
+    inline def transposed: Mat = create(
       m.m00, m.m10, m.m20, m.m30,
       m.m01, m.m11, m.m21, m.m31,
       m.m02, m.m12, m.m22, m.m32,
       m.m03, m.m13, m.m23, m.m33
     )
+
+    inline def inversed: Mat =
+      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02; val a03 = m.m03
+      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12; val a13 = m.m13
+      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22; val a23 = m.m23
+      val a30 = m.m30; val a31 = m.m31; val a32 = m.m32; val a33 = m.m33
+      // 2x2 sub-determinants
+      val b00 = a00 * a11 - a01 * a10
+      val b01 = a00 * a12 - a02 * a10
+      val b02 = a00 * a13 - a03 * a10
+      val b03 = a01 * a12 - a02 * a11
+      val b04 = a01 * a13 - a03 * a11
+      val b05 = a02 * a13 - a03 * a12
+      val b06 = a20 * a31 - a21 * a30
+      val b07 = a20 * a32 - a22 * a30
+      val b08 = a20 * a33 - a23 * a30
+      val b09 = a21 * a32 - a22 * a31
+      val b10 = a21 * a33 - a23 * a31
+      val b11 = a22 * a33 - a23 * a32
+      val det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06
+      val invDet = summon[Fractional[Num]].one / det
+      create(
+        ( a11 * b11 - a12 * b10 + a13 * b09) * invDet,
+        (-a01 * b11 + a02 * b10 - a03 * b09) * invDet,
+        ( a31 * b05 - a32 * b04 + a33 * b03) * invDet,
+        (-a21 * b05 + a22 * b04 - a23 * b03) * invDet,
+        (-a10 * b11 + a12 * b08 - a13 * b07) * invDet,
+        ( a00 * b11 - a02 * b08 + a03 * b07) * invDet,
+        (-a30 * b05 + a32 * b02 - a33 * b01) * invDet,
+        ( a20 * b05 - a22 * b02 + a23 * b01) * invDet,
+        ( a10 * b10 - a11 * b08 + a13 * b06) * invDet,
+        (-a00 * b10 + a01 * b08 - a03 * b06) * invDet,
+        ( a30 * b04 - a31 * b02 + a33 * b00) * invDet,
+        (-a20 * b04 + a21 * b02 - a23 * b00) * invDet,
+        (-a10 * b09 + a11 * b07 - a12 * b06) * invDet,
+        ( a00 * b09 - a01 * b07 + a02 * b06) * invDet,
+        (-a30 * b03 + a31 * b01 - a32 * b00) * invDet,
+        ( a20 * b03 - a21 * b01 + a22 * b00) * invDet
+      )
 
 trait Mat4MutableOps[Num: Fractional, Mat]:
   import Fractional.Implicits.given
@@ -196,6 +235,55 @@ trait Mat4MutableOps[Num: Fractional, Mat]:
       m.m10 = z; m.m11 = o; m.m12 = z; m.m13 = z
       m.m20 = z; m.m21 = z; m.m22 = o; m.m23 = z
       m.m30 = z; m.m31 = z; m.m32 = z; m.m33 = o
+
+    inline def transpose(out: Mat = m): Mat =
+      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02; val a03 = m.m03
+      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12; val a13 = m.m13
+      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22; val a23 = m.m23
+      val a30 = m.m30; val a31 = m.m31; val a32 = m.m32; val a33 = m.m33
+      out.m00 = a00; out.m01 = a10; out.m02 = a20; out.m03 = a30
+      out.m10 = a01; out.m11 = a11; out.m12 = a21; out.m13 = a31
+      out.m20 = a02; out.m21 = a12; out.m22 = a22; out.m23 = a32
+      out.m30 = a03; out.m31 = a13; out.m32 = a23; out.m33 = a33
+      out
+
+    inline def inverse(out: Mat = m): Mat =
+      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02; val a03 = m.m03
+      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12; val a13 = m.m13
+      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22; val a23 = m.m23
+      val a30 = m.m30; val a31 = m.m31; val a32 = m.m32; val a33 = m.m33
+      // 2x2 sub-determinants
+      val b00 = a00 * a11 - a01 * a10
+      val b01 = a00 * a12 - a02 * a10
+      val b02 = a00 * a13 - a03 * a10
+      val b03 = a01 * a12 - a02 * a11
+      val b04 = a01 * a13 - a03 * a11
+      val b05 = a02 * a13 - a03 * a12
+      val b06 = a20 * a31 - a21 * a30
+      val b07 = a20 * a32 - a22 * a30
+      val b08 = a20 * a33 - a23 * a30
+      val b09 = a21 * a32 - a22 * a31
+      val b10 = a21 * a33 - a23 * a31
+      val b11 = a22 * a33 - a23 * a32
+      val det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06
+      val invDet = summon[Fractional[Num]].one / det
+      out.m00 = ( a11 * b11 - a12 * b10 + a13 * b09) * invDet
+      out.m01 = (-a01 * b11 + a02 * b10 - a03 * b09) * invDet
+      out.m02 = ( a31 * b05 - a32 * b04 + a33 * b03) * invDet
+      out.m03 = (-a21 * b05 + a22 * b04 - a23 * b03) * invDet
+      out.m10 = (-a10 * b11 + a12 * b08 - a13 * b07) * invDet
+      out.m11 = ( a00 * b11 - a02 * b08 + a03 * b07) * invDet
+      out.m12 = (-a30 * b05 + a32 * b02 - a33 * b01) * invDet
+      out.m13 = ( a20 * b05 - a22 * b02 + a23 * b01) * invDet
+      out.m20 = ( a10 * b10 - a11 * b08 + a13 * b06) * invDet
+      out.m21 = (-a00 * b10 + a01 * b08 - a03 * b06) * invDet
+      out.m22 = ( a30 * b04 - a31 * b02 + a33 * b00) * invDet
+      out.m23 = (-a20 * b04 + a21 * b02 - a23 * b00) * invDet
+      out.m30 = (-a10 * b09 + a11 * b07 - a12 * b06) * invDet
+      out.m31 = ( a00 * b09 - a01 * b07 + a02 * b06) * invDet
+      out.m32 = (-a30 * b03 + a31 * b01 - a32 * b00) * invDet
+      out.m33 = ( a20 * b03 - a21 * b01 + a22 * b00) * invDet
+      out
 // format: on
 
 // === implementations for common matrix types ===

@@ -87,10 +87,18 @@ trait Mat2ImmutableOps[Num: Fractional, Mat]:
       m.m01 * other.m10 + m.m11 * other.m11
     )
 
-    inline def transpose: Mat = create(
+    inline def transposed: Mat = create(
       m.m00, m.m10,
       m.m01, m.m11
     )
+
+    inline def inversed: Mat =
+      val det = m.m00 * m.m11 - m.m10 * m.m01
+      val invDet = summon[Fractional[Num]].one / det
+      create(
+         m.m11 * invDet, -m.m01 * invDet,
+        -m.m10 * invDet,  m.m00 * invDet
+      )
 
 trait Mat2MutableOps[Num: Fractional, Mat]:
   import Fractional.Implicits.given
@@ -113,6 +121,19 @@ trait Mat2MutableOps[Num: Fractional, Mat]:
       val o = summon[Fractional[Num]].one
       m.m00 = o; m.m01 = z
       m.m10 = z; m.m11 = o
+
+    inline def transpose(out: Mat = m): Mat =
+      val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
+      out.m00 = t00; out.m01 = t10; out.m10 = t01; out.m11 = t11
+      out
+
+    inline def inverse(out: Mat = m): Mat =
+      val det = m.m00 * m.m11 - m.m10 * m.m01
+      val invDet = summon[Fractional[Num]].one / det
+      val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
+      out.m00 =  t11 * invDet; out.m01 = -t01 * invDet
+      out.m10 = -t10 * invDet; out.m11 =  t00 * invDet
+      out
 // format: on
 
 // === implementations for common matrix types ===

@@ -125,11 +125,33 @@ trait Mat3ImmutableOps[Num: Fractional, Mat]:
         a02 * b20 + a12 * b21 + a22 * b22
       )
 
-    inline def transpose: Mat = create(
+    inline def transposed: Mat = create(
       m.m00, m.m10, m.m20,
       m.m01, m.m11, m.m21,
       m.m02, m.m12, m.m22
     )
+
+    inline def inversed: Mat =
+      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
+      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
+      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
+      // Cofactors (transposed = adjugate)
+      val c00 =  a11 * a22 - a12 * a21
+      val c01 = -(a10 * a22 - a12 * a20)
+      val c02 =  a10 * a21 - a11 * a20
+      val c10 = -(a01 * a22 - a02 * a21)
+      val c11 =  a00 * a22 - a02 * a20
+      val c12 = -(a00 * a21 - a01 * a20)
+      val c20 =  a01 * a12 - a02 * a11
+      val c21 = -(a00 * a12 - a02 * a10)
+      val c22 =  a00 * a11 - a01 * a10
+      val det = a00 * c00 + a10 * c10 + a20 * c20
+      val invDet = summon[Fractional[Num]].one / det
+      create(
+        c00 * invDet, c10 * invDet, c20 * invDet,
+        c01 * invDet, c11 * invDet, c21 * invDet,
+        c02 * invDet, c12 * invDet, c22 * invDet
+      )
 
 trait Mat3MutableOps[Num: Fractional, Mat]:
   import Fractional.Implicits.given
@@ -156,6 +178,36 @@ trait Mat3MutableOps[Num: Fractional, Mat]:
       m.m00 = o; m.m01 = z; m.m02 = z
       m.m10 = z; m.m11 = o; m.m12 = z
       m.m20 = z; m.m21 = z; m.m22 = o
+
+    inline def transpose(out: Mat = m): Mat =
+      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
+      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
+      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
+      out.m00 = a00; out.m01 = a10; out.m02 = a20
+      out.m10 = a01; out.m11 = a11; out.m12 = a21
+      out.m20 = a02; out.m21 = a12; out.m22 = a22
+      out
+
+    inline def inverse(out: Mat = m): Mat =
+      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
+      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
+      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
+      // Cofactors (transposed = adjugate)
+      val c00 =  a11 * a22 - a12 * a21
+      val c01 = -(a10 * a22 - a12 * a20)
+      val c02 =  a10 * a21 - a11 * a20
+      val c10 = -(a01 * a22 - a02 * a21)
+      val c11 =  a00 * a22 - a02 * a20
+      val c12 = -(a00 * a21 - a01 * a20)
+      val c20 =  a01 * a12 - a02 * a11
+      val c21 = -(a00 * a12 - a02 * a10)
+      val c22 =  a00 * a11 - a01 * a10
+      val det = a00 * c00 + a10 * c10 + a20 * c20
+      val invDet = summon[Fractional[Num]].one / det
+      out.m00 = c00 * invDet; out.m01 = c10 * invDet; out.m02 = c20 * invDet
+      out.m10 = c01 * invDet; out.m11 = c11 * invDet; out.m12 = c21 * invDet
+      out.m20 = c02 * invDet; out.m21 = c12 * invDet; out.m22 = c22 * invDet
+      out
 // format: on
 
 // === implementations for common matrix types ===
