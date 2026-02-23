@@ -3,61 +3,53 @@ package gpu.math
 import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.F64
 import trivalibs.bufferdata.StructRef
-import trivalibs.utils.numbers.Number
-import trivalibs.utils.numbers.Floating
+import trivalibs.utils.numbers.NumExt
 
-trait Vec2Base[Primitive, T]:
-  extension (v: T)
-    def x: Primitive
-    def y: Primitive
-    inline def u: Primitive = x
-    inline def v: Primitive = y
+trait Vec2Base[Num, Vec]:
+  extension (v: Vec)
+    def x: Num
+    def y: Num
+    inline def u: Num = x
+    inline def v: Num = y
 
-trait Vec2Mutable[Primitive, T] extends Vec2Base[Primitive, T]:
-  extension (v: T)
-    def x_=(value: Primitive): Unit
-    def y_=(value: Primitive): Unit
-    inline def u_=(value: Primitive): Unit = x_=(value)
-    inline def v_=(value: Primitive): Unit = y_=(value)
+trait Vec2Mutable[Num, Vec] extends Vec2Base[Num, Vec]:
+  extension (v: Vec)
+    def x_=(value: Num): Unit
+    def y_=(value: Num): Unit
+    inline def u_=(value: Num): Unit = x_=(value)
+    inline def v_=(value: Num): Unit = y_=(value)
 
-trait Vec2SharedOps[Vec, Primitive: Floating]:
-  private given Numeric[Primitive] = summon[Floating[Primitive]].numeric
-  import Numeric.Implicits.given
+trait Vec2SharedOps[Num: {NumExt, Fractional}, Vec]:
+  import Fractional.Implicits.given
 
-  extension (v: Vec)(using Vec2Base[Primitive, Vec])
-    inline def dot(other: Vec): Primitive =
+  extension (v: Vec)(using Vec2Base[Num, Vec])
+    inline def dot(other: Vec): Num =
       v.x * other.x + v.y * other.y
-    inline def length_squared: Primitive = v.dot(v)
-    inline def length: Double = v.length_squared.sqrt
+    inline def length_squared: Num = v.dot(v)
+    inline def length: Num = v.length_squared.sqrt
 
-trait Vec2ImmutableOps[Vec, Primitive: Number]:
-  private given Numeric[Primitive] = summon[Number[Primitive]].numeric
-  import Numeric.Implicits.given
+trait Vec2ImmutableOps[Num: {NumExt, Fractional}, Vec]:
+  import Fractional.Implicits.given
 
-  extension (v: Vec)(using Vec2Base[Primitive, Vec])
-    inline def create(x: Primitive, y: Primitive): Vec
+  extension (v: Vec)(using Vec2Base[Num, Vec])
+    inline def create(x: Num, y: Num): Vec
     inline def +(other: Vec): Vec = create(v.x + other.x, v.y + other.y)
     inline def -(other: Vec): Vec = create(v.x - other.x, v.y - other.y)
-    inline def *(scalar: Primitive): Vec = create(v.x * scalar, v.y * scalar)
+    inline def *(scalar: Num): Vec = create(v.x * scalar, v.y * scalar)
+    inline def /(scalar: Num): Vec = create(v.x / scalar, v.y / scalar)
 
-trait Vec2MutableOps[Vec, Primitive: Number]:
-  private given Numeric[Primitive] = summon[Number[Primitive]].numeric
-  import Numeric.Implicits.given
+trait Vec2MutableOps[Num: {NumExt, Fractional}, Vec]:
+  import Fractional.Implicits.given
 
-  extension (
-      v: Vec
-  )(using Vec2Mutable[Primitive, Vec])
+  extension (v: Vec)(using Vec2Mutable[Num, Vec])
     inline def +=(other: Vec): Unit =
-      v.x = v.x + other.x
-      v.y = v.y + other.y
-
+      v.x = v.x + other.x; v.y = v.y + other.y
     inline def -=(other: Vec): Unit =
-      v.x = v.x - other.x
-      v.y = v.y - other.y
-
-    inline def *=(scalar: Primitive): Unit =
-      v.x = v.x * scalar
-      v.y = v.y * scalar
+      v.x = v.x - other.x; v.y = v.y - other.y
+    inline def *=(scalar: Num): Unit =
+      v.x = v.x * scalar; v.y = v.y * scalar
+    inline def /=(scalar: Num): Unit =
+      v.x = v.x / scalar; v.y = v.y / scalar
 
 // === implementations for common vector types ===
 
@@ -73,11 +65,11 @@ object Vec2Buffer:
       inline def x_=(value: Float): Unit = v(0)(value)
       inline def y_=(value: Float): Unit = v(1)(value)
 
-  given Vec2SharedOps[StructRef[Vec2Buffer], Float] =
-    new Vec2SharedOps[StructRef[Vec2Buffer], Float] {}
+  given Vec2SharedOps[Float, StructRef[Vec2Buffer]] =
+    new Vec2SharedOps[Float, StructRef[Vec2Buffer]] {}
 
-  given Vec2MutableOps[StructRef[Vec2Buffer], Float] =
-    new Vec2MutableOps[StructRef[Vec2Buffer], Float] {}
+  given Vec2MutableOps[Float, StructRef[Vec2Buffer]] =
+    new Vec2MutableOps[Float, StructRef[Vec2Buffer]] {}
 
 type Vec2Tuple = (Float, Float)
 
@@ -88,10 +80,10 @@ object Vec2Tuple:
       inline def x: Float = v._1
       inline def y: Float = v._2
 
-  given Vec2SharedOps[Vec2Tuple, Float] =
-    new Vec2SharedOps[Vec2Tuple, Float] {}
+  given Vec2SharedOps[Float, Vec2Tuple] =
+    new Vec2SharedOps[Float, Vec2Tuple] {}
 
-  given Vec2ImmutableOps[Vec2Tuple, Float]:
+  given Vec2ImmutableOps[Float, Vec2Tuple]:
     extension (v: Vec2Tuple)(using Vec2Base[Float, Vec2Tuple])
       inline def create(x: Float, y: Float) = (x, y)
 
@@ -105,13 +97,13 @@ object Vec2:
       inline def x_=(value: Float): Unit = v.x = value
       inline def y_=(value: Float): Unit = v.y = value
 
-  given Vec2ImmutableOps[Vec2, Float]:
+  given Vec2ImmutableOps[Float, Vec2]:
     extension (v: Vec2)(using Vec2Base[Float, Vec2])
       inline def create(x: Float, y: Float) = Vec2(x, y)
 
-  given Vec2MutableOps[Vec2, Float] = new Vec2MutableOps[Vec2, Float] {}
+  given Vec2MutableOps[Float, Vec2] = new Vec2MutableOps[Float, Vec2] {}
 
-  given Vec2SharedOps[Vec2, Float] = new Vec2SharedOps[Vec2, Float] {}
+  given Vec2SharedOps[Float, Vec2] = new Vec2SharedOps[Float, Vec2] {}
 
 // ===== Double Vec2 types =====
 
@@ -125,11 +117,11 @@ object Vec2dBuffer:
       inline def x_=(value: Double): Unit = v(0)(value)
       inline def y_=(value: Double): Unit = v(1)(value)
 
-  given Vec2SharedOps[StructRef[Vec2dBuffer], Double] =
-    new Vec2SharedOps[StructRef[Vec2dBuffer], Double] {}
+  given Vec2SharedOps[Double, StructRef[Vec2dBuffer]] =
+    new Vec2SharedOps[Double, StructRef[Vec2dBuffer]] {}
 
-  given Vec2MutableOps[StructRef[Vec2dBuffer], Double] =
-    new Vec2MutableOps[StructRef[Vec2dBuffer], Double] {}
+  given Vec2MutableOps[Double, StructRef[Vec2dBuffer]] =
+    new Vec2MutableOps[Double, StructRef[Vec2dBuffer]] {}
 
 type Vec2dTuple = (Double, Double)
 
@@ -140,10 +132,10 @@ object Vec2dTuple:
       inline def x: Double = v._1
       inline def y: Double = v._2
 
-  given Vec2SharedOps[Vec2dTuple, Double] =
-    new Vec2SharedOps[Vec2dTuple, Double] {}
+  given Vec2SharedOps[Double, Vec2dTuple] =
+    new Vec2SharedOps[Double, Vec2dTuple] {}
 
-  given Vec2ImmutableOps[Vec2dTuple, Double]:
+  given Vec2ImmutableOps[Double, Vec2dTuple]:
     extension (v: Vec2dTuple)(using Vec2Base[Double, Vec2dTuple])
       inline def create(x: Double, y: Double) = (x, y)
 
@@ -157,10 +149,10 @@ object Vec2d:
       inline def x_=(value: Double): Unit = v.x = value
       inline def y_=(value: Double): Unit = v.y = value
 
-  given Vec2SharedOps[Vec2d, Double] = new Vec2SharedOps[Vec2d, Double] {}
+  given Vec2SharedOps[Double, Vec2d] = new Vec2SharedOps[Double, Vec2d] {}
 
-  given Vec2ImmutableOps[Vec2d, Double]:
+  given Vec2ImmutableOps[Double, Vec2d]:
     extension (v: Vec2d)(using Vec2Base[Double, Vec2d])
       inline def create(x: Double, y: Double) = Vec2d(x, y)
 
-  given Vec2MutableOps[Vec2d, Double] = new Vec2MutableOps[Vec2d, Double] {}
+  given Vec2MutableOps[Double, Vec2d] = new Vec2MutableOps[Double, Vec2d] {}
