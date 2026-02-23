@@ -42,7 +42,7 @@ trait Vec4ImmutableOps[Num: {NumExt, Fractional}, Vec]:
         x: Num,
         y: Num,
         z: Num,
-        w: Num
+        w: Num,
     ): Vec
     @scala.annotation.targetName("addVec")
     inline def +(other: Vec): Vec =
@@ -180,10 +180,10 @@ object Vec4fTuple:
 
   given Vec4Base[Float, Vec4fTuple]:
     extension (v: Vec4fTuple)
-      inline def x: Float = v._1
-      inline def y: Float = v._2
-      inline def z: Float = v._3
-      inline def w: Float = v._4
+      inline def x = v._1
+      inline def y = v._2
+      inline def z = v._3
+      inline def w = v._4
 
   given Vec4ImmutableOps[Float, Vec4fTuple]:
     extension (v: Vec4fTuple)(using Vec4Base[Float, Vec4fTuple])
@@ -193,20 +193,20 @@ class Vec4f(
     var x: Float = 0f,
     var y: Float = 0f,
     var z: Float = 0f,
-    var w: Float = 0f
+    var w: Float = 0f,
 )
 
 object Vec4f:
   given Vec4Mutable[Float, Vec4f]:
     extension (v: Vec4f)
-      inline def x: Float = v.x
-      inline def y: Float = v.y
-      inline def z: Float = v.z
-      inline def w: Float = v.w
-      inline def x_=(value: Float): Unit = v.x = value
-      inline def y_=(value: Float): Unit = v.y = value
-      inline def z_=(value: Float): Unit = v.z = value
-      inline def w_=(value: Float): Unit = v.w = value
+      inline def x = v.x
+      inline def y = v.y
+      inline def z = v.z
+      inline def w = v.w
+      inline def x_=(value: Float) = v.x = value
+      inline def y_=(value: Float) = v.y = value
+      inline def z_=(value: Float) = v.z = value
+      inline def w_=(value: Float) = v.w = value
 
   given Vec4ImmutableOps[Float, Vec4f]:
     extension (v: Vec4f)(using Vec4Base[Float, Vec4f])
@@ -222,14 +222,14 @@ type Vec4dBuffer = (F64, F64, F64, F64)
 object Vec4dBuffer:
   given Vec4Mutable[Double, StructRef[Vec4dBuffer]]:
     extension (v: StructRef[Vec4dBuffer])
-      inline def x: Double = v(0)()
-      inline def y: Double = v(1)()
-      inline def z: Double = v(2)()
-      inline def w: Double = v(3)()
-      inline def x_=(value: Double): Unit = v(0)(value)
-      inline def y_=(value: Double): Unit = v(1)(value)
-      inline def z_=(value: Double): Unit = v(2)(value)
-      inline def w_=(value: Double): Unit = v(3)(value)
+      inline def x = v(0)()
+      inline def y = v(1)()
+      inline def z = v(2)()
+      inline def w = v(3)()
+      inline def x_=(value: Double) = v(0)(value)
+      inline def y_=(value: Double) = v(1)(value)
+      inline def z_=(value: Double) = v(2)(value)
+      inline def w_=(value: Double) = v(3)(value)
 
   given Vec4MutableOps[Double, StructRef[Vec4dBuffer]] =
     new Vec4MutableOps[Double, StructRef[Vec4dBuffer]] {}
@@ -240,10 +240,10 @@ object Vec4Tuple:
 
   given Vec4Base[Double, Vec4Tuple]:
     extension (v: Vec4Tuple)
-      inline def x: Double = v._1
-      inline def y: Double = v._2
-      inline def z: Double = v._3
-      inline def w: Double = v._4
+      inline def x = v._1
+      inline def y = v._2
+      inline def z = v._3
+      inline def w = v._4
 
   given Vec4ImmutableOps[Double, Vec4Tuple]:
     extension (v: Vec4Tuple)(using Vec4Base[Double, Vec4Tuple])
@@ -254,20 +254,20 @@ class Vec4(
     var x: Double = 0.0,
     var y: Double = 0.0,
     var z: Double = 0.0,
-    var w: Double = 0.0
+    var w: Double = 0.0,
 )
 
 object Vec4:
   given Vec4Mutable[Double, Vec4]:
     extension (v: Vec4)
-      inline def x: Double = v.x
-      inline def y: Double = v.y
-      inline def z: Double = v.z
-      inline def w: Double = v.w
-      inline def x_=(value: Double): Unit = v.x = value
-      inline def y_=(value: Double): Unit = v.y = value
-      inline def z_=(value: Double): Unit = v.z = value
-      inline def w_=(value: Double): Unit = v.w = value
+      inline def x = v.x
+      inline def y = v.y
+      inline def z = v.z
+      inline def w = v.w
+      inline def x_=(value: Double) = v.x = value
+      inline def y_=(value: Double) = v.y = value
+      inline def z_=(value: Double) = v.z = value
+      inline def w_=(value: Double) = v.w = value
 
   given Vec4ImmutableOps[Double, Vec4]:
     extension (v: Vec4)(using Vec4Base[Double, Vec4])

@@ -125,10 +125,10 @@ type Vec2Buffer = (F32, F32)
 object Vec2Buffer:
   given Vec2Mutable[Float, StructRef[Vec2Buffer]]:
     extension (v: StructRef[Vec2Buffer])
-      inline def x: Float = v(0)()
-      inline def y: Float = v(1)()
-      inline def x_=(value: Float): Unit = v(0)(value)
-      inline def y_=(value: Float): Unit = v(1)(value)
+      inline def x = v(0)()
+      inline def y = v(1)()
+      inline def x_=(value: Float) = v(0)(value)
+      inline def y_=(value: Float) = v(1)(value)
 
   given Vec2MutableOps[Float, StructRef[Vec2Buffer]] =
     new Vec2MutableOps[Float, StructRef[Vec2Buffer]] {}
@@ -139,8 +139,8 @@ object Vec2fTuple:
 
   given Vec2Base[Float, Vec2fTuple]:
     extension (v: Vec2fTuple)
-      inline def x: Float = v._1
-      inline def y: Float = v._2
+      inline def x = v._1
+      inline def y = v._2
 
   given Vec2ImmutableOps[Float, Vec2fTuple]:
     extension (v: Vec2fTuple)(using Vec2Base[Float, Vec2fTuple])
@@ -151,10 +151,10 @@ class Vec2f(var x: Float = 0f, var y: Float = 0f)
 object Vec2f:
   given Vec2Mutable[Float, Vec2f]:
     extension (v: Vec2f)
-      inline def x: Float = v.x
-      inline def y: Float = v.y
-      inline def x_=(value: Float): Unit = v.x = value
-      inline def y_=(value: Float): Unit = v.y = value
+      inline def x = v.x
+      inline def y = v.y
+      inline def x_=(value: Float) = v.x = value
+      inline def y_=(value: Float) = v.y = value
 
   given Vec2ImmutableOps[Float, Vec2f]:
     extension (v: Vec2f)(using Vec2Base[Float, Vec2f])
@@ -169,10 +169,10 @@ type Vec2dBuffer = (F64, F64)
 object Vec2dBuffer:
   given Vec2Mutable[Double, StructRef[Vec2dBuffer]]:
     extension (v: StructRef[Vec2dBuffer])
-      inline def x: Double = v(0)()
-      inline def y: Double = v(1)()
-      inline def x_=(value: Double): Unit = v(0)(value)
-      inline def y_=(value: Double): Unit = v(1)(value)
+      inline def x = v(0)()
+      inline def y = v(1)()
+      inline def x_=(value: Double) = v(0)(value)
+      inline def y_=(value: Double) = v(1)(value)
 
   given Vec2MutableOps[Double, StructRef[Vec2dBuffer]] =
     new Vec2MutableOps[Double, StructRef[Vec2dBuffer]] {}
@@ -183,8 +183,8 @@ object Vec2Tuple:
 
   given Vec2Base[Double, Vec2Tuple]:
     extension (v: Vec2Tuple)
-      inline def x: Double = v._1
-      inline def y: Double = v._2
+      inline def x = v._1
+      inline def y = v._2
 
   given Vec2ImmutableOps[Double, Vec2Tuple]:
     extension (v: Vec2Tuple)(using Vec2Base[Double, Vec2Tuple])
@@ -195,10 +195,10 @@ class Vec2(var x: Double = 0.0, var y: Double = 0.0)
 object Vec2:
   given Vec2Mutable[Double, Vec2]:
     extension (v: Vec2)
-      inline def x: Double = v.x
-      inline def y: Double = v.y
-      inline def x_=(value: Double): Unit = v.x = value
-      inline def y_=(value: Double): Unit = v.y = value
+      inline def x = v.x
+      inline def y = v.y
+      inline def x_=(value: Double) = v.x = value
+      inline def y_=(value: Double) = v.y = value
 
   given Vec2ImmutableOps[Double, Vec2]:
     extension (v: Vec2)(using Vec2Base[Double, Vec2])

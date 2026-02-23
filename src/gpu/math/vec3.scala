@@ -63,7 +63,7 @@ trait Vec3ImmutableOps[Num: {NumExt, Fractional}, Vec]:
       v.create(
         v.y * other.z - v.z * other.y,
         v.z * other.x - v.x * other.z,
-        v.x * other.y - v.y * other.x
+        v.x * other.y - v.y * other.x,
       )
     inline def normalized: Vec =
       v / v.length
@@ -150,12 +150,12 @@ type Vec3Buffer = (F32, F32, F32)
 object Vec3Buffer:
   given Vec3Mutable[Float, StructRef[Vec3Buffer]]:
     extension (v: StructRef[Vec3Buffer])
-      inline def x: Float = v(0)()
-      inline def y: Float = v(1)()
-      inline def z: Float = v(2)()
-      inline def x_=(value: Float): Unit = v(0)(value)
-      inline def y_=(value: Float): Unit = v(1)(value)
-      inline def z_=(value: Float): Unit = v(2)(value)
+      inline def x = v(0)()
+      inline def y = v(1)()
+      inline def z = v(2)()
+      inline def x_=(value: Float) = v(0)(value)
+      inline def y_=(value: Float) = v(1)(value)
+      inline def z_=(value: Float) = v(2)(value)
 
   given Vec3MutableOps[Float, StructRef[Vec3Buffer]] =
     new Vec3MutableOps[Float, StructRef[Vec3Buffer]] {}
@@ -166,9 +166,9 @@ object Vec3fTuple:
 
   given Vec3Base[Float, Vec3fTuple]:
     extension (v: Vec3fTuple)
-      inline def x: Float = v._1
-      inline def y: Float = v._2
-      inline def z: Float = v._3
+      inline def x = v._1
+      inline def y = v._2
+      inline def z = v._3
 
   given Vec3ImmutableOps[Float, Vec3fTuple]:
     extension (v: Vec3fTuple)(using Vec3Base[Float, Vec3fTuple])
@@ -179,12 +179,12 @@ class Vec3f(var x: Float = 0f, var y: Float = 0f, var z: Float = 0f)
 object Vec3f:
   given Vec3Mutable[Float, Vec3f]:
     extension (v: Vec3f)
-      inline def x: Float = v.x
-      inline def y: Float = v.y
-      inline def z: Float = v.z
-      inline def x_=(value: Float): Unit = v.x = value
-      inline def y_=(value: Float): Unit = v.y = value
-      inline def z_=(value: Float): Unit = v.z = value
+      inline def x = v.x
+      inline def y = v.y
+      inline def z = v.z
+      inline def x_=(value: Float) = v.x = value
+      inline def y_=(value: Float) = v.y = value
+      inline def z_=(value: Float) = v.z = value
 
   given Vec3ImmutableOps[Float, Vec3f]:
     extension (v: Vec3f)(using Vec3Base[Float, Vec3f])
@@ -199,12 +199,12 @@ type Vec3dBuffer = (F64, F64, F64)
 object Vec3dBuffer:
   given Vec3Mutable[Double, StructRef[Vec3dBuffer]]:
     extension (v: StructRef[Vec3dBuffer])
-      inline def x: Double = v(0)()
-      inline def y: Double = v(1)()
-      inline def z: Double = v(2)()
-      inline def x_=(value: Double): Unit = v(0)(value)
-      inline def y_=(value: Double): Unit = v(1)(value)
-      inline def z_=(value: Double): Unit = v(2)(value)
+      inline def x = v(0)()
+      inline def y = v(1)()
+      inline def z = v(2)()
+      inline def x_=(value: Double) = v(0)(value)
+      inline def y_=(value: Double) = v(1)(value)
+      inline def z_=(value: Double) = v(2)(value)
 
   given Vec3MutableOps[Double, StructRef[Vec3dBuffer]] =
     new Vec3MutableOps[Double, StructRef[Vec3dBuffer]] {}
@@ -215,9 +215,9 @@ object Vec3Tuple:
 
   given Vec3Base[Double, Vec3Tuple]:
     extension (v: Vec3Tuple)
-      inline def x: Double = v._1
-      inline def y: Double = v._2
-      inline def z: Double = v._3
+      inline def x = v._1
+      inline def y = v._2
+      inline def z = v._3
 
   given Vec3ImmutableOps[Double, Vec3Tuple]:
     extension (v: Vec3Tuple)(using Vec3Base[Double, Vec3Tuple])
@@ -228,12 +228,12 @@ class Vec3(var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0)
 object Vec3:
   given Vec3Mutable[Double, Vec3]:
     extension (v: Vec3)
-      inline def x: Double = v.x
-      inline def y: Double = v.y
-      inline def z: Double = v.z
-      inline def x_=(value: Double): Unit = v.x = value
-      inline def y_=(value: Double): Unit = v.y = value
-      inline def z_=(value: Double): Unit = v.z = value
+      inline def x = v.x
+      inline def y = v.y
+      inline def z = v.z
+      inline def x_=(value: Double) = v.x = value
+      inline def y_=(value: Double) = v.y = value
+      inline def z_=(value: Double) = v.z = value
 
   given Vec3ImmutableOps[Double, Vec3]:
     extension (v: Vec3)(using Vec3Base[Double, Vec3])

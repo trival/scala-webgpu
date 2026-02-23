@@ -144,10 +144,10 @@ type Mat2Buffer = (F32, F32, F32, F32)
 object Mat2Buffer:
   given Mat2Mutable[Float, StructRef[Mat2Buffer]]:
     extension (m: StructRef[Mat2Buffer])
-      inline def m00: Float = m(0)()
-      inline def m01: Float = m(1)()
-      inline def m10: Float = m(2)()
-      inline def m11: Float = m(3)()
+      inline def m00 = m(0)()
+      inline def m01 = m(1)()
+      inline def m10 = m(2)()
+      inline def m11 = m(3)()
       inline def m00_=(v: Float) = m(0)(v)
       inline def m01_=(v: Float) = m(1)(v)
       inline def m10_=(v: Float) = m(2)(v)
@@ -163,12 +163,12 @@ type Mat2Tuple = (Double, Double, Double, Double)
 
 object Mat2Tuple:
 
-  // format: off
   given Mat2Base[Double, Mat2Tuple]:
     extension (m: Mat2Tuple)
-      inline def m00 = m._1; inline def m01 = m._2
-      inline def m10 = m._3; inline def m11 = m._4
-  // format: on
+      inline def m00 = m._1
+      inline def m01 = m._2
+      inline def m10 = m._3
+      inline def m11 = m._4
 
   given Mat2SharedOps[Double, Mat2Tuple] =
     new Mat2SharedOps[Double, Mat2Tuple] {}
