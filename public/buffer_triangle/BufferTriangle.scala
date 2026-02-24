@@ -182,7 +182,11 @@ object BufferTriangle:
       val r = (Math.sin(elapsed * 2.0) * 0.5 + 0.5)
       val g = (Math.sin(elapsed * 2.0 + 2.0) * 0.5 + 0.5)
       val b = (Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5)
-      tintColor := Vec4(r, g, b, 1)
+      // tintColor := Vec4(r, g, b, 1)
+      tintColor.update: c =>
+        c.r = r
+        c.g = g
+        c.b = b
 
       val commandEncoder = device.createCommandEncoder()
       val textureView = context.getCurrentTexture().createView()

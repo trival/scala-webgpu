@@ -109,7 +109,7 @@ object UniformLayout:
 // =============================================================================
 
 final class BufferBinding[T, F <: Tuple](
-    val buffer: StructRef[F],
+    private val buffer: StructRef[F],
     private val device: GPUDevice,
     private val uv: UniformValue[T, F],
 ):
@@ -128,11 +128,19 @@ final class BufferBinding[T, F <: Tuple](
 
   inline def :=(value: T): Unit = set(value)
 
+  /** Mutate the CPU buffer via a lambda, then upload to GPU. Use this to
+    * leverage the full generic set/assign ops on the buffer: binding.update(_
+    * := vec4f) binding.update(ref => { ref.x = 1f; ref.y = 0f })
+    */
+  inline def update(inline f: StructRef[F] => Unit): Unit =
+    f(buffer)
+    upload()
+
   /** Read value from CPU buffer (does NOT read back from GPU). */
   inline def get: T = uv.read(buffer)
 
   /** Upload current CPU buffer contents to GPU without changing them. */
-  inline def upload(): Unit =
+  private inline def upload(): Unit =
     device.queue.writeBuffer(gpuBuffer, 0.0, buffer.dataView.buffer)
 
 object BufferBinding:
