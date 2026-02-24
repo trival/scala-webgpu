@@ -96,22 +96,24 @@ trait Mat4SharedOps[Num: Fractional, Mat]:
 trait Mat4ImmutableOps[Num: Fractional, Mat]:
   import Fractional.Implicits.given
 
+  // format: off
+  inline def create(
+      m00: Num, m01: Num, m02: Num, m03: Num,
+      m10: Num, m11: Num, m12: Num, m13: Num,
+      m20: Num, m21: Num, m22: Num, m23: Num,
+      m30: Num, m31: Num, m32: Num, m33: Num,
+  ): Mat
+  // format: on
+
+  inline def from[Num2, Mat2_](other: Mat2_)(using Mat4Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
+    create(
+      other.m00, other.m01, other.m02, other.m03,
+      other.m10, other.m11, other.m12, other.m13,
+      other.m20, other.m21, other.m22, other.m23,
+      other.m30, other.m31, other.m32, other.m33,
+    )
+
   extension (m: Mat)(using Mat4Base[Num, Mat])
-    inline def create(
-        m00: Num, m01: Num, m02: Num, m03: Num,
-        m10: Num, m11: Num, m12: Num, m13: Num,
-        m20: Num, m21: Num, m22: Num, m23: Num,
-        m30: Num, m31: Num, m32: Num, m33: Num
-    ): Mat
-
-    inline def from[Num2, Mat2_](other: Mat2_)(using Mat4Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
-      create(
-        other.m00, other.m01, other.m02, other.m03,
-        other.m10, other.m11, other.m12, other.m13,
-        other.m20, other.m21, other.m22, other.m23,
-        other.m30, other.m31, other.m32, other.m33,
-      )
-
     inline def identity: Mat =
       val z = summon[Fractional[Num]].zero
       val o = summon[Fractional[Num]].one
@@ -366,30 +368,28 @@ type Mat4Tuple = (
 )
 // format: on
 
-object Mat4Tuple:
+// format: off
+object Mat4Tuple extends Mat4ImmutableOps[Double, Mat4Tuple]:
+  inline def create(
+      m00: Double, m01: Double, m02: Double, m03: Double,
+      m10: Double, m11: Double, m12: Double, m13: Double,
+      m20: Double, m21: Double, m22: Double, m23: Double,
+      m30: Double, m31: Double, m32: Double, m33: Double,
+  ) = (m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33)
+  given Mat4ImmutableOps[Double, Mat4Tuple] = Mat4Tuple
+// format: on
 
-  // format: off
   given Mat4Base[Double, Mat4Tuple]:
     extension (m: Mat4Tuple)
+      // format: off
       inline def m00 = m._1;  inline def m01 = m._2;  inline def m02 = m._3;  inline def m03 = m._4
       inline def m10 = m._5;  inline def m11 = m._6;  inline def m12 = m._7;  inline def m13 = m._8
       inline def m20 = m._9;  inline def m21 = m._10; inline def m22 = m._11; inline def m23 = m._12
       inline def m30 = m._13; inline def m31 = m._14; inline def m32 = m._15; inline def m33 = m._16
-  // format: on
+      // format: on
 
   given Mat4SharedOps[Double, Mat4Tuple] =
     new Mat4SharedOps[Double, Mat4Tuple] {}
-
-  // format: off
-  given Mat4ImmutableOps[Double, Mat4Tuple]:
-    extension (m: Mat4Tuple)(using Mat4Base[Double, Mat4Tuple])
-      inline def create(
-          m00: Double, m01: Double, m02: Double, m03: Double,
-          m10: Double, m11: Double, m12: Double, m13: Double,
-          m20: Double, m21: Double, m22: Double, m23: Double,
-          m30: Double, m31: Double, m32: Double, m33: Double
-      ) = (m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33)
-  // format: on
 
 // format: off
 class Mat4(
@@ -400,7 +400,17 @@ class Mat4(
 )
 // format: on
 
-object Mat4:
+// format: off
+object Mat4 extends Mat4ImmutableOps[Double, Mat4]:
+  inline def create(
+      m00: Double, m01: Double, m02: Double, m03: Double,
+      m10: Double, m11: Double, m12: Double, m13: Double,
+      m20: Double, m21: Double, m22: Double, m23: Double,
+      m30: Double, m31: Double, m32: Double, m33: Double,
+  ) = new Mat4(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33)
+  given Mat4ImmutableOps[Double, Mat4] = Mat4
+// format: on
+
   given Mat4Mutable[Double, Mat4]:
     extension (m: Mat4)
       inline def m00: Double = m.m00
@@ -435,17 +445,6 @@ object Mat4:
       inline def m31_=(v: Double) = m.m31 = v
       inline def m32_=(v: Double) = m.m32 = v
       inline def m33_=(v: Double) = m.m33 = v
-
-  // format: off
-  given Mat4ImmutableOps[Double, Mat4]:
-    extension (m: Mat4)(using Mat4Base[Double, Mat4])
-      inline def create(
-          m00: Double, m01: Double, m02: Double, m03: Double,
-          m10: Double, m11: Double, m12: Double, m13: Double,
-          m20: Double, m21: Double, m22: Double, m23: Double,
-          m30: Double, m31: Double, m32: Double, m33: Double
-      ) = Mat4(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33)
-  // format: on
 
   given Mat4MutableOps[Double, Mat4] = new Mat4MutableOps[Double, Mat4] {}
 

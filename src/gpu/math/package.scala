@@ -1,5 +1,10 @@
 package gpu.math
 
+given Conversion[Float, Float] = identity
+given Conversion[Double, Double] = identity
+given Conversion[Float, Double] = identity
+given Conversion[Double, Float] = _.toFloat
+
 export Vec2Buffer.given
 export Vec2dBuffer.given
 export Vec2fTuple.given
@@ -21,8 +26,9 @@ export Vec4Tuple.given
 export Vec4f.given
 export Vec4.given
 
-export Mat2Buffer.given
-export Mat2Tuple.given
+// Mat2Buffer and Mat2Tuple collide with Vec4Buffer and Vec4Tuple, so not exported here
+// export Mat2Buffer.given
+// export Mat2Tuple.given
 export Mat2.given
 
 export Mat3Buffer.given

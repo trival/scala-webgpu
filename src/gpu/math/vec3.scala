@@ -33,10 +33,13 @@ trait Vec3Mutable[Num: {NumExt, Fractional}, Vec] extends Vec3Base[Num, Vec]:
 trait Vec3ImmutableOps[Num: {NumExt, Fractional}, Vec]:
   import Fractional.Implicits.given
 
+  inline def create(x: Num, y: Num, z: Num): Vec
+  inline def from[Num2, Vec2](
+      other: Vec2,
+  )(using Vec3Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
+    create(other.x, other.y, other.z)
+
   extension (v: Vec)(using Vec3Base[Num, Vec])
-    inline def create(x: Num, y: Num, z: Num): Vec
-    inline def from[Num2, Vec2](other: Vec2)(using Vec3Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
-      create(other.x, other.y, other.z)
     @scala.annotation.targetName("addVec")
     inline def +(other: Vec): Vec =
       create(v.x + other.x, v.y + other.y, v.z + other.z)
@@ -62,7 +65,7 @@ trait Vec3ImmutableOps[Num: {NumExt, Fractional}, Vec]:
     inline def /(scalar: Num): Vec =
       create(v.x / scalar, v.y / scalar, v.z / scalar)
     inline def cross(other: Vec): Vec =
-      v.create(
+      create(
         v.y * other.z - v.z * other.y,
         v.z * other.x - v.x * other.z,
         v.x * other.y - v.y * other.x,
@@ -74,9 +77,13 @@ trait Vec3MutableOps[Num: {NumExt, Fractional}, Vec]:
   import Fractional.Implicits.given
 
   extension (v: Vec)(using Vec3Mutable[Num, Vec])
-    inline def set[Num2, Vec2](other: Vec2)(using Vec3Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
+    inline def set[Num2, Vec2](
+        other: Vec2,
+    )(using Vec3Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
       v.x = other.x; v.y = other.y; v.z = other.z
-    inline def :=[Num2, Vec2](other: Vec2)(using Vec3Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
+    inline def :=[Num2, Vec2](
+        other: Vec2,
+    )(using Vec3Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
       v.set(other)
 
     inline def add(other: Vec, out: Vec = v): Vec =
@@ -169,7 +176,9 @@ object Vec3Buffer:
 
 type Vec3fTuple = (Float, Float, Float)
 
-object Vec3fTuple:
+object Vec3fTuple extends Vec3ImmutableOps[Float, Vec3fTuple]:
+  inline def create(x: Float, y: Float, z: Float) = (x, y, z)
+  given Vec3ImmutableOps[Float, Vec3fTuple] = Vec3fTuple
 
   given Vec3Base[Float, Vec3fTuple]:
     extension (v: Vec3fTuple)
@@ -177,13 +186,12 @@ object Vec3fTuple:
       inline def y = v._2
       inline def z = v._3
 
-  given Vec3ImmutableOps[Float, Vec3fTuple]:
-    extension (v: Vec3fTuple)(using Vec3Base[Float, Vec3fTuple])
-      inline def create(x: Float, y: Float, z: Float) = (x, y, z)
-
 class Vec3f(var x: Float = 0f, var y: Float = 0f, var z: Float = 0f)
 
-object Vec3f:
+object Vec3f extends Vec3ImmutableOps[Float, Vec3f]:
+  inline def create(x: Float, y: Float, z: Float) = new Vec3f(x, y, z)
+  given Vec3ImmutableOps[Float, Vec3f] = Vec3f
+
   given Vec3Mutable[Float, Vec3f]:
     extension (v: Vec3f)
       inline def x = v.x
@@ -192,10 +200,6 @@ object Vec3f:
       inline def x_=(value: Float) = v.x = value
       inline def y_=(value: Float) = v.y = value
       inline def z_=(value: Float) = v.z = value
-
-  given Vec3ImmutableOps[Float, Vec3f]:
-    extension (v: Vec3f)(using Vec3Base[Float, Vec3f])
-      inline def create(x: Float, y: Float, z: Float) = Vec3f(x, y, z)
 
   given Vec3MutableOps[Float, Vec3f] = new Vec3MutableOps[Float, Vec3f] {}
 
@@ -218,7 +222,9 @@ object Vec3dBuffer:
 
 type Vec3Tuple = (Double, Double, Double)
 
-object Vec3Tuple:
+object Vec3Tuple extends Vec3ImmutableOps[Double, Vec3Tuple]:
+  inline def create(x: Double, y: Double, z: Double) = (x, y, z)
+  given Vec3ImmutableOps[Double, Vec3Tuple] = Vec3Tuple
 
   given Vec3Base[Double, Vec3Tuple]:
     extension (v: Vec3Tuple)
@@ -226,13 +232,12 @@ object Vec3Tuple:
       inline def y = v._2
       inline def z = v._3
 
-  given Vec3ImmutableOps[Double, Vec3Tuple]:
-    extension (v: Vec3Tuple)(using Vec3Base[Double, Vec3Tuple])
-      inline def create(x: Double, y: Double, z: Double) = (x, y, z)
-
 class Vec3(var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0)
 
-object Vec3:
+object Vec3 extends Vec3ImmutableOps[Double, Vec3]:
+  inline def create(x: Double, y: Double, z: Double) = new Vec3(x, y, z)
+  given Vec3ImmutableOps[Double, Vec3] = Vec3
+
   given Vec3Mutable[Double, Vec3]:
     extension (v: Vec3)
       inline def x = v.x
@@ -241,9 +246,5 @@ object Vec3:
       inline def x_=(value: Double) = v.x = value
       inline def y_=(value: Double) = v.y = value
       inline def z_=(value: Double) = v.z = value
-
-  given Vec3ImmutableOps[Double, Vec3]:
-    extension (v: Vec3)(using Vec3Base[Double, Vec3])
-      inline def create(x: Double, y: Double, z: Double) = Vec3(x, y, z)
 
   given Vec3MutableOps[Double, Vec3] = new Vec3MutableOps[Double, Vec3] {}

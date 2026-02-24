@@ -52,15 +52,12 @@ trait Mat2SharedOps[Num: Fractional, Mat]:
 trait Mat2ImmutableOps[Num: Fractional, Mat]:
   import Fractional.Implicits.given
 
+  inline def create(m00: Num, m01: Num, m10: Num, m11: Num): Mat
+
+  inline def from[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
+    create(other.m00, other.m01, other.m10, other.m11)
+
   extension (m: Mat)(using Mat2Base[Num, Mat])
-    inline def create(
-        m00: Num, m01: Num,
-        m10: Num, m11: Num
-    ): Mat
-
-    inline def from[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
-      create(other.m00, other.m01, other.m10, other.m11)
-
     inline def identity: Mat =
       val z = summon[Fractional[Num]].zero
       val o = summon[Fractional[Num]].one
@@ -171,7 +168,11 @@ object Mat2Buffer:
 
 type Mat2Tuple = (Double, Double, Double, Double)
 
-object Mat2Tuple:
+// format: off
+object Mat2Tuple extends Mat2ImmutableOps[Double, Mat2Tuple]:
+  inline def create(m00: Double, m01: Double, m10: Double, m11: Double) = (m00, m01, m10, m11)
+  given Mat2ImmutableOps[Double, Mat2Tuple] = Mat2Tuple
+// format: on
 
   given Mat2Base[Double, Mat2Tuple]:
     extension (m: Mat2Tuple)
@@ -183,15 +184,6 @@ object Mat2Tuple:
   given Mat2SharedOps[Double, Mat2Tuple] =
     new Mat2SharedOps[Double, Mat2Tuple] {}
 
-  // format: off
-  given Mat2ImmutableOps[Double, Mat2Tuple]:
-    extension (m: Mat2Tuple)(using Mat2Base[Double, Mat2Tuple])
-      inline def create(
-          m00: Double, m01: Double,
-          m10: Double, m11: Double
-      ) = (m00, m01, m10, m11)
-  // format: on
-
 // format: off
 class Mat2(
     var m00: Double = 1.0, var m01: Double = 0.0,
@@ -199,7 +191,12 @@ class Mat2(
 )
 // format: on
 
-object Mat2:
+// format: off
+object Mat2 extends Mat2ImmutableOps[Double, Mat2]:
+  inline def create(m00: Double, m01: Double, m10: Double, m11: Double) = new Mat2(m00, m01, m10, m11)
+  given Mat2ImmutableOps[Double, Mat2] = Mat2
+// format: on
+
   given Mat2Mutable[Double, Mat2]:
     extension (m: Mat2)
       inline def m00: Double = m.m00
@@ -210,15 +207,6 @@ object Mat2:
       inline def m01_=(v: Double) = m.m01 = v
       inline def m10_=(v: Double) = m.m10 = v
       inline def m11_=(v: Double) = m.m11 = v
-
-  // format: off
-  given Mat2ImmutableOps[Double, Mat2]:
-    extension (m: Mat2)(using Mat2Base[Double, Mat2])
-      inline def create(
-          m00: Double, m01: Double,
-          m10: Double, m11: Double
-      ) = Mat2(m00, m01, m10, m11)
-  // format: on
 
   given Mat2MutableOps[Double, Mat2] = new Mat2MutableOps[Double, Mat2] {}
 

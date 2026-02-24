@@ -37,15 +37,11 @@ trait Vec4Mutable[Num: {NumExt, Fractional}, Vec] extends Vec4Base[Num, Vec]:
 trait Vec4ImmutableOps[Num: {NumExt, Fractional}, Vec]:
   import Fractional.Implicits.given
 
+  inline def create(x: Num, y: Num, z: Num, w: Num): Vec
+  inline def from[Num2, Vec2](other: Vec2)(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
+    create(other.x, other.y, other.z, other.w)
+
   extension (v: Vec)(using Vec4Base[Num, Vec])
-    inline def create(
-        x: Num,
-        y: Num,
-        z: Num,
-        w: Num,
-    ): Vec
-    inline def from[Num2, Vec2](other: Vec2)(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
-      create(other.x, other.y, other.z, other.w)
     @scala.annotation.targetName("addVec")
     inline def +(other: Vec): Vec =
       create(v.x + other.x, v.y + other.y, v.z + other.z, v.w + other.w)
@@ -183,7 +179,9 @@ object Vec4Buffer:
 
 type Vec4fTuple = (Float, Float, Float, Float)
 
-object Vec4fTuple:
+object Vec4fTuple extends Vec4ImmutableOps[Float, Vec4fTuple]:
+  inline def create(x: Float, y: Float, z: Float, w: Float) = (x, y, z, w)
+  given Vec4ImmutableOps[Float, Vec4fTuple] = Vec4fTuple
 
   given Vec4Base[Float, Vec4fTuple]:
     extension (v: Vec4fTuple)
@@ -192,10 +190,6 @@ object Vec4fTuple:
       inline def z = v._3
       inline def w = v._4
 
-  given Vec4ImmutableOps[Float, Vec4fTuple]:
-    extension (v: Vec4fTuple)(using Vec4Base[Float, Vec4fTuple])
-      inline def create(x: Float, y: Float, z: Float, w: Float) = (x, y, z, w)
-
 class Vec4f(
     var x: Float = 0f,
     var y: Float = 0f,
@@ -203,7 +197,10 @@ class Vec4f(
     var w: Float = 0f,
 )
 
-object Vec4f:
+object Vec4f extends Vec4ImmutableOps[Float, Vec4f]:
+  inline def create(x: Float, y: Float, z: Float, w: Float) = new Vec4f(x, y, z, w)
+  given Vec4ImmutableOps[Float, Vec4f] = Vec4f
+
   given Vec4Mutable[Float, Vec4f]:
     extension (v: Vec4f)
       inline def x = v.x
@@ -214,11 +211,6 @@ object Vec4f:
       inline def y_=(value: Float) = v.y = value
       inline def z_=(value: Float) = v.z = value
       inline def w_=(value: Float) = v.w = value
-
-  given Vec4ImmutableOps[Float, Vec4f]:
-    extension (v: Vec4f)(using Vec4Base[Float, Vec4f])
-      inline def create(x: Float, y: Float, z: Float, w: Float) =
-        Vec4f(x, y, z, w)
 
   given Vec4MutableOps[Float, Vec4f] = new Vec4MutableOps[Float, Vec4f] {}
 
@@ -243,7 +235,9 @@ object Vec4dBuffer:
 
 type Vec4Tuple = (Double, Double, Double, Double)
 
-object Vec4Tuple:
+object Vec4Tuple extends Vec4ImmutableOps[Double, Vec4Tuple]:
+  inline def create(x: Double, y: Double, z: Double, w: Double) = (x, y, z, w)
+  given Vec4ImmutableOps[Double, Vec4Tuple] = Vec4Tuple
 
   given Vec4Base[Double, Vec4Tuple]:
     extension (v: Vec4Tuple)
@@ -252,11 +246,6 @@ object Vec4Tuple:
       inline def z = v._3
       inline def w = v._4
 
-  given Vec4ImmutableOps[Double, Vec4Tuple]:
-    extension (v: Vec4Tuple)(using Vec4Base[Double, Vec4Tuple])
-      inline def create(x: Double, y: Double, z: Double, w: Double) =
-        (x, y, z, w)
-
 class Vec4(
     var x: Double = 0.0,
     var y: Double = 0.0,
@@ -264,7 +253,10 @@ class Vec4(
     var w: Double = 0.0,
 )
 
-object Vec4:
+object Vec4 extends Vec4ImmutableOps[Double, Vec4]:
+  inline def create(x: Double, y: Double, z: Double, w: Double) = new Vec4(x, y, z, w)
+  given Vec4ImmutableOps[Double, Vec4] = Vec4
+
   given Vec4Mutable[Double, Vec4]:
     extension (v: Vec4)
       inline def x = v.x
@@ -275,10 +267,5 @@ object Vec4:
       inline def y_=(value: Double) = v.y = value
       inline def z_=(value: Double) = v.z = value
       inline def w_=(value: Double) = v.w = value
-
-  given Vec4ImmutableOps[Double, Vec4]:
-    extension (v: Vec4)(using Vec4Base[Double, Vec4])
-      inline def create(x: Double, y: Double, z: Double, w: Double) =
-        Vec4(x, y, z, w)
 
   given Vec4MutableOps[Double, Vec4] = new Vec4MutableOps[Double, Vec4] {}

@@ -52,8 +52,19 @@ object BufferTriangle:
       setStatus: (String, Boolean) => Unit,
   ): Unit =
     import gpu.shader.{*, given}
-    import gpu.math.*
+    import gpu.math.{*, given}
     import gpu.shader.None as GPUNone
+
+    // Get WebGPU context
+    val context = WebGPU.getContext(canvas)
+    val format = "bgra8unorm"
+
+    context.configure(
+      Obj.literal(
+        device = device,
+        format = format,
+      ),
+    )
 
     type Attribs = (position: Vec2, color: Vec4)
     type Uniforms = (tintColor: Vec4)
@@ -87,16 +98,17 @@ object BufferTriangle:
     val vertices = allocateAttribs[Attribs](3)
 
     // Vertex 0: top (red)
-    vertices(0)(0) := (0.0f, 0.5f)
+    vertices(0)(0) := Vec2(0.0, 0.5)
     vertices(0)(1) := (1.0f, 0.0f, 0.0f, 1.0f)
 
     // Vertex 1: bottom-left (green)
-    vertices(1)(0) := (-0.5f, -0.5f)
-    vertices(1)(1) := (0.0f, 1.0f, 0.0f, 1.0f)
+    vertices(1)(0) := (-0.5, -0.5)
+    vertices(1)(1) := (0.0, 1.0, 0.0, 1.0)
 
     // Vertex 2: bottom-right (blue)
-    vertices(2)(0) := (0.5f, -0.5f)
-    vertices(2)(1) := (0.0f, 0.0f, 1.0f, 1.0f)
+    vertices(2)(0) := (0.5, -0.5)
+    vertices(2)(1).b = 1.0
+    vertices(2)(1).a = 1.0
 
     val vertexBuffer = device.createBuffer(
       Obj.literal(
@@ -114,18 +126,8 @@ object BufferTriangle:
 
     // Create uniform buffer for tint color
     // val tintColor = Vec4(1, 1, 1, 1).asBinding(device)
-    val tintColor = makeBinding[Vec4](device, Vec4(1, 1, 1, 1))
-
-    // Get WebGPU context
-    val context = WebGPU.getContext(canvas)
-    val format = "bgra8unorm"
-
-    context.configure(
-      Obj.literal(
-        device = device,
-        format = format,
-      ),
-    )
+    val tintColor = BufferBinding[Vec4](device)
+    // val tintColor = BufferBinding(device, Vec4(1, 1, 1, 1))
 
     // Derive explicit bind group layouts and pipeline layout from shader types
     val (bindGroupLayouts, pipelineLayout) =
@@ -180,7 +182,7 @@ object BufferTriangle:
       val r = (Math.sin(elapsed * 2.0) * 0.5 + 0.5)
       val g = (Math.sin(elapsed * 2.0 + 2.0) * 0.5 + 0.5)
       val b = (Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5)
-      tintColor.set(Vec4(r, g, b, 1))
+      tintColor := Vec4(r, g, b, 1)
 
       val commandEncoder = device.createCommandEncoder()
       val textureView = context.getCurrentTexture().createView()

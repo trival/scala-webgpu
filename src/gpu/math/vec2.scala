@@ -29,12 +29,13 @@ trait Vec2Mutable[Num: {NumExt, Fractional}, Vec] extends Vec2Base[Num, Vec]:
 trait Vec2ImmutableOps[Num: {NumExt, Fractional}, Vec]:
   import Fractional.Implicits.given
 
+  inline def create(x: Num, y: Num): Vec
+  inline def from[Num2, Vec2](
+      other: Vec2,
+  )(using Vec2Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
+    create(other.x, other.y)
+
   extension (v: Vec)(using Vec2Base[Num, Vec])
-    inline def create(x: Num, y: Num): Vec
-    inline def from[Num2, Vec2](
-        other: Vec2,
-    )(using Vec2Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
-      create(other.x, other.y)
     @scala.annotation.targetName("addVec")
     inline def +(other: Vec): Vec = create(v.x + other.x, v.y + other.y)
     @scala.annotation.targetName("addScalar")
@@ -58,9 +59,13 @@ trait Vec2MutableOps[Num: {NumExt, Fractional}, Vec]:
   import Fractional.Implicits.given
 
   extension (v: Vec)(using Vec2Mutable[Num, Vec])
-    inline def set[Num2, Vec2](other: Vec2)(using Vec2Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
+    inline def set[Num2, Vec2](
+        other: Vec2,
+    )(using Vec2Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
       v.x = other.x; v.y = other.y
-    inline def :=[Num2, Vec2](other: Vec2)(using Vec2Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
+    inline def :=[Num2, Vec2](
+        other: Vec2,
+    )(using Vec2Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
       v.set(other)
 
     inline def add(other: Vec, out: Vec = v): Vec =
@@ -144,30 +149,27 @@ object Vec2Buffer:
 
 type Vec2fTuple = (Float, Float)
 
-object Vec2fTuple:
+object Vec2fTuple extends Vec2ImmutableOps[Float, Vec2fTuple]:
+  inline def create(x: Float, y: Float) = (x, y)
+  given Vec2ImmutableOps[Float, Vec2fTuple] = Vec2fTuple
 
   given Vec2Base[Float, Vec2fTuple]:
     extension (v: Vec2fTuple)
       inline def x = v._1
       inline def y = v._2
 
-  given Vec2ImmutableOps[Float, Vec2fTuple]:
-    extension (v: Vec2fTuple)(using Vec2Base[Float, Vec2fTuple])
-      inline def create(x: Float, y: Float) = (x, y)
-
 class Vec2f(var x: Float = 0f, var y: Float = 0f)
 
-object Vec2f:
+object Vec2f extends Vec2ImmutableOps[Float, Vec2f]:
+  inline def create(x: Float, y: Float) = new Vec2f(x, y)
+  given Vec2ImmutableOps[Float, Vec2f] = Vec2f
+
   given Vec2Mutable[Float, Vec2f]:
     extension (v: Vec2f)
       inline def x = v.x
       inline def y = v.y
       inline def x_=(value: Float) = v.x = value
       inline def y_=(value: Float) = v.y = value
-
-  given Vec2ImmutableOps[Float, Vec2f]:
-    extension (v: Vec2f)(using Vec2Base[Float, Vec2f])
-      inline def create(x: Float, y: Float) = Vec2f(x, y)
 
   given Vec2MutableOps[Float, Vec2f] = new Vec2MutableOps[Float, Vec2f] {}
 
@@ -188,29 +190,26 @@ object Vec2dBuffer:
 
 type Vec2Tuple = (Double, Double)
 
-object Vec2Tuple:
+object Vec2Tuple extends Vec2ImmutableOps[Double, Vec2Tuple]:
+  inline def create(x: Double, y: Double) = (x, y)
+  given Vec2ImmutableOps[Double, Vec2Tuple] = Vec2Tuple
 
   given Vec2Base[Double, Vec2Tuple]:
     extension (v: Vec2Tuple)
       inline def x = v._1
       inline def y = v._2
 
-  given Vec2ImmutableOps[Double, Vec2Tuple]:
-    extension (v: Vec2Tuple)(using Vec2Base[Double, Vec2Tuple])
-      inline def create(x: Double, y: Double) = (x, y)
-
 class Vec2(var x: Double = 0.0, var y: Double = 0.0)
 
-object Vec2:
+object Vec2 extends Vec2ImmutableOps[Double, Vec2]:
+  inline def create(x: Double, y: Double) = new Vec2(x, y)
+  given Vec2ImmutableOps[Double, Vec2] = Vec2
+
   given Vec2Mutable[Double, Vec2]:
     extension (v: Vec2)
       inline def x = v.x
       inline def y = v.y
       inline def x_=(value: Double) = v.x = value
       inline def y_=(value: Double) = v.y = value
-
-  given Vec2ImmutableOps[Double, Vec2]:
-    extension (v: Vec2)(using Vec2Base[Double, Vec2])
-      inline def create(x: Double, y: Double) = Vec2(x, y)
 
   given Vec2MutableOps[Double, Vec2] = new Vec2MutableOps[Double, Vec2] {}

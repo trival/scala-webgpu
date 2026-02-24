@@ -38,29 +38,6 @@ object AttribLayoutHelper:
     new AttribLayoutHelper[H *: Tail, HBuf *: TailFields] {}
 
 // =============================================================================
-// UniformLayout type class
-// =============================================================================
-
-trait UniformLayout[Uniforms, Fields <: Tuple]
-
-object UniformLayout:
-  given [U <: AnyNamedTuple, F <: Tuple]
-    => (h: UniformLayoutHelper[NamedTuple.DropNames[U], F])
-    => UniformLayout[U, F] = new UniformLayout[U, F] {}
-
-trait UniformLayoutHelper[T <: Tuple, Fields <: Tuple]
-
-object UniformLayoutHelper:
-  given UniformLayoutHelper[EmptyTuple, EmptyTuple] =
-    new UniformLayoutHelper[EmptyTuple, EmptyTuple] {}
-
-  given [H, Tail <: Tuple, HBuf <: Tuple, TailFields <: Tuple]
-    => (wt: WGSLType[H] { type UniformBuffer = HBuf })
-    => (rest: UniformLayoutHelper[Tail, TailFields])
-    => UniformLayoutHelper[H *: Tail, HBuf *: TailFields] =
-    new UniformLayoutHelper[H *: Tail, HBuf *: TailFields] {}
-
-// =============================================================================
 // Allocation helpers
 //
 // transparent inline lets the compiler propagate the concrete StructArray[F]
@@ -71,8 +48,3 @@ transparent inline def allocateAttribs[Attribs](count: Int): Any =
   import scala.compiletime.summonFrom
   summonFrom:
     case al: AttribLayout[Attribs, f] => StructArray.allocate[f](count)
-
-transparent inline def allocateUniform[Uniforms](count: Int): Any =
-  import scala.compiletime.summonFrom
-  summonFrom:
-    case ul: UniformLayout[Uniforms, f] => StructArray.allocate[f](count)
