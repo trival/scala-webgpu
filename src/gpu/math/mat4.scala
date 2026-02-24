@@ -104,6 +104,14 @@ trait Mat4ImmutableOps[Num: Fractional, Mat]:
         m30: Num, m31: Num, m32: Num, m33: Num
     ): Mat
 
+    inline def from[Num2, Mat2_](other: Mat2_)(using Mat4Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
+      create(
+        other.m00, other.m01, other.m02, other.m03,
+        other.m10, other.m11, other.m12, other.m13,
+        other.m20, other.m21, other.m22, other.m23,
+        other.m30, other.m31, other.m32, other.m33,
+      )
+
     inline def identity: Mat =
       val z = summon[Fractional[Num]].zero
       val o = summon[Fractional[Num]].one
@@ -210,6 +218,14 @@ trait Mat4MutableOps[Num: Fractional, Mat]:
   import Fractional.Implicits.given
 
   extension (m: Mat)(using mb: Mat4Mutable[Num, Mat])
+    inline def set[Num2, Mat2_](other: Mat2_)(using Mat4Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
+      m.m00 = other.m00; m.m01 = other.m01; m.m02 = other.m02; m.m03 = other.m03
+      m.m10 = other.m10; m.m11 = other.m11; m.m12 = other.m12; m.m13 = other.m13
+      m.m20 = other.m20; m.m21 = other.m21; m.m22 = other.m22; m.m23 = other.m23
+      m.m30 = other.m30; m.m31 = other.m31; m.m32 = other.m32; m.m33 = other.m33
+    inline def :=[Num2, Mat2_](other: Mat2_)(using Mat4Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
+      m.set(other)
+
     inline def +=(other: Mat): Unit =
       m.m00 = m.m00 + other.m00; m.m01 = m.m01 + other.m01; m.m02 = m.m02 + other.m02; m.m03 = m.m03 + other.m03
       m.m10 = m.m10 + other.m10; m.m11 = m.m11 + other.m11; m.m12 = m.m12 + other.m12; m.m13 = m.m13 + other.m13
@@ -284,6 +300,7 @@ trait Mat4MutableOps[Num: Fractional, Mat]:
       out.m32 = (-a30 * b03 + a31 * b01 - a32 * b00) * invDet
       out.m33 = ( a20 * b03 - a21 * b01 + a22 * b00) * invDet
       out
+
 // format: on
 
 // === implementations for common matrix types ===

@@ -1,9 +1,14 @@
 package gpu.buffers
 
 import gpu.math.*
-import trivalibs.bufferdata.{F32, StructArray, StructRef}
+import trivalibs.bufferdata.F32
+import trivalibs.bufferdata.StructArray
+import trivalibs.bufferdata.StructRef
 import trivalibs.utils.js.Obj
-import webgpu.{GPUBuffer, GPUBufferUsage, GPUDevice}
+import trivalibs.utils.numbers.given
+import webgpu.GPUBuffer
+import webgpu.GPUBufferUsage
+import webgpu.GPUDevice
 
 // =============================================================================
 // UniformValue[T, F] typeclass
@@ -22,120 +27,118 @@ object UniformValue:
   given UniformValue[Float, F32 *: EmptyTuple]:
     def write(ref: StructRef[F32 *: EmptyTuple], value: Float): Unit =
       ref(0).set(value)
-    def read(ref: StructRef[F32 *: EmptyTuple]): Float =
-      ref(0).get
+    def read(ref: StructRef[F32 *: EmptyTuple]): Float = ref(0).get
 
-  // --- Double (maps to f32 in WGSL per WGSLType[Double]) ---
+  // --- Double (maps to f32 in WGSL) ---
   given UniformValue[Double, F32 *: EmptyTuple]:
     def write(ref: StructRef[F32 *: EmptyTuple], value: Double): Unit =
       ref(0).set(value.toFloat)
-    def read(ref: StructRef[F32 *: EmptyTuple]): Double =
-      ref(0).get.toDouble
+    def read(ref: StructRef[F32 *: EmptyTuple]): Double = ref(0).get
 
-  // --- Vec2 (Double) ---
+  // --- Vec2 ---
   given UniformValue[Vec2, Vec2Buffer]:
+    import Vec2Buffer.given
     def write(ref: StructRef[Vec2Buffer], value: Vec2): Unit =
-      ref(0).set(value.x.toFloat)
-      ref(1).set(value.y.toFloat)
-    def read(ref: StructRef[Vec2Buffer]): Vec2 =
-      Vec2(ref(0).get.toDouble, ref(1).get.toDouble)
+      ref := value
+    def read(ref: StructRef[Vec2Buffer]): Vec2 = Vec2(ref.x, ref.y)
 
-  // --- Vec2f (Float) ---
   given UniformValue[Vec2f, Vec2Buffer]:
+    import Vec2Buffer.given
     def write(ref: StructRef[Vec2Buffer], value: Vec2f): Unit =
-      ref(0).set(value.x)
-      ref(1).set(value.y)
-    def read(ref: StructRef[Vec2Buffer]): Vec2f =
-      Vec2f(ref(0).get, ref(1).get)
+      ref := value
+    def read(ref: StructRef[Vec2Buffer]): Vec2f = Vec2f(ref.x, ref.y)
 
-  // --- Vec3 (Double) — UniformBuffer is Vec4Buffer due to WGSL std140 padding ---
+  // --- Vec3 — uses Vec4Buffer for std140 padding; w component ignored ---
   given UniformValue[Vec3, Vec4Buffer]:
+    import Vec4Buffer.given
     def write(ref: StructRef[Vec4Buffer], value: Vec3): Unit =
-      ref(0).set(value.x.toFloat)
-      ref(1).set(value.y.toFloat)
-      ref(2).set(value.z.toFloat)
-      // ref(3) is std140 padding, leave unchanged
-    def read(ref: StructRef[Vec4Buffer]): Vec3 =
-      Vec3(ref(0).get.toDouble, ref(1).get.toDouble, ref(2).get.toDouble)
+      ref.x = value.x.toFloat; ref.y = value.y.toFloat; ref.z = value.z.toFloat
+    def read(ref: StructRef[Vec4Buffer]): Vec3 = Vec3(ref.x, ref.y, ref.z)
 
-  // --- Vec3f (Float) — same std140 padding treatment ---
   given UniformValue[Vec3f, Vec4Buffer]:
+    import Vec4Buffer.given
     def write(ref: StructRef[Vec4Buffer], value: Vec3f): Unit =
-      ref(0).set(value.x)
-      ref(1).set(value.y)
-      ref(2).set(value.z)
-    def read(ref: StructRef[Vec4Buffer]): Vec3f =
-      Vec3f(ref(0).get, ref(1).get, ref(2).get)
+      ref.x = value.x; ref.y = value.y; ref.z = value.z
+    def read(ref: StructRef[Vec4Buffer]): Vec3f = Vec3f(ref.x, ref.y, ref.z)
 
-  // --- Vec4 (Double) ---
+  // --- Vec4 ---
   given UniformValue[Vec4, Vec4Buffer]:
+    import Vec4Buffer.given
     def write(ref: StructRef[Vec4Buffer], value: Vec4): Unit =
-      ref(0).set(value.x.toFloat)
-      ref(1).set(value.y.toFloat)
-      ref(2).set(value.z.toFloat)
-      ref(3).set(value.w.toFloat)
+      ref := value
     def read(ref: StructRef[Vec4Buffer]): Vec4 =
-      Vec4(
-        ref(0).get.toDouble,
-        ref(1).get.toDouble,
-        ref(2).get.toDouble,
-        ref(3).get.toDouble,
-      )
+      Vec4(ref.x, ref.y, ref.z, ref.w)
 
-  // --- Vec4f (Float) ---
   given UniformValue[Vec4f, Vec4Buffer]:
+    import Vec4Buffer.given
     def write(ref: StructRef[Vec4Buffer], value: Vec4f): Unit =
-      ref(0).set(value.x)
-      ref(1).set(value.y)
-      ref(2).set(value.z)
-      ref(3).set(value.w)
+      ref := value
     def read(ref: StructRef[Vec4Buffer]): Vec4f =
-      Vec4f(ref(0).get, ref(1).get, ref(2).get, ref(3).get)
+      Vec4f(ref.x, ref.y, ref.z, ref.w)
 
-  // --- Mat2 (Double) — col-major: m00,m01,m10,m11 ---
+  // --- Mat2 ---
   given UniformValue[Mat2, Mat2Buffer]:
+    import Mat2Buffer.given
     def write(ref: StructRef[Mat2Buffer], value: Mat2): Unit =
-      ref(0).set(value.m00.toFloat)
-      ref(1).set(value.m01.toFloat)
-      ref(2).set(value.m10.toFloat)
-      ref(3).set(value.m11.toFloat)
+      ref := value
     def read(ref: StructRef[Mat2Buffer]): Mat2 =
-      Mat2(ref(0).get.toDouble, ref(1).get.toDouble, ref(2).get.toDouble, ref(3).get.toDouble)
+      Mat2(ref.m00, ref.m01, ref.m10, ref.m11)
 
-  // --- Mat3 (Double) — UniformBuffer is Mat3PaddedBuffer (F32×12), padding at indices 3,7,11 ---
+  // --- Mat3 — padded buffer; accessors handle padding offsets ---
   given UniformValue[Mat3, Mat3PaddedBuffer]:
+    import Mat3PaddedBuffer.given
     def write(ref: StructRef[Mat3PaddedBuffer], value: Mat3): Unit =
-      ref(0).set(value.m00.toFloat); ref(1).set(value.m01.toFloat); ref(2).set(value.m02.toFloat)
-      // index 3 is padding
-      ref(4).set(value.m10.toFloat); ref(5).set(value.m11.toFloat); ref(6).set(value.m12.toFloat)
-      // index 7 is padding
-      ref(8).set(value.m20.toFloat); ref(9).set(value.m21.toFloat); ref(10).set(value.m22.toFloat)
-      // index 11 is padding
+      ref := value
     def read(ref: StructRef[Mat3PaddedBuffer]): Mat3 =
       Mat3(
-        ref(0).get.toDouble, ref(1).get.toDouble, ref(2).get.toDouble,
-        ref(4).get.toDouble, ref(5).get.toDouble, ref(6).get.toDouble,
-        ref(8).get.toDouble, ref(9).get.toDouble, ref(10).get.toDouble,
+        ref.m00,
+        ref.m01,
+        ref.m02,
+        ref.m10,
+        ref.m11,
+        ref.m12,
+        ref.m20,
+        ref.m21,
+        ref.m22,
       )
 
-  // --- Mat4 (Double) — col-major: m00,m01,m02,m03,m10,m11,... ---
+  // --- Mat4 ---
   given UniformValue[Mat4, Mat4Buffer]:
-    def write(ref: StructRef[Mat4Buffer], value: Mat4): Unit =
-      ref(0).set(value.m00.toFloat);  ref(1).set(value.m01.toFloat)
-      ref(2).set(value.m02.toFloat);  ref(3).set(value.m03.toFloat)
-      ref(4).set(value.m10.toFloat);  ref(5).set(value.m11.toFloat)
-      ref(6).set(value.m12.toFloat);  ref(7).set(value.m13.toFloat)
-      ref(8).set(value.m20.toFloat);  ref(9).set(value.m21.toFloat)
-      ref(10).set(value.m22.toFloat); ref(11).set(value.m23.toFloat)
-      ref(12).set(value.m30.toFloat); ref(13).set(value.m31.toFloat)
-      ref(14).set(value.m32.toFloat); ref(15).set(value.m33.toFloat)
+    import Mat4Buffer.given
+    def write(ref: StructRef[Mat4Buffer], value: Mat4): Unit = ref := value
     def read(ref: StructRef[Mat4Buffer]): Mat4 =
       Mat4(
-        ref(0).get.toDouble,  ref(1).get.toDouble,  ref(2).get.toDouble,  ref(3).get.toDouble,
-        ref(4).get.toDouble,  ref(5).get.toDouble,  ref(6).get.toDouble,  ref(7).get.toDouble,
-        ref(8).get.toDouble,  ref(9).get.toDouble,  ref(10).get.toDouble, ref(11).get.toDouble,
-        ref(12).get.toDouble, ref(13).get.toDouble, ref(14).get.toDouble, ref(15).get.toDouble,
+        ref.m00,
+        ref.m01,
+        ref.m02,
+        ref.m03,
+        ref.m10,
+        ref.m11,
+        ref.m12,
+        ref.m13,
+        ref.m20,
+        ref.m21,
+        ref.m22,
+        ref.m23,
+        ref.m30,
+        ref.m31,
+        ref.m32,
+        ref.m33,
       )
+
+// =============================================================================
+// UniformValueOf[T] — single-param typeclass that collapses UniformValue[T, F]
+// so makeBinding[T] can be called without spelling out F explicitly.
+// =============================================================================
+
+trait UniformValueOf[T]:
+  type Fields <: Tuple
+  def uniformValue: UniformValue[T, Fields]
+
+object UniformValueOf:
+  given [T, F <: Tuple] => (uv: UniformValue[T, F]) => UniformValueOf[T]:
+    type Fields = F
+    def uniformValue = uv
 
 // =============================================================================
 // BufferBinding[T, F] — holds CPU array + GPU buffer + device
@@ -144,7 +147,6 @@ object UniformValue:
 final class BufferBinding[T, F <: Tuple](
     val buffer: StructRef[F],
     val gpuBuffer: GPUBuffer,
-    private val cpuArray: StructArray[F],
     private val device: GPUDevice,
     private val uv: UniformValue[T, F],
 ):
@@ -158,28 +160,26 @@ final class BufferBinding[T, F <: Tuple](
 
   /** Upload current CPU buffer contents to GPU without changing them. */
   def upload(): Unit =
-    device.queue.writeBuffer(gpuBuffer, 0.0, cpuArray.arrayBuffer)
+    device.queue.writeBuffer(gpuBuffer, 0.0, buffer.dataView.buffer)
 
 // =============================================================================
 // Factory
 //
-// Both T and F are provided explicitly by the caller, so F is always concrete
-// at the call site. No summonFrom needed — just a regular using clause.
-//
-// Usage: makeBinding[Vec4, Vec4Buffer](device, Vec4(1,1,1,1))
+// Two-param form: makeBinding[Vec4, Vec4Buffer](device) — explicit F.
+// One-param form: makeBinding[Vec4](device)             — F from UniformLayout.
 // =============================================================================
 
 inline def makeBinding[T, F <: Tuple](
     device: GPUDevice,
 )(using uv: UniformValue[T, F]): BufferBinding[T, F] =
-  val cpuArray = StructArray.allocate[F](1)
+  val struct = StructArray.allocate[F](1)(0)
   val gpuBuf = device.createBuffer(
     Obj.literal(
-      size = Math.max(16, cpuArray.stride),
+      size = Math.max(16, struct.dataView.byteLength),
       usage = GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     ),
   )
-  new BufferBinding[T, F](cpuArray(0), gpuBuf, cpuArray, device, uv)
+  new BufferBinding[T, F](struct, gpuBuf, device, uv)
 
 inline def makeBinding[T, F <: Tuple](
     device: GPUDevice,
@@ -189,6 +189,19 @@ inline def makeBinding[T, F <: Tuple](
   b.set(initialValue)
   b
 
+inline def makeBinding[T: UniformValueOf as ul](
+    device: GPUDevice,
+): BufferBinding[T, ul.Fields] =
+  makeBinding[T, ul.Fields](device)(using ul.uniformValue)
+
+inline def makeBinding[T: UniformValueOf as ul](
+    device: GPUDevice,
+    initialValue: T,
+): BufferBinding[T, ul.Fields] =
+  makeBinding[T, ul.Fields](device, initialValue)(using ul.uniformValue)
+
 extension [T](t: T)
-  inline def asBinding[F <: Tuple](device: GPUDevice)(using uv: UniformValue[T, F]): BufferBinding[T, F] =
+  inline def asBinding[F <: Tuple](device: GPUDevice)(using
+      uv: UniformValue[T, F],
+  ): BufferBinding[T, F] =
     makeBinding[T, F](device, t)

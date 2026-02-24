@@ -44,6 +44,8 @@ trait Vec4ImmutableOps[Num: {NumExt, Fractional}, Vec]:
         z: Num,
         w: Num,
     ): Vec
+    inline def from[Num2, Vec2](other: Vec2)(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
+      create(other.x, other.y, other.z, other.w)
     @scala.annotation.targetName("addVec")
     inline def +(other: Vec): Vec =
       create(v.x + other.x, v.y + other.y, v.z + other.z, v.w + other.w)
@@ -75,6 +77,11 @@ trait Vec4MutableOps[Num: {NumExt, Fractional}, Vec]:
   import Fractional.Implicits.given
 
   extension (v: Vec)(using Vec4Mutable[Num, Vec])
+    inline def set[Num2, Vec2](other: Vec2)(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
+      v.x = other.x; v.y = other.y; v.z = other.z; v.w = other.w
+    inline def :=[Num2, Vec2](other: Vec2)(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
+      v.set(other)
+
     inline def add(other: Vec, out: Vec = v): Vec =
       out.x = v.x + other.x
       out.y = v.y + other.y

@@ -58,6 +58,9 @@ trait Mat2ImmutableOps[Num: Fractional, Mat]:
         m10: Num, m11: Num
     ): Mat
 
+    inline def from[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
+      create(other.m00, other.m01, other.m10, other.m11)
+
     inline def identity: Mat =
       val z = summon[Fractional[Num]].zero
       val o = summon[Fractional[Num]].one
@@ -104,6 +107,12 @@ trait Mat2MutableOps[Num: Fractional, Mat]:
   import Fractional.Implicits.given
 
   extension (m: Mat)(using mb: Mat2Mutable[Num, Mat])
+    inline def set[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
+      m.m00 = other.m00; m.m01 = other.m01
+      m.m10 = other.m10; m.m11 = other.m11
+    inline def :=[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
+      m.set(other)
+
     inline def +=(other: Mat): Unit =
       m.m00 = m.m00 + other.m00; m.m01 = m.m01 + other.m01
       m.m10 = m.m10 + other.m10; m.m11 = m.m11 + other.m11
@@ -134,6 +143,7 @@ trait Mat2MutableOps[Num: Fractional, Mat]:
       out.m00 =  t11 * invDet; out.m01 = -t01 * invDet
       out.m10 = -t10 * invDet; out.m11 =  t00 * invDet
       out
+
 // format: on
 
 // === implementations for common matrix types ===

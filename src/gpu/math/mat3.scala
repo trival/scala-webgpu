@@ -81,6 +81,9 @@ trait Mat3ImmutableOps[Num: Fractional, Mat]:
         m20: Num, m21: Num, m22: Num
     ): Mat
 
+    inline def from[Num2, Mat2_](other: Mat2_)(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
+      create(other.m00, other.m01, other.m02, other.m10, other.m11, other.m12, other.m20, other.m21, other.m22)
+
     inline def identity: Mat =
       val z = summon[Fractional[Num]].zero
       val o = summon[Fractional[Num]].one
@@ -157,6 +160,13 @@ trait Mat3MutableOps[Num: Fractional, Mat]:
   import Fractional.Implicits.given
 
   extension (m: Mat)(using mb: Mat3Mutable[Num, Mat])
+    inline def set[Num2, Mat2_](other: Mat2_)(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
+      m.m00 = other.m00; m.m01 = other.m01; m.m02 = other.m02
+      m.m10 = other.m10; m.m11 = other.m11; m.m12 = other.m12
+      m.m20 = other.m20; m.m21 = other.m21; m.m22 = other.m22
+    inline def :=[Num2, Mat2_](other: Mat2_)(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
+      m.set(other)
+
     inline def +=(other: Mat): Unit =
       m.m00 = m.m00 + other.m00; m.m01 = m.m01 + other.m01; m.m02 = m.m02 + other.m02
       m.m10 = m.m10 + other.m10; m.m11 = m.m11 + other.m11; m.m12 = m.m12 + other.m12
@@ -208,6 +218,7 @@ trait Mat3MutableOps[Num: Fractional, Mat]:
       out.m10 = c01 * invDet; out.m11 = c11 * invDet; out.m12 = c21 * invDet
       out.m20 = c02 * invDet; out.m21 = c12 * invDet; out.m22 = c22 * invDet
       out
+
 // format: on
 
 // === implementations for common matrix types ===
@@ -216,7 +227,7 @@ trait Mat3MutableOps[Num: Fractional, Mat]:
 type Mat3Buffer = (F32, F32, F32, F32, F32, F32, F32, F32, F32)
 
 object Mat3Buffer:
-  given Mat3Mutable[Float, StructRef[Mat3Buffer]]:
+  given mat3MutableBuffer: Mat3Mutable[Float, StructRef[Mat3Buffer]]:
     extension (m: StructRef[Mat3Buffer])
       inline def m00: Float = m(0)()
       inline def m01: Float = m(1)()
@@ -237,10 +248,10 @@ object Mat3Buffer:
       inline def m21_=(v: Float) = m(7)(v)
       inline def m22_=(v: Float) = m(8)(v)
 
-  given Mat3SharedOps[Float, StructRef[Mat3Buffer]] =
+  given mat3SharedOpsBuffer: Mat3SharedOps[Float, StructRef[Mat3Buffer]] =
     new Mat3SharedOps[Float, StructRef[Mat3Buffer]] {}
 
-  given Mat3MutableOps[Float, StructRef[Mat3Buffer]] =
+  given mat3MutableOpsBuffer: Mat3MutableOps[Float, StructRef[Mat3Buffer]] =
     new Mat3MutableOps[Float, StructRef[Mat3Buffer]] {}
 
 // format: off
@@ -248,7 +259,8 @@ type Mat3PaddedBuffer = (F32, F32, F32, F32, F32, F32, F32, F32, F32, F32, F32, 
 // format: on
 
 object Mat3PaddedBuffer:
-  given Mat3Mutable[Float, StructRef[Mat3PaddedBuffer]]:
+  given mat3MutablePaddedBuffer
+      : Mat3Mutable[Float, StructRef[Mat3PaddedBuffer]]:
     extension (m: StructRef[Mat3PaddedBuffer])
       // Columns at indices 0-2, 4-6, 8-10 (index 3, 7, 11 are padding)
       inline def m00: Float = m(0)()
@@ -270,10 +282,12 @@ object Mat3PaddedBuffer:
       inline def m21_=(v: Float) = m(9)(v)
       inline def m22_=(v: Float) = m(10)(v)
 
-  given Mat3SharedOps[Float, StructRef[Mat3PaddedBuffer]] =
+  given mat3SharedOpsPaddedBuffer
+      : Mat3SharedOps[Float, StructRef[Mat3PaddedBuffer]] =
     new Mat3SharedOps[Float, StructRef[Mat3PaddedBuffer]] {}
 
-  given Mat3MutableOps[Float, StructRef[Mat3PaddedBuffer]] =
+  given mat3MutableOpsPaddedBuffer
+      : Mat3MutableOps[Float, StructRef[Mat3PaddedBuffer]] =
     new Mat3MutableOps[Float, StructRef[Mat3PaddedBuffer]] {}
 
 // format: off

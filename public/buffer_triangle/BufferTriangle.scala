@@ -113,7 +113,8 @@ object BufferTriangle:
     )
 
     // Create uniform buffer for tint color
-    val tintColor = Vec4(1, 1, 1, 1).asBinding(device)
+    // val tintColor = Vec4(1, 1, 1, 1).asBinding(device)
+    val tintColor = makeBinding[Vec4](device, Vec4(1, 1, 1, 1))
 
     // Get WebGPU context
     val context = WebGPU.getContext(canvas)
