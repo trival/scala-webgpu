@@ -367,6 +367,10 @@ class Painter(
 
   lazy val fullscreenVertexModule: GPUShaderModule = // built-in fullscreen triangle
 
+  // Direct-to-canvas convenience (permanent shortcut for quick sketches)
+  def draw(shape: Shape, clearColor: Option[Vec4Tuple] = None, blendMode: BlendMode = BlendMode.Replace): Unit
+
+  // Panel-based rendering (intermediate render target + blit)
   def paint(panel: Panel): Unit
   def show(panel: Panel): Unit
 
@@ -509,7 +513,7 @@ A **Panel** is a render target + composition unit — what Rust calls a "Layer".
 case class PanelConfig(
   width: Int = 0,             // 0 = use canvas size
   height: Int = 0,
-  clearColor: Option[Color] = Some(Color(0, 0, 0, 1)),
+  clearColor: Option[Vec4Tuple] = Some((0, 0, 0, 1)),
   formats: Seq[TextureFormat] = Seq(TextureFormat.BGRA8Unorm),
   depthTest: Boolean = false,
   multisample: Boolean = false,
@@ -572,16 +576,17 @@ better DX than the Rust version, the port isn't justified.
 
 ### Milestone 1 — MVP: Minimal Rendering Pipeline
 
-**Goal**: Render a BufferTriangle example with zero manual WebGPU boilerplate.
+**Goal**: Render triangles with zero manual WebGPU boilerplate, built in two
+incremental steps. Each step produces a working draft example, and all previous
+examples continue to work.
 
 **Scope — included**:
 
 - `CanvasApp` framework (GPU init, rAF loop, resize)
-- `Painter` with `paint(panel)` + `show(panel)` separation
+- `Painter` with `draw(shape)` (direct) + `paint(panel)` / `show(panel)` (panel)
 - `Shade` wrapping `ShaderDef` (shader module + pipeline layout)
 - `Form` (vertex buffer + topology, no index buffer yet)
-- `Shape` (Form + Shade + simple `Map[Int, BufferBinding]` bindings +
-  blend/cull)
+- `Shape` (Form + Shade + simple `Map[Int, BufferBinding]` bindings + blend/cull)
 - `Panel` owns a render texture — `paint()` renders into it, `show()` blits to
   canvas via built-in fullscreen triangle + blit shader
 - Pipeline cache with `PipelineKey`
@@ -597,6 +602,16 @@ better DX than the Rust version, the port isn't justified.
 - Depth testing, MSAA, MRT, mipmaps
 - Panel-level bindings and the override hierarchy
 - Multi-panel compositing (show only blits a single panel)
+
+**Draft example progression** (in `drafts/`):
+
+1. `simple_triangle` — raw WebGPU, hardcoded vertices in shader (exists)
+2. `buffer_triangle` — raw WebGPU + typed vertex buffers/uniforms via helpers (exists)
+3. `painter_triangle` — Painter/Shade/Form/Shape + `draw()` via CanvasApp (**Step A**)
+4. `panel_triangle` — Panel render-to-texture + blit (**Step B**)
+
+Each new draft demonstrates the next layer of abstraction. Existing drafts are
+never deleted — they remain as reference points and must keep compiling.
 
 #### 6.1 MVP Binding Approach
 
@@ -638,66 +653,7 @@ time.set(elapsed)
 
 No merge hierarchy, no panel bindings. Shapes hold their own bindings directly.
 
-#### 6.2 MVP Panel — Render-to-Texture
-
-Each Panel owns a GPU texture that shapes render into. This establishes the
-correct abstraction from day one: panels are independent render targets.
-`paint(panel)` renders shapes into the panel's texture. `show(panel)` blits that
-texture onto the canvas swap chain.
-
-```scala
-class Panel(
-  private val painter: Painter,
-  val width: Int,                // 0 = use canvas size
-  val height: Int,
-  var clearColor: Option[Color] = Some(Color(0, 0, 0, 1)),
-  val shapes: mutable.ArrayBuffer[Shape] = mutable.ArrayBuffer.empty,
-):
-  // Allocated on creation, reallocated on resize
-  private var texture: GPUTexture
-  private var textureView: GPUTextureView
-
-  def currentTextureView: GPUTextureView = textureView
-  def resize(w: Int, h: Int): Unit  // destroy + recreate texture
-```
-
-The texture is created with `RENDER_ATTACHMENT | TEXTURE_BINDING` usage — it can
-be rendered into and sampled from (for the blit).
-
-#### 6.3 MVP Rendering
-
-**paint(panel)** — render shapes into panel's texture:
-
-```
-1. Create GPUCommandEncoder
-2. Begin render pass targeting panel.textureView
-   - Load op = clear (if clearColor set) or load
-3. For each shape in panel.shapes:
-   a. Compute pipeline key from shape config
-   b. Get or create cached pipeline
-   c. Create bind groups from shape.bindings
-   d. Set pipeline, vertex buffer, bind groups
-   e. Draw
-4. End render pass
-5. Submit command buffer
-```
-
-**show(panel)** — blit panel texture to canvas:
-
-```
-1. Get swap chain texture: context.getCurrentTexture()
-2. Create render pass targeting swap chain texture (clear)
-3. Set blit pipeline (built-in fullscreen triangle + sampler)
-4. Create bind group: panel.textureView + nearest sampler
-5. Draw(3) — fullscreen triangle, no vertex buffer
-6. End render pass, submit
-```
-
-The blit pipeline and sampler are created once on the Painter and reused. The
-bind group is recreated per-show because the panel texture view may change
-(resize). This is cheap — one bind group with two entries.
-
-#### 6.4 MVP CanvasApp
+#### 6.2 CanvasApp
 
 ```scala
 trait CanvasApp:
@@ -725,17 +681,173 @@ ResizeObserver setup, requestAnimationFrame loop with deltaTime.
 This means `init` never needs to call `requestNextFrame()` — the framework
 always renders at least once after init and after every resize.
 
-#### 6.5 MVP Target Example
+---
+
+#### Step A — Direct-to-Canvas Rendering
+
+**Goal**: First working Painter triangle — `painter.draw(shape)` renders one
+shape directly to the canvas surface, no intermediate texture.
+
+##### 6.3 `draw(shape)` — Direct Rendering
+
+`draw` is a permanent convenience method for quick sketches. It renders a single
+shape directly to the swap chain texture without any intermediate Panel.
+
+```scala
+def draw(
+  shape: Shape,
+  clearColor: Option[Vec4Tuple] = None,
+  blendMode: BlendMode = BlendMode.Replace,
+): Unit
+```
+
+**Algorithm**:
+
+```
+1. Create GPUCommandEncoder
+2. Get swap chain texture: context.getCurrentTexture()
+3. Begin render pass targeting swap chain textureView
+   - Load op = clear (if clearColor set) or load
+4. Compute pipeline key from shape config + swap chain format
+5. Get or create cached pipeline
+6. Create bind groups from shape.bindings
+7. Set pipeline, vertex buffer, bind groups
+8. Draw
+9. End render pass
+10. Submit command buffer
+```
+
+This is the core single-shape rendering logic. In Step B, the same logic is
+reused inside `paint(panel)` — the only difference is the render target.
+
+##### 6.4 Step A — Draft Example: `painter_triangle`
 
 ```scala
 type Attribs = (position: Vec2, color: Vec3)
 type Varyings = (color: Vec3)
 
-class TriangleApp extends CanvasApp:
-  var myPanel: Panel = _
+class PainterTriangleApp extends CanvasApp:
+  var shape: Shape = _
 
   def init(painter: Painter) =
-    val shade = painter.shade[Attribs, Varyings, None](
+    val shade = painter.shade[Attribs, Varyings, EmptyTuple](
+      "output.position = vec4f(input.position, 0.0, 1.0);",
+      "return vec4f(input.color, 1.0);"
+    )
+    val vertices = allocateAttribs[Attribs](3)
+    // ... fill vertices ...
+    val form = painter.form(vertices)
+    shape = Shape(form, shade)
+
+  def frame(painter: Painter, dt: Double) =
+    painter.draw(shape, clearColor = Some((0.1, 0.1, 0.1, 1.0)))
+    // Static scene — no requestNextFrame().
+    // For animation: painter.requestNextFrame() to continue the loop.
+```
+
+##### 6.5 Step A — Implementation Steps
+
+**Step 1 — Facades & Enums**
+
+- Extend `facades.scala`: `getPreferredCanvasFormat()`, missing render pass
+  descriptor fields
+- Create `src/gpu/painter/enums.scala`: `PrimitiveTopology`, `CullMode`,
+  `FrontFace`, `BlendMode`
+
+**Step 2 — Shade & Form**
+
+- `Shade`: wraps ShaderDef → GPUShaderModule + pipeline layout
+- `Form`: vertex buffer (accepts StructArray), topology, vertex count
+
+**Step 3 — Shape & Painter with `draw()`**
+
+- `Shape`: Form + Shade + slot-indexed bindings + blend/cull
+- `Painter`: device holder, pipeline cache, `draw(shape)` renders directly to
+  canvas swap chain texture
+
+**Step 4 — CanvasApp**
+
+- Async GPU init, rAF loop, ResizeObserver, deltaTime
+- Lifecycle: init → auto resize → auto frame
+
+**Step 5 — `painter_triangle` draft**
+
+- Working example: colored triangle using `painter.draw(shape)` in CanvasApp
+- Validate full pipeline: CanvasApp → Painter → Shade/Form/Shape → GPU
+
+---
+
+#### Step B — Panel + Blit
+
+**Goal**: Introduce Panel as intermediate render target. Reuse the per-shape
+rendering logic from `draw()`, but render into Panel's texture instead of the
+swap chain, then blit to canvas.
+
+##### 6.6 Panel — Render-to-Texture
+
+Each Panel owns a GPU texture that shapes render into.
+`paint(panel)` renders shapes into the panel's texture. `show(panel)` blits that
+texture onto the canvas swap chain.
+
+```scala
+class Panel(
+  private val painter: Painter,
+  val width: Int,                // 0 = use canvas size
+  val height: Int,
+  var clearColor: Option[Vec4Tuple] = Some((0, 0, 0, 1)),
+  val shapes: mutable.ArrayBuffer[Shape] = mutable.ArrayBuffer.empty,
+):
+  // Allocated on creation, reallocated on resize
+  private var texture: GPUTexture
+  private var textureView: GPUTextureView
+
+  def currentTextureView: GPUTextureView = textureView
+  def resize(w: Int, h: Int): Unit  // destroy + recreate texture
+```
+
+The texture is created with `RENDER_ATTACHMENT | TEXTURE_BINDING` usage — it can
+be rendered into and sampled from (for the blit).
+
+##### 6.7 `paint(panel)` + `show(panel)` — Panel Rendering
+
+**paint(panel)** — render shapes into panel's texture:
+
+```
+1. Create GPUCommandEncoder
+2. Begin render pass targeting panel.textureView
+   - Load op = clear (if clearColor set) or load
+3. For each shape in panel.shapes:
+   a. Render shape (same logic as draw(), different target)
+4. End render pass
+5. Submit command buffer
+```
+
+**show(panel)** — blit panel texture to canvas:
+
+```
+1. Get swap chain texture: context.getCurrentTexture()
+2. Create render pass targeting swap chain texture (clear)
+3. Set blit pipeline (built-in fullscreen triangle + sampler)
+4. Create bind group: panel.textureView + nearest sampler
+5. Draw(3) — fullscreen triangle, no vertex buffer
+6. End render pass, submit
+```
+
+The blit pipeline and sampler are created once on the Painter and reused. The
+bind group is recreated per-show because the panel texture view may change
+(resize). This is cheap — one bind group with two entries.
+
+##### 6.8 Step B — Draft Example: `panel_triangle`
+
+```scala
+type Attribs = (position: Vec2, color: Vec3)
+type Varyings = (color: Vec3)
+
+class PanelTriangleApp extends CanvasApp:
+  var panel: Panel = _
+
+  def init(painter: Painter) =
+    val shade = painter.shade[Attribs, Varyings, EmptyTuple](
       "output.position = vec4f(input.position, 0.0, 1.0);",
       "return vec4f(input.color, 1.0);"
     )
@@ -743,48 +855,39 @@ class TriangleApp extends CanvasApp:
     // ... fill vertices ...
     val form = painter.form(vertices)
     val shape = Shape(form, shade)
-    myPanel = painter.panel(clearColor = Some(Color(0.1, 0.1, 0.1, 1.0)))
-    myPanel.shapes += shape
-    // No requestNextFrame needed — framework calls frame() automatically
+    panel = painter.panel(clearColor = Some((0.1, 0.1, 0.1, 1.0)))
+    panel.shapes += shape
 
   def frame(painter: Painter, dt: Double) =
-    painter.paint(myPanel)
-    painter.show(myPanel)
+    painter.paint(panel)
+    painter.show(panel)
     // Static scene — no requestNextFrame().
     // For animation: painter.requestNextFrame() to continue the loop.
 ```
 
-#### 6.6 MVP Implementation Steps
+##### 6.9 Step B — Implementation Steps
 
-**Step 1 — Facades & Enums**
+**Step 1 — Facade extensions**
 
-- Extend `facades.scala`: `createTexture`, `GPUTextureUsage`
-  (`RENDER_ATTACHMENT`, `TEXTURE_BINDING`), `createSampler`, `GPUSampler`,
-  `GPUTexture.createView()`, `getPreferredCanvasFormat()`
-- Create `src/gpu/painter/enums.scala`
+- `createTexture`, `GPUTextureUsage` (`RENDER_ATTACHMENT`, `TEXTURE_BINDING`),
+  `createSampler`, `GPUSampler`, `GPUTexture.createView()`
 
-**Step 2 — Shade & Form**
+**Step 2 — Panel**
 
-- `Shade`: wraps ShaderDef → GPUShaderModule + pipeline layout
-- `Form`: vertex buffer (accepts StructArray), topology, vertex count
+- Panel class: texture allocation, resize, shapes list
+- `painter.panel(...)` factory
 
-**Step 3 — Shape, Panel, Painter**
+**Step 3 — `paint()` + `show()` + blit shader**
 
-- `Shape`: Form + Shade + slot-indexed bindings + blend/cull
-- `Panel`: owns render texture, shapes list + clear color, resize
-- `Painter`: device holder, pipeline cache, `paint(panel)` into panel texture,
-  `show(panel)` blit to canvas via built-in fullscreen shader
-- Built-in blit pipeline: fullscreen triangle vertex shader + texture sampler
-  fragment shader, created once on Painter init
+- `paint(panel)`: reuse per-shape rendering from `draw()`, target panel texture
+- `show(panel)`: blit panel texture to canvas
+- Built-in fullscreen triangle vertex shader + blit fragment shader, created
+  once on Painter init
 
-**Step 4 — CanvasApp**
+**Step 4 — `panel_triangle` draft**
 
-- Async GPU init, rAF loop, ResizeObserver, deltaTime
-- On resize: update canvas size, resize frames that use canvas dimensions
-
-**Step 5 — BufferTriangle Example**
-
-- Port or create the triangle example: paint + show
+- Working example: same colored triangle, now via `paint(panel)` + `show(panel)`
+- `painter_triangle` stays unchanged — both drafts work side by side
 
 ---
 
@@ -1141,7 +1244,15 @@ These constraints should guide decisions in earlier milestones:
 
 Needed across milestones. Only add what's needed per milestone.
 
-**Milestone 1** (render-to-texture + blit):
+**Milestone 1, Step A** (direct-to-canvas):
+
+```scala
+// Navigator / GPU
+def getPreferredCanvasFormat(): String
+// + any missing render pass descriptor fields
+```
+
+**Milestone 1, Step B** (render-to-texture + blit):
 
 ```scala
 // Navigator / GPU
@@ -1216,10 +1327,18 @@ src/gpu/painter/
 ├── Shape.scala        — Shape class + binding storage
 ├── Layer.scala        — Layer: fullscreen post-processing (Rust "Effect")
 ├── Panel.scala        — Panel: render target + shapes (Rust "Layer")
-├── Painter.scala      — Painter class, pipeline cache, paint/show
+├── Painter.scala      — Painter class, pipeline cache, draw/paint/show
 ├── CanvasApp.scala    — CanvasApp trait + launch
 └── package.scala      — re-exports
 
 src/webgpu/
 └── facades.scala      — extended incrementally per milestone
+
+drafts/                    — iterative working examples (renamed from public/)
+├── index.html             — portal page linking to all drafts
+├── out/                   — compiled JS output
+├── simple_triangle/       — raw WebGPU, hardcoded vertices
+├── buffer_triangle/       — raw WebGPU + typed helpers
+├── painter_triangle/      — Painter + draw() (Step A)
+└── panel_triangle/        — Panel + paint/show (Step B)
 ```
