@@ -1,7 +1,7 @@
 import { serve } from "bun";
-import bufferTriangle from "./public/buffer_triangle/index.html";
-import index from "./public/index.html";
-import simpleTriangle from "./public/simple_triangle/index.html";
+import bufferTriangle from "./drafts/buffer_triangle/index.html";
+import index from "./drafts/index.html";
+import simpleTriangle from "./drafts/simple_triangle/index.html";
 
 const server = serve({
 	port: Number(process.env.PORT) || 3000,
