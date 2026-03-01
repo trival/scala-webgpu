@@ -18,6 +18,7 @@ trait GPU extends js.Object:
   def requestAdapter(
       options: js.Dynamic
   ): js.Promise[GPUAdapter | Null] = js.native
+  def getPreferredCanvasFormat(): String = js.native
 
 @js.native
 trait GPUAdapter extends js.Object:
