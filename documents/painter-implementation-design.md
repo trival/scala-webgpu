@@ -734,8 +734,11 @@ class PainterTriangleApp extends CanvasApp:
 
   def init(painter: Painter) =
     val shade = painter.shade[Attribs, Varyings, EmptyTuple](
-      "output.position = vec4f(input.position, 0.0, 1.0);",
-      "return vec4f(input.color, 1.0);"
+      """
+        |output.position = vec4f(input.position, 0.0, 1.0);
+        |output.color = input.color;
+      """.stripMargin,
+      "output.color = vec4f(input.color, 1.0);",
     )
     val vertices = allocateAttribs[Attribs](3)
     // ... fill vertices ...
@@ -851,8 +854,11 @@ class PanelTriangleApp extends CanvasApp:
 
   def init(painter: Painter) =
     val shade = painter.shade[Attribs, Varyings, EmptyTuple](
-      "output.position = vec4f(input.position, 0.0, 1.0);",
-      "return vec4f(input.color, 1.0);"
+      """
+        |output.position = vec4f(input.position, 0.0, 1.0);
+        |output.color = input.color;
+      """.stripMargin,
+      "output.color = vec4f(input.color, 1.0);",
     )
     val vertices = allocateAttribs[Attribs](3)
     // ... fill vertices ...
@@ -1163,7 +1169,7 @@ delivers standalone value:
 // Instead of:
 val shader = Shader[Attribs, Varyings, Uniforms](
   vertexBody = "output.position = uniforms.viewProj * vec4f(input.position, 1.0);",
-  fragmentBody = "return vec4f(input.color * uniforms.albedo.rgb, 1.0);"
+  fragmentBody = "output.color = vec4f(input.color * uniforms.albedo.rgb, 1.0);"
 )
 
 // Write:
