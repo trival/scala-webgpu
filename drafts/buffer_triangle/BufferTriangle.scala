@@ -76,12 +76,12 @@ object BufferTriangle:
       (scene: Uniforms), // Uniform for runtime tint
     ](
       vertexBody = """
-  out.position = vec4<f32>(in.position, 0.0, 1.0);
-  out.color = in.color;
-  """,
+        |  out.position = vec4<f32>(in.position, 0.0, 1.0);
+        |  out.color = in.color;
+        """.stripMargin,
       fragmentBody = """
-  out.color = in.color * tintColor;
-  """,
+        |  out.color = in.color * tintColor;
+        """.stripMargin,
     )
 
     val wgslCode = triangleShader.generateWGSL

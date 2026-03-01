@@ -32,7 +32,7 @@ object SimpleTriangle:
   def initWebGPU(
       gpu: GPU,
       canvas: HTMLCanvasElement,
-      setStatus: (String, Boolean) => Unit
+      setStatus: (String, Boolean) => Unit,
   ): Unit =
     val result = for
       adapter <- gpu.requestAdapter().orError("Failed to get WebGPU adapter")
@@ -48,7 +48,7 @@ object SimpleTriangle:
   def renderTriangle(
       device: GPUDevice,
       canvas: HTMLCanvasElement,
-      setStatus: (String, Boolean) => Unit
+      setStatus: (String, Boolean) => Unit,
   ): Unit =
     import gpu.shader.{*, given}
     import gpu.shader.None as GPUNone
@@ -61,26 +61,26 @@ object SimpleTriangle:
       (vertexIndex: BuiltinVertexIndex), // Need vertex_index
       VertOut, // Default vertex builtin out
       GPUNone, // No fragment builtin in
-      FragOut // Default fragment out
+      FragOut, // Default fragment out
     ](
       vertexBody = """
-  let positions = array<vec2<f32>, 3>(
-    vec2<f32>(0.0, 0.5),
-    vec2<f32>(-0.5, -0.5),
-    vec2<f32>(0.5, -0.5)
-  );
-  let colors = array<vec4<f32>, 3>(
-    vec4<f32>(1.0, 0.0, 0.0, 1.0),
-    vec4<f32>(0.0, 1.0, 0.0, 1.0),
-    vec4<f32>(0.0, 0.0, 1.0, 1.0)
-  );
-  let idx = in.vertexIndex;
-  out.position = vec4<f32>(positions[idx], 0.0, 1.0);
-  out.color = colors[idx];
-  """,
+        |  let positions = array<vec2<f32>, 3>(
+        |    vec2<f32>(0.0, 0.5),
+        |    vec2<f32>(-0.5, -0.5),
+        |    vec2<f32>(0.5, -0.5)
+        |  );
+        |  let colors = array<vec4<f32>, 3>(
+        |    vec4<f32>(1.0, 0.0, 0.0, 1.0),
+        |    vec4<f32>(0.0, 1.0, 0.0, 1.0),
+        |    vec4<f32>(0.0, 0.0, 1.0, 1.0)
+        |  );
+        |  let idx = in.vertexIndex;
+        |  out.position = vec4<f32>(positions[idx], 0.0, 1.0);
+        |  out.color = colors[idx];
+        """.stripMargin,
       fragmentBody = """
-  out.color = in.color;
-  """
+        |  out.color = in.color;
+        """.stripMargin,
     )
 
     val wgslCode = triangleShader.generateWGSL
@@ -89,8 +89,8 @@ object SimpleTriangle:
     // Create shader module
     val shaderModule = device.createShaderModule(
       Obj.literal(
-        code = wgslCode
-      )
+        code = wgslCode,
+      ),
     )
 
     // Get WebGPU context
@@ -100,8 +100,8 @@ object SimpleTriangle:
     context.configure(
       Obj.literal(
         device = device,
-        format = format
-      )
+        format = format,
+      ),
     )
 
     // Create render pipeline
@@ -110,21 +110,21 @@ object SimpleTriangle:
         layout = "auto",
         vertex = Obj.literal(
           module = shaderModule,
-          entryPoint = "vs_main"
+          entryPoint = "vs_main",
         ),
         fragment = Obj.literal(
           module = shaderModule,
           entryPoint = "fs_main",
           targets = Arr(
             Obj.literal(
-              format = format
-            )
-          )
+              format = format,
+            ),
+          ),
         ),
         primitive = Obj.literal(
-          topology = "triangle-list"
-        )
-      )
+          topology = "triangle-list",
+        ),
+      ),
     )
 
     // Render frame
@@ -139,10 +139,10 @@ object SimpleTriangle:
               view = textureView,
               loadOp = "clear",
               storeOp = "store",
-              clearValue = Obj.literal(r = 0.1, g = 0.1, b = 0.15, a = 1.0)
-            )
-          )
-        )
+              clearValue = Obj.literal(r = 0.1, g = 0.1, b = 0.15, a = 1.0),
+            ),
+          ),
+        ),
       )
 
       renderPass.setPipeline(pipeline)
