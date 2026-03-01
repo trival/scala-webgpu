@@ -586,7 +586,8 @@ examples continue to work.
 - `Painter` with `draw(shape)` (direct) + `paint(panel)` / `show(panel)` (panel)
 - `Shade` wrapping `ShaderDef` (shader module + pipeline layout)
 - `Form` (vertex buffer + topology, no index buffer yet)
-- `Shape` (Form + Shade + simple `Map[Int, BufferBinding]` bindings + blend/cull)
+- `Shape` (Form + Shade + simple `Map[Int, BufferBinding]` bindings +
+  blend/cull)
 - `Panel` owns a render texture — `paint()` renders into it, `show()` blits to
   canvas via built-in fullscreen triangle + blit shader
 - Pipeline cache with `PipelineKey`
@@ -606,8 +607,10 @@ examples continue to work.
 **Draft example progression** (in `drafts/`):
 
 1. `simple_triangle` — raw WebGPU, hardcoded vertices in shader (exists)
-2. `buffer_triangle` — raw WebGPU + typed vertex buffers/uniforms via helpers (exists)
-3. `painter_triangle` — Painter/Shade/Form/Shape + `draw()` via CanvasApp (**Step A**)
+2. `buffer_triangle` — raw WebGPU + typed vertex buffers/uniforms via helpers
+   (exists)
+3. `painter_triangle` — Painter/Shade/Form/Shape + `draw()` via CanvasApp
+   (**Step A**)
 4. `panel_triangle` — Panel render-to-texture + blit (**Step B**)
 
 Each new draft demonstrates the next layer of abstraction. Existing drafts are
@@ -785,9 +788,9 @@ swap chain, then blit to canvas.
 
 ##### 6.6 Panel — Render-to-Texture
 
-Each Panel owns a GPU texture that shapes render into.
-`paint(panel)` renders shapes into the panel's texture. `show(panel)` blits that
-texture onto the canvas swap chain.
+Each Panel owns a GPU texture that shapes render into. `paint(panel)` renders
+shapes into the panel's texture. `show(panel)` blits that texture onto the
+canvas swap chain.
 
 ```scala
 class Panel(
@@ -1334,7 +1337,7 @@ src/gpu/painter/
 src/webgpu/
 └── facades.scala      — extended incrementally per milestone
 
-drafts/                    — iterative working examples (renamed from public/)
+drafts/                    — iterative working examples
 ├── index.html             — portal page linking to all drafts
 ├── out/                   — compiled JS output
 ├── simple_triangle/       — raw WebGPU, hardcoded vertices

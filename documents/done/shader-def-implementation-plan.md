@@ -1,43 +1,61 @@
 # WebGPU Shader Facade - Type-Safe Design
 
 ## Goal
-Create a minimal proof-of-concept where shader attributes, uniforms, and builtins are defined as Scala types, and WebGPU pipeline elements (bind group layouts, vertex layouts, WGSL code) are derived automatically.
+
+Create a minimal proof-of-concept where shader attributes, uniforms, and
+builtins are defined as Scala types, and WebGPU pipeline elements (bind group
+layouts, vertex layouts, WGSL code) are derived automatically.
 
 ## Core Design Principles
-1. **Named tuples as the source of truth** - Position in tuple = layout/binding index
-2. **Type-level derivation** - Use Scala 3 metaprogramming to generate WGSL and layouts
+
+1. **Named tuples as the source of truth** - Position in tuple = layout/binding
+   index
+2. **Type-level derivation** - Use Scala 3 metaprogramming to generate WGSL and
+   layouts
 3. **Single definition** - Define types once, derive everything else
-4. **Builtins separated** - Dedicated fields for vertex/fragment builtin ins/outs, filtered from CPU-side layouts
+4. **Builtins separated** - Dedicated fields for vertex/fragment builtin
+   ins/outs, filtered from CPU-side layouts
 
 ---
 
 ## Long-Term Vision
 
-These goals inform current design decisions even though we won't implement them now:
+These goals inform current design decisions even though we won't implement them
+now:
 
 ### 1. CPU-side Math Library
-A vector math library mimicking WGSL math as closely as possible for CPU-side calculations (camera math, physics, transforms, etc.).
+
+A vector math library mimicking WGSL math as closely as possible for CPU-side
+calculations (camera math, physics, transforms, etc.).
 
 ### 2. WGSL AST Generation
-Types that can generate WGSL expression ASTs, enabling fully typed shader code instead of string bodies.
+
+Types that can generate WGSL expression ASTs, enabling fully typed shader code
+instead of string bodies.
 
 ### 3. Isomorphic Math API
-Math functions (`dot`, `cross`, `normalize`, `mix`, etc.) with the same API usable on both CPU and GPU (for AST generation).
+
+Math functions (`dot`, `cross`, `normalize`, `mix`, etc.) with the same API
+usable on both CPU and GPU (for AST generation).
 
 ### Design Flexibility
+
 These may end up as:
+
 - The same types across all contexts (ideal if practical)
 - Separate types in different packages with implicit conversions
 - API similarity maintained by convention
 
-For now, we keep the design open and use opaque types / type classes. The type class pattern (`WGSLType[T]`) allows us to later swap implementations or add instances for concrete types.
+For now, we keep the design open and use opaque types / type classes. The type
+class pattern (`WGSLType[T]`) allows us to later swap implementations or add
+instances for concrete types.
 
 ---
 
 ## Phase 1: WGSL Primitive Types (Pure Type-Level)
 
-Use opaque types or empty classes to represent WGSL types purely at the type level.
-Companion objects provide metadata for code generation.
+Use opaque types or empty classes to represent WGSL types purely at the type
+level. Companion objects provide metadata for code generation.
 
 ```scala
 // src/gpu/types.scala
@@ -89,6 +107,7 @@ type FragOut = (color: Vec4)                 // Standard single-color fragment o
 ```
 
 This allows purely type-level definitions:
+
 ```scala
 type MyAttribs = (position: Vec3, color: Vec4)  // No .type needed!
 ```
@@ -97,7 +116,8 @@ type MyAttribs = (position: Vec3, color: Vec4)  // No .type needed!
 
 ## Phase 2: Builtin Types
 
-Separate marker types for WGSL builtins. These are included in shader generation but filtered from CPU-side layouts.
+Separate marker types for WGSL builtins. These are included in shader generation
+but filtered from CPU-side layouts.
 
 ```scala
 // src/gpu/builtins.scala
@@ -132,6 +152,7 @@ opaque type BuiltinFragCoord = Unit  // Input
 ## Phase 3: Named Tuple Definitions for Attributes
 
 Use named tuples where:
+
 - **Name** = attribute name in shader
 - **Position** = `@location(index)`
 
@@ -156,6 +177,7 @@ type VertexAttribs = (
 ## Phase 4: Nested Named Tuples for Uniforms with Stage Visibility
 
 Nested structure where:
+
 - **Outer tuple position** = `@group(index)`
 - **Inner tuple position** = `@binding(index)`
 - **Inner tuple name** = variable name
@@ -209,7 +231,9 @@ case class ShaderDef[...](
 )
 ```
 
-**Decision**: Use wrapper types (`VertexUniform`, `FragmentUniform`, `SharedUniform`) to keep uniforms in a single nested tuple structure while tracking visibility.
+**Decision**: Use wrapper types (`VertexUniform`, `FragmentUniform`,
+`SharedUniform`) to keep uniforms in a single nested tuple structure while
+tracking visibility.
 
 ---
 
@@ -233,6 +257,7 @@ inline def deriveUniformBindings[T <: Tuple]: String =
 ```
 
 ### Key Scala 3 features to use:
+
 - `scala.NamedTuple` and `NamedTuple.Names` / `NamedTuple.DropNames`
 - `constValueTuple` for compile-time tuple element access
 - `inline` methods for compile-time computation
@@ -295,6 +320,7 @@ object Shader:
 ```
 
 **Type parameter ordering (most common first, then pipeline order):**
+
 1. `Attribs` - always needed
 2. `Varyings` - always needed
 3. `Uniforms` - often needed
@@ -306,6 +332,7 @@ object Shader:
 ### Generated WGSL Structure
 
 The shader generates:
+
 1. **Input structs** with `@location` or `@builtin` annotations
 2. **Output structs** with `@location` or `@builtin` annotations
 3. **Uniform declarations** at module scope
@@ -366,8 +393,10 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
 1. **Output structs always generated** - User writes `out.fieldName = ...`
 2. **Auto `return out;`** - User never writes return statement
-3. **Varyings shared** - `VertexOutput` struct is reused as fragment input (varyings flow through)
-4. **Builtins merged into structs** - `@builtin` and `@location` fields coexist in same struct
+3. **Varyings shared** - `VertexOutput` struct is reused as fragment input
+   (varyings flow through)
+4. **Builtins merged into structs** - `@builtin` and `@location` fields coexist
+   in same struct
 
 ---
 
@@ -403,6 +432,7 @@ trait GPUDevice extends js.Object:
 ```
 
 ### Facades Design Principles
+
 - **Minimal**: Only types/methods we actually use
 - **js.native traits**: For WebGPU API objects
 - **js.Object traits**: For descriptor objects we construct
@@ -437,20 +467,20 @@ src/
 
 ## Current Implementation Status
 
-| Part | Description | Status |
-|------|-------------|--------|
-| 1 | WGSL Code Generation | ✅ Complete - 5/5 tests passing |
-| 2 | Minimal WebGPU Facades | ✅ Complete (inline in examples) |
-| 3 | Buffer Integration | 🔄 In Progress |
-| 4 | Pipeline Builder | ⏳ Not started |
-| 5 | Working Example | ✅ Basic rendering working |
+| Part | Description            | Status                           |
+| ---- | ---------------------- | -------------------------------- |
+| 1    | WGSL Code Generation   | ✅ Complete - 5/5 tests passing  |
+| 2    | Minimal WebGPU Facades | ✅ Complete (inline in examples) |
+| 3    | Buffer Integration     | 🔄 In Progress                   |
+| 4    | Pipeline Builder       | ⏳ Not started                   |
+| 5    | Working Example        | ✅ Basic rendering working       |
 
 **Last verified:** `bun run build` compiles, examples render triangles
 
 ### Project Structure (Updated)
 
 ```
-public/
+drafts/
   index.html                    # Example listing page
   simple_triangle/
     index.html                  # Simple triangle HTML
@@ -475,10 +505,14 @@ trivalibs/
 
 ### What's Working
 
-1. **Shader Definition & WGSL Generation** - Define shaders with named tuple types, generate valid WGSL
-2. **Simple Triangle** (`/simple_triangle/`) - Renders using hardcoded vertices in shader + `@builtin(vertex_index)`
-3. **Buffer Triangle** (`/buffer_triangle/`) - Renders using vertex data from GPU buffers (manual layout config)
-4. **Module Splitting** - Each example compiles to separate JS module via `@JSExportTopLevel(moduleID = "...")`
+1. **Shader Definition & WGSL Generation** - Define shaders with named tuple
+   types, generate valid WGSL
+2. **Simple Triangle** (`/simple_triangle/`) - Renders using hardcoded vertices
+   in shader + `@builtin(vertex_index)`
+3. **Buffer Triangle** (`/buffer_triangle/`) - Renders using vertex data from
+   GPU buffers (manual layout config)
+4. **Module Splitting** - Each example compiles to separate JS module via
+   `@JSExportTopLevel(moduleID = "...")`
 5. **Dev Server** - `bun run dev` serves examples at `localhost:3000`
 
 ---
@@ -486,27 +520,37 @@ trivalibs/
 ## Implementation Order
 
 ### Part 1: WGSL Code Generation ✅ COMPLETE
-1. [x] Create `src/gpu/types.scala` - WGSL primitive types as opaque types with WGSLType givens
-2. [x] Create `src/gpu/builtins.scala` - Builtin marker types with BuiltinType givens
-3. [x] Create `src/gpu/derive.scala` - Named tuple introspection (extract names, types, generate WGSL)
+
+1. [x] Create `src/gpu/types.scala` - WGSL primitive types as opaque types with
+       WGSLType givens
+2. [x] Create `src/gpu/builtins.scala` - Builtin marker types with BuiltinType
+       givens
+3. [x] Create `src/gpu/derive.scala` - Named tuple introspection (extract names,
+       types, generate WGSL)
 4. [x] Create `src/gpu/shader.scala` - ShaderDef with WGSL generation
 5. [x] Create `src/test/ShaderTest.scala` - Test that verifies generated WGSL
 
 **Status:** All 5 tests passing
 
 ### Part 2: Minimal WebGPU Facades ✅ COMPLETE (inline)
-WebGPU facades are currently defined inline in each example file. This is sufficient for now.
 
-6. [x] Core WebGPU types defined in `SimpleTriangle.scala` and `BufferTriangle.scala`:
+WebGPU facades are currently defined inline in each example file. This is
+sufficient for now.
+
+6. [x] Core WebGPU types defined in `SimpleTriangle.scala` and
+       `BufferTriangle.scala`:
    - `GPU`, `GPUAdapter`, `GPUDevice`, `GPUQueue`
    - `GPUBuffer`, `GPUShaderModule`, `GPURenderPipeline`
    - `GPUCommandEncoder`, `GPURenderPassEncoder`, `GPUCommandBuffer`
    - `GPUCanvasContext`, `GPUTexture`, `GPUTextureView`
 
 ### Part 3: Buffer Integration with trivalibs/bufferdata 🔄 IN PROGRESS
-Leverage the existing `StructArray`/`StructRef` system from `trivalibs/src/utils/bufferdata.scala` for type-safe buffer management.
 
-**Current status**: BufferTriangle uses manual Float32Array and hardcoded buffer layout configuration.
+Leverage the existing `StructArray`/`StructRef` system from
+`trivalibs/src/utils/bufferdata.scala` for type-safe buffer management.
+
+**Current status**: BufferTriangle uses manual Float32Array and hardcoded buffer
+layout configuration.
 
 **Next steps**: Derive buffer layouts from shader types automatically.
 
@@ -518,6 +562,7 @@ Leverage the existing `StructArray`/`StructRef` system from `trivalibs/src/utils
 8. [ ] Create `src/gpu/buffers.scala` - Bridge shader types to bufferdata:
 
    **For Vertex Buffers:**
+
    ```scala
    // Map shader Attribs to bufferdata layout
    // (position: Vec3, color: Vec4) → (F32, F32, F32, F32, F32, F32, F32)
@@ -532,6 +577,7 @@ Leverage the existing `StructArray`/`StructRef` system from `trivalibs/src/utils
    ```
 
    **For Uniform Buffers:**
+
    ```scala
    // Each bind group gets its own buffer
    // Uniforms tuple position → group index
@@ -560,15 +606,18 @@ Leverage the existing `StructArray`/`StructRef` system from `trivalibs/src/utils
     - Bind group creation helpers
 
 ### Part 4: Pipeline Builder
-11. [ ] Create `src/gpu/pipeline.scala` - Build complete pipeline from ShaderDef:
+
+11. [ ] Create `src/gpu/pipeline.scala` - Build complete pipeline from
+        ShaderDef:
     - Create shader module from generated WGSL
     - Create bind group layouts from Uniforms type
     - Create pipeline layout
     - Create render pipeline with derived vertex layout
 
 ### Part 5: Working Examples ✅ BASIC COMPLETE
-12. [x] `public/simple_triangle/` - Hardcoded vertices in shader
-13. [x] `public/buffer_triangle/` - Vertex data from GPU buffers (manual config)
+
+12. [x] `drafts/simple_triangle/` - Hardcoded vertices in shader
+13. [x] `drafts/buffer_triangle/` - Vertex data from GPU buffers (manual config)
 14. [ ] Update buffer_triangle to use derived layouts and uniforms:
     - Replace manual buffer config with `VertexLayout.derive[Attribs]`
     - Add uniform for runtime color tint
@@ -580,6 +629,7 @@ Leverage the existing `StructArray`/`StructRef` system from `trivalibs/src/utils
 ## Verification
 
 ### Part 1: WGSL Generation
+
 1. Compile: `scala-cli compile .`
 2. Test: `scala-cli test .`
 3. Verify generated WGSL structure:
@@ -589,6 +639,7 @@ Leverage the existing `StructArray`/`StructRef` system from `trivalibs/src/utils
    - Type names match WGSL (`vec3<f32>`, `f32`, etc.)
 
 ### Part 2-5: Full MVP
+
 4. Run example in browser: `scala-cli --js . --main example.Main`
 5. Verify:
    - Triangle renders on canvas
@@ -687,11 +738,17 @@ val customShader = Shader.full[
 ## Decisions Made
 
 - **Uniforms**: Individual variables per binding (not structs per group)
-- **Uniform visibility**: Wrapper types (`VertexUniform[T]`, `FragmentUniform[T]`, `SharedUniform[T]`) track shader stage visibility for pipeline layout generation
-- **Builtins**: Separate type params for vertex/fragment builtin ins/outs, merged into structs during generation
-- **Type encoding**: Opaque types (`Vec3`) with `WGSLType[T]` type class - no `.type` needed
-- **Output pattern**: Generated output structs + auto `return out;` - user assigns to `out.fieldName`
-- **Buffer management**: Reuse `trivalibs/bufferdata` for typed CPU-side buffer access
+- **Uniform visibility**: Wrapper types (`VertexUniform[T]`,
+  `FragmentUniform[T]`, `SharedUniform[T]`) track shader stage visibility for
+  pipeline layout generation
+- **Builtins**: Separate type params for vertex/fragment builtin ins/outs,
+  merged into structs during generation
+- **Type encoding**: Opaque types (`Vec3`) with `WGSLType[T]` type class - no
+  `.type` needed
+- **Output pattern**: Generated output structs + auto `return out;` - user
+  assigns to `out.fieldName`
+- **Buffer management**: Reuse `trivalibs/bufferdata` for typed CPU-side buffer
+  access
 
 ---
 
@@ -699,7 +756,8 @@ val customShader = Shader.full[
 
 ### Overview
 
-The `trivalibs/src/utils/bufferdata.scala` provides a zero-cost abstraction for typed buffer access:
+The `trivalibs/src/utils/bufferdata.scala` provides a zero-cost abstraction for
+typed buffer access:
 
 ```scala
 // From bufferdata.scala - key types:
@@ -718,16 +776,19 @@ type ValueType[T]                          // Scala type for primitive T
 **1. Type Mapping: Shader Types → Buffer Layout**
 
 Shader types use named tuples with high-level WGSL types:
+
 ```scala
 type Attribs = (position: Vec3, color: Vec4)  // Named tuple for shader
 ```
 
 Buffer layouts use primitive tuples:
+
 ```scala
 type AttribsBuffer = (F32, F32, F32, F32, F32, F32, F32)  // Flattened for buffer
 ```
 
 **Bridge via match type:**
+
 ```scala
 type FlattenToBuffer[T] <: Tuple = T match
   case EmptyTuple => EmptyTuple
@@ -778,6 +839,7 @@ device.queue.writeBuffer(gpuBuffer, 0, vertices.arrayBuffer)
 WGSL has strict alignment rules (vec3 = 16 bytes, not 12). Two approaches:
 
 **Option A: Explicit padding in shader type**
+
 ```scala
 type CameraUniforms = (
   viewProj: Mat4,           // 64 bytes, 16-aligned ✓
@@ -787,6 +849,7 @@ type CameraUniforms = (
 ```
 
 **Option B: Auto-padding match type**
+
 ```scala
 type AlignedBuffer[T] <: Tuple = T match
   case Vec3 *: rest => (F32, F32, F32, F32) *: AlignedBuffer[rest]  // Pad to 16
@@ -795,6 +858,7 @@ type AlignedBuffer[T] <: Tuple = T match
 ```
 
 **Usage:**
+
 ```scala
 type CameraUniformsBuffer = AlignedBuffer[FlattenToBuffer[NamedTuple.DropNames[CameraUniforms]]]
 
@@ -828,14 +892,14 @@ val bindGroup0 = device.createBindGroup(GPUBindGroupDescriptor(
 
 ### Key Reusable Components from bufferdata.scala
 
-| Component | Purpose | Reuse in GPU package |
-|-----------|---------|---------------------|
-| `StructArray[T]` | Typed array of structs | Vertex buffers |
-| `StructRef[T]` | Single struct reference | Uniform buffer access |
-| `TupleSize[T]` | Compile-time size calculation | Buffer allocation, stride |
-| `FieldOffset[T, N]` | Compile-time offset calculation | Vertex attribute offsets |
-| `PrimitiveRef[T]` | Type-safe field access | Setting uniform values |
-| `struct[T]()` | Factory for single struct | Single uniform buffer |
+| Component           | Purpose                         | Reuse in GPU package      |
+| ------------------- | ------------------------------- | ------------------------- |
+| `StructArray[T]`    | Typed array of structs          | Vertex buffers            |
+| `StructRef[T]`      | Single struct reference         | Uniform buffer access     |
+| `TupleSize[T]`      | Compile-time size calculation   | Buffer allocation, stride |
+| `FieldOffset[T, N]` | Compile-time offset calculation | Vertex attribute offsets  |
+| `PrimitiveRef[T]`   | Type-safe field access          | Setting uniform values    |
+| `struct[T]()`       | Factory for single struct       | Single uniform buffer     |
 
 ### File Dependencies
 
