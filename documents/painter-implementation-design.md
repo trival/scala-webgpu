@@ -240,12 +240,26 @@ painter.show(layer):
 | Shade                    | `ShaderDef` (compile-time)          | `Shade` (runtime wrapper)                 | Shade materializes ShaderDef into GPU objects |
 | Form                     | —                                   | `Form`                                    | New: vertex/index buffers + topology          |
 | Shape                    | —                                   | `Shape`                                   | New: Form + Shade + bindings + state          |
-| Effect                   | —                                   | `Effect`                                  | New: fragment-only Shade + bindings           |
-| Layer                    | —                                   | `Layer`                                   | New: render target + shapes/effects           |
+| Effect                   | —                                   | **`Layer`**                               | Renamed: fullscreen post-processing pass      |
+| Layer                    | —                                   | **`Panel`**                               | Renamed: render target + shapes/layers        |
 | Painter                  | —                                   | `Painter`                                 | New: execution engine + pipeline cache        |
 | CanvasApp                | —                                   | `CanvasApp`                               | New: application framework                    |
 | Handle indices           | N/A                                 | **Not needed**                            | Use direct object references (GC)             |
 | Pipeline cache           | —                                   | `HashMap[PipelineKey, GPURenderPipeline]` | Case class key with structural equality       |
+
+> **Naming convention — Rust → Scala:**
+>
+> | Rust name      | Scala name     | Rationale                                                    |
+> | -------------- | -------------- | ------------------------------------------------------------ |
+> | **Layer**      | **Panel**      | A self-contained image/surface (painting panel, comic panel) |
+> | **Effect**     | **Layer**      | A coat of paint applied over the whole surface (a glaze)     |
+> | LayerBinding   | PanelBinding   | Texture sampled from another Panel's render target           |
+> | layer bindings | panel bindings | Bind group slot for textures from other Panels               |
+>
+> The painting metaphor: you paint **shapes** onto a **panel**, then apply
+> **layers** (glazes, washes) over the whole surface. This rename is intentional
+> and applies throughout the Scala codebase. When this document refers to the
+> Rust architecture (§2), it uses the original Rust names.
 
 ---
 
@@ -295,9 +309,9 @@ positional binding lists.
 
 Rust uses builders extensively. Scala design:
 
-- **Immutable configs**: `LayerConfig`, `SamplerConfig` as case classes with
+- **Immutable configs**: `PanelConfig`, `SamplerConfig` as case classes with
   defaults
-- **Mutable runtime state**: `Shape.valueBindings`, `Layer.shapes`, etc. as
+- **Mutable runtime state**: `Shape.valueBindings`, `Panel.shapes`, etc. as
   `var`s
 - Simple assignment instead of builder ceremony for common cases
 
@@ -353,21 +367,21 @@ class Painter(
 
   lazy val fullscreenVertexModule: GPUShaderModule = // built-in fullscreen triangle
 
-  def paint(layer: Layer): Unit
-  def show(layer: Layer): Unit
+  def paint(panel: Panel): Unit
+  def show(panel: Panel): Unit
 
   // Shader factories (inline to preserve type info for ShaderDef delegation)
   // MVP: values only (single bind group)
   inline def shade[A, V, Values](vertBody: String, fragBody: String): Shade
   // Later: values + textures (two bind groups)
   inline def shade[A, V, Values, Textures](vertBody: String, fragBody: String): Shade
-  inline def effectShade[Values](fragBody: String): Shade
+  inline def layerShade[Values](fragBody: String): Shade
 
   // Resource factories (hide device from user)
   inline def binding[T](value: T): BufferBinding[T, ?]
   inline def binding[T]: BufferBinding[T, ?]
   def form(...): Form
-  def layer(...): Layer
+  def panel(...): Panel
 ```
 
 ### 5.2 Shade & the ShaderDef Adapter
@@ -378,8 +392,8 @@ nesting level maps to a bind group. This flexibility is correct for
 `ShaderDef`'s level of abstraction and should be preserved.
 
 The **Painter** has an opinionated convention: bind group 0 = value/sampler
-bindings, bind group 1 = layer/texture bindings. This convention lives in the
-painter layer, not in `ShaderDef`.
+bindings, bind group 1 = panel/texture bindings (textures from other Panels).
+This convention lives in the painter framework, not in `ShaderDef`.
 
 The painter's `shade` factory is an `inline def` adapter that:
 
@@ -411,11 +425,11 @@ outside of painter.
 class Shade(
   val id: Int,
   val shaderModule: GPUShaderModule,
-  val vertexBufferLayout: js.Dynamic | Null,   // null for effects
+  val vertexBufferLayout: js.Dynamic | Null,   // null for layers (post-processing)
   val valueBindGroupLayout: GPUBindGroupLayout,
-  val layerBindGroupLayout: GPUBindGroupLayout | Null,
+  val panelBindGroupLayout: GPUBindGroupLayout | Null,
   val pipelineLayout: GPUPipelineLayout,
-  val isEffect: Boolean,
+  val isLayer: Boolean,  // true = fullscreen post-processing (Rust "Effect")
 )
 ```
 
@@ -464,20 +478,22 @@ class Shape(
   val form: Form,
   val shade: Shade,
   var valueBindings: BindingSlots = Map.empty,
-  var layerBindings: LayerBindingSlots = Map.empty,
+  var panelBindings: PanelBindingSlots = Map.empty,
   var instances: Seq[InstanceBindings] = Seq.empty,
   var cullMode: CullMode = CullMode.None,
   var blendMode: BlendMode = BlendMode.Replace,
 )
 ```
 
-### 5.5 Effect
+### 5.5 Layer (Rust: "Effect")
+
+A **Layer** is a fullscreen post-processing pass — what Rust calls an "Effect".
 
 ```scala
-class Effect(
-  val shade: Shade,  // must have isEffect = true
+class Layer(
+  val shade: Shade,  // must have isLayer = true
   var valueBindings: BindingSlots = Map.empty,
-  var layerBindings: LayerBindingSlots = Map.empty,
+  var panelBindings: PanelBindingSlots = Map.empty,
   var instances: Seq[InstanceBindings] = Seq.empty,
   var blendMode: BlendMode = BlendMode.Replace,
   var srcMipLevel: Option[Int] = None,
@@ -485,10 +501,12 @@ class Effect(
 )
 ```
 
-### 5.6 Layer
+### 5.6 Panel (Rust: "Layer")
+
+A **Panel** is a render target + composition unit — what Rust calls a "Layer".
 
 ```scala
-case class LayerConfig(
+case class PanelConfig(
   width: Int = 0,             // 0 = use canvas size
   height: Int = 0,
   clearColor: Option[Color] = Some(Color(0, 0, 0, 1)),
@@ -498,24 +516,24 @@ case class LayerConfig(
   mipLevelCount: Int = 1,
 )
 
-class Layer(
+class Panel(
   private val painter: Painter,
-  val config: LayerConfig,
+  val config: PanelConfig,
 ):
   // Textures (allocated on creation, reallocated on resize)
   private var targets: Array[GPUTexture]
-  private var pingPongTargets: Array[GPUTexture] | Null  // allocated when effects exist
+  private var pingPongTargets: Array[GPUTexture] | Null  // allocated when layers exist
   private var depthTexture: GPUTexture | Null
   private var msaaTextures: Array[GPUTexture] | Null
   private var currentTarget: Int = 0  // ping-pong index
 
   // Content
   val shapes: mutable.ArrayBuffer[Shape] = mutable.ArrayBuffer.empty
-  val effects: mutable.ArrayBuffer[Effect] = mutable.ArrayBuffer.empty
+  val layers: mutable.ArrayBuffer[Layer] = mutable.ArrayBuffer.empty
 
-  // Shared bindings (inherited by all shapes/effects)
+  // Shared bindings (inherited by all shapes/layers)
   var valueBindings: BindingSlots = Map.empty
-  var layerBindings: LayerBindingSlots = Map.empty
+  var panelBindings: PanelBindingSlots = Map.empty
 
   // API
   def currentTextureView: GPUTextureView
@@ -559,12 +577,12 @@ better DX than the Rust version, the port isn't justified.
 **Scope — included**:
 
 - `CanvasApp` framework (GPU init, rAF loop, resize)
-- `Painter` with `paint(layer)` + `show(layer)` separation
+- `Painter` with `paint(panel)` + `show(panel)` separation
 - `Shade` wrapping `ShaderDef` (shader module + pipeline layout)
 - `Form` (vertex buffer + topology, no index buffer yet)
-- `Shape` (Form + Shade + simple `Map[(Int,Int), GPUBuffer]` bindings +
+- `Shape` (Form + Shade + simple `Map[Int, BufferBinding]` bindings +
   blend/cull)
-- `Layer` owns a render texture — `paint()` renders into it, `show()` blits to
+- `Panel` owns a render texture — `paint()` renders into it, `show()` blits to
   canvas via built-in fullscreen triangle + blit shader
 - Pipeline cache with `PipelineKey`
 - Minimal enums: `PrimitiveTopology`, `CullMode`, `FrontFace`, `BlendMode`
@@ -573,12 +591,12 @@ better DX than the Rust version, the port isn't justified.
 **Scope — excluded (deferred)**:
 
 - Index buffers on Form
-- Textures as user-facing bindings, samplers, layer bindings between layers
-- Effects (fullscreen post-processing)
+- Textures as user-facing bindings, samplers, panel bindings between panels
+- Layers (fullscreen post-processing, Rust "Effects")
 - Instances
 - Depth testing, MSAA, MRT, mipmaps
-- Layer-level bindings and the override hierarchy
-- Multi-layer compositing (show only blits a single layer)
+- Panel-level bindings and the override hierarchy
+- Multi-panel compositing (show only blits a single panel)
 
 #### 6.1 MVP Binding Approach
 
@@ -613,22 +631,22 @@ val time = painter.binding[Float]          // uninitialized, set later
 
 shape.bindings = Map(0 -> mvp, 1 -> time)
 
-// Update each frame:
+// Update each render cycle:
 mvp.set(newMatrix)
 time.set(elapsed)
 ```
 
-No merge hierarchy, no layer bindings. Shapes hold their own bindings directly.
+No merge hierarchy, no panel bindings. Shapes hold their own bindings directly.
 
-#### 6.2 MVP Layer — Render-to-Texture
+#### 6.2 MVP Panel — Render-to-Texture
 
-Each Layer owns a GPU texture that shapes render into. This establishes the
-correct abstraction from day one: layers are independent render targets.
-`paint(layer)` renders shapes into the layer's texture. `show(layer)` blits that
+Each Panel owns a GPU texture that shapes render into. This establishes the
+correct abstraction from day one: panels are independent render targets.
+`paint(panel)` renders shapes into the panel's texture. `show(panel)` blits that
 texture onto the canvas swap chain.
 
 ```scala
-class Layer(
+class Panel(
   private val painter: Painter,
   val width: Int,                // 0 = use canvas size
   val height: Int,
@@ -648,13 +666,13 @@ be rendered into and sampled from (for the blit).
 
 #### 6.3 MVP Rendering
 
-**paint(layer)** — render shapes into layer's texture:
+**paint(panel)** — render shapes into panel's texture:
 
 ```
 1. Create GPUCommandEncoder
-2. Begin render pass targeting layer.textureView
+2. Begin render pass targeting panel.textureView
    - Load op = clear (if clearColor set) or load
-3. For each shape in layer.shapes:
+3. For each shape in panel.shapes:
    a. Compute pipeline key from shape config
    b. Get or create cached pipeline
    c. Create bind groups from shape.bindings
@@ -664,19 +682,19 @@ be rendered into and sampled from (for the blit).
 5. Submit command buffer
 ```
 
-**show(layer)** — blit layer texture to canvas:
+**show(panel)** — blit panel texture to canvas:
 
 ```
 1. Get swap chain texture: context.getCurrentTexture()
 2. Create render pass targeting swap chain texture (clear)
 3. Set blit pipeline (built-in fullscreen triangle + sampler)
-4. Create bind group: layer.textureView + nearest sampler
+4. Create bind group: panel.textureView + nearest sampler
 5. Draw(3) — fullscreen triangle, no vertex buffer
 6. End render pass, submit
 ```
 
 The blit pipeline and sampler are created once on the Painter and reused. The
-bind group is recreated per-show because the layer texture view may change
+bind group is recreated per-show because the panel texture view may change
 (resize). This is cheap — one bind group with two entries.
 
 #### 6.4 MVP CanvasApp
@@ -696,9 +714,9 @@ ResizeObserver setup, requestAnimationFrame loop with deltaTime.
 
 **Lifecycle**:
 
-1. `init(painter)` — setup resources (shapes, layers, bindings)
+1. `init(painter)` — setup resources (shapes, panels, bindings)
 2. Automatic initial `resize(painter, w, h)` with current canvas dimensions
-3. Automatic initial `frame(painter, 0.0)` — first render happens without user
+3. Automatic initial `frame(painter, 0.0)` — first frame happens without user
    intervention
 4. On ResizeObserver events: `resize(painter, w, h)` then `frame(painter, 0.0)`
 5. `painter.requestNextFrame()` in `frame()` schedules the next rAF callback. If
@@ -714,7 +732,7 @@ type Attribs = (position: Vec2, color: Vec3)
 type Varyings = (color: Vec3)
 
 class TriangleApp extends CanvasApp:
-  var layer: Layer = _
+  var myPanel: Panel = _
 
   def init(painter: Painter) =
     val shade = painter.shade[Attribs, Varyings, None](
@@ -725,13 +743,13 @@ class TriangleApp extends CanvasApp:
     // ... fill vertices ...
     val form = painter.form(vertices)
     val shape = Shape(form, shade)
-    layer = painter.layer(clearColor = Some(Color(0.1, 0.1, 0.1, 1.0)))
-    layer.shapes += shape
+    myPanel = painter.panel(clearColor = Some(Color(0.1, 0.1, 0.1, 1.0)))
+    myPanel.shapes += shape
     // No requestNextFrame needed — framework calls frame() automatically
 
   def frame(painter: Painter, dt: Double) =
-    painter.paint(layer)
-    painter.show(layer)
+    painter.paint(myPanel)
+    painter.show(myPanel)
     // Static scene — no requestNextFrame().
     // For animation: painter.requestNextFrame() to continue the loop.
 ```
@@ -750,19 +768,19 @@ class TriangleApp extends CanvasApp:
 - `Shade`: wraps ShaderDef → GPUShaderModule + pipeline layout
 - `Form`: vertex buffer (accepts StructArray), topology, vertex count
 
-**Step 3 — Shape, Layer, Painter**
+**Step 3 — Shape, Panel, Painter**
 
 - `Shape`: Form + Shade + slot-indexed bindings + blend/cull
-- `Layer`: owns render texture, shapes list + clear color, resize
-- `Painter`: device holder, pipeline cache, `paint(layer)` into layer texture,
-  `show(layer)` blit to canvas via built-in fullscreen shader
+- `Panel`: owns render texture, shapes list + clear color, resize
+- `Painter`: device holder, pipeline cache, `paint(panel)` into panel texture,
+  `show(panel)` blit to canvas via built-in fullscreen shader
 - Built-in blit pipeline: fullscreen triangle vertex shader + texture sampler
   fragment shader, created once on Painter init
 
 **Step 4 — CanvasApp**
 
 - Async GPU init, rAF loop, ResizeObserver, deltaTime
-- On resize: update canvas size, resize layers that use canvas dimensions
+- On resize: update canvas size, resize frames that use canvas dimensions
 
 **Step 5 — BufferTriangle Example**
 
@@ -930,22 +948,22 @@ type BindingValueAt[Uniforms, Name <: String] = ... // resolve name → type via
 - Accept named tuple subsets for fully structural binding updates
 - `shape.set((color = Vec3(...), attenuation = 2.3))`
 
-**Step 4 — Layer bindings & merge** (after named bindings work)
+**Step 4 — Panel bindings & merge** (after named bindings work)
 
-- Reintroduce layer-level shared bindings
-- Merge hierarchy: layer → shape (by name, not slot index)
+- Reintroduce panel-level shared bindings
+- Merge hierarchy: panel → shape (by name, not slot index)
 
 ---
 
 ### Future Milestones
 
-#### Milestone 3 — Effects & Cross-Layer Composition
+#### Milestone 3 — Layers (Post-Processing) & Cross-Panel Composition
 
-- Effect class (fullscreen post-processing)
-- Texture ping-pong for effect chains
-- LayerBinding enum (Source, AtIndex, Depth, etc.) — layers reading from
-  other layers' textures
-- Multi-layer compositing in `show()`
+- Layer class (fullscreen post-processing — Rust "Effect")
+- Texture ping-pong for layer chains
+- PanelBinding enum (Source, AtIndex, Depth, etc.) — reading textures from other
+  Panels
+- Multi-panel compositing in `show()`
 - Form: index buffers and multiple vertex buffers
 
 #### Milestone 4 — Advanced Features
@@ -1183,7 +1201,7 @@ def copyTextureToTexture(src: js.Dynamic, dst: js.Dynamic, size: js.Dynamic): Un
 3. **Form creation ergonomics**: Should `painter.form(structArray)` infer vertex
    count and stride directly from the `StructArray`, or require explicit count?
 
-4. **Layer texture format**: When layers get render-to-texture (Milestone 3),
+4. **Panel texture format**: When panels get advanced features (Milestone 4),
    should formats be inferred from the shades or always explicit?
 
 ---
@@ -1196,8 +1214,9 @@ src/gpu/painter/
 ├── Shade.scala        — Shade class + factories
 ├── Form.scala         — Form class
 ├── Shape.scala        — Shape class + binding storage
-├── Layer.scala        — Layer (MVP: shapes + clearColor)
-├── Painter.scala      — Painter class, pipeline cache, paint
+├── Layer.scala        — Layer: fullscreen post-processing (Rust "Effect")
+├── Panel.scala        — Panel: render target + shapes (Rust "Layer")
+├── Painter.scala      — Painter class, pipeline cache, paint/show
 ├── CanvasApp.scala    — CanvasApp trait + launch
 └── package.scala      — re-exports
 
