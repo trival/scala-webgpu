@@ -16,6 +16,6 @@ $h_sr_AbstractPartialFunction.prototype = $p;
 $p.m = (function() {
   return "<function1>";
 });
-$p.l = (function(x) {
-  return this.cX(x, $j_scala$002e$002dPartial$002dFunction$0024.$m_s_PartialFunction$().cH);
+$p.j = (function(x) {
+  return this.aF(x, $j_scala$002e$002dPartial$002dFunction$0024.$m_s_PartialFunction$().ar);
 });

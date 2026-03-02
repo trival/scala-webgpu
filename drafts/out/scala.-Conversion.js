@@ -15,9 +15,9 @@ $h_s_Conversion.prototype = $p;
 $p.m = (function() {
   return "<function1>";
 });
-$p.cq = (function(x$0) {
-  return Math.fround(this.l(x$0));
+$p.ae = (function(x$0) {
+  return Math.fround(this.j(x$0));
 });
-$p.w = (function(x$0) {
-  return Math.fround(this.l(x$0));
+$p.f = (function(x$0) {
+  return Math.fround(this.j(x$0));
 });

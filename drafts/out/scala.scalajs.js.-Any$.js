@@ -12,13 +12,13 @@ function $h_sjs_js_Any$() {
 }
 export { $h_sjs_js_Any$ as $h_sjs_js_Any$ };
 $h_sjs_js_Any$.prototype = $p;
-$p.bQ = (function(f) {
-  return ((arg1$2) => f.l(arg1$2));
+$p.U = (function(f) {
+  return ((arg1$2) => f.j(arg1$2));
 });
 var $d_sjs_js_Any$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_sjs_js_Any$, "scala.scalajs.js.Any$", ({
-  fe: 1,
-  fk: 1,
-  fl: 1
+  c1: 1,
+  c7: 1,
+  c8: 1
 }));
 export { $d_sjs_js_Any$ as $d_sjs_js_Any$ };
 var $n_sjs_js_Any$;

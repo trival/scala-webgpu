@@ -2,9 +2,10 @@
 import * as $j_java$002elang$002e$002dObject from "./java.lang.-Object.js";
 import * as $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024 from "./scala.scalajs.js.-Array-Ops$.js";
 import * as $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$002dCommon$0024 from "./scala.scalajs.js.-Array-Ops-Common$.js";
+import * as $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray from "./scala.scalajs.js.-Wrapped-Array.js";
 var $p;
 function $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($thiz, structName, locNames, locTypes, builtins) {
-  var array$1 = $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().fO($j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().fN(locNames, $j_java$002elang$002e$002dObject.$ct_sjs_js_WrappedArray__sjs_js_Array__(new $j_java$002elang$002e$002dObject.$c_sjs_js_WrappedArray(), locTypes)));
+  var array$1 = $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bV($j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bU(locNames, new $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$c_sjs_js_WrappedArray(locTypes)));
   var len = (array$1.length | 0);
   var res = new Array(len);
   var i = 0;
@@ -14,11 +15,11 @@ function $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Arra
     matchResult3: {
       var $x_1;
       if ((x0 !== null)) {
-        var x11 = x0.S();
+        var x11 = x0.u();
         if ((x11 !== null)) {
-          var name = x11.S();
-          var typ = x11.a8();
-          var $x_1 = (((((("  @location(" + (x0.a8() | 0)) + ") ") + name) + ": ") + typ) + ",");
+          var name = x11.u();
+          var typ = x11.D();
+          var $x_1 = (((((("  @location(" + (x0.D() | 0)) + ") ") + name) + ": ") + typ) + ",");
           break matchResult3;
         }
       }
@@ -36,9 +37,9 @@ function $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Arra
     matchResult4: {
       var $x_3;
       if ((x0$1 !== null)) {
-        var name$1 = x0$1.bB;
-        var builtin = x0$1.bC;
-        var typ$1 = x0$1.bD;
+        var name$1 = x0$1.at;
+        var builtin = x0$1.au;
+        var typ$1 = x0$1.av;
         var $x_3 = (((((("  @builtin(" + builtin) + ") ") + name$1) + ": ") + typ$1) + ",");
         break matchResult4;
       }
@@ -47,12 +48,12 @@ function $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Arra
     res$1[$x_4] = $x_3;
     i$1 = ((1 + i$1) | 0);
   }
-  var allFields = $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$002dCommon$0024.$m_sjs_js_ArrayOpsCommon$().q(res, res$1);
-  return (((allFields.length | 0) === 0) ? "" : (((("struct " + structName) + " {\n") + $j_java$002elang$002e$002dObject.$f_sc_IterableOnceOps__mkString__T__T__T__T($j_java$002elang$002e$002dObject.$ct_sjs_js_WrappedArray__sjs_js_Array__(new $j_java$002elang$002e$002dObject.$c_sjs_js_WrappedArray(), allFields), "", "\n", "")) + "\n}"));
+  var allFields = $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$002dCommon$0024.$m_sjs_js_ArrayOpsCommon$().d(res, res$1);
+  return (((allFields.length | 0) === 0) ? "" : (((("struct " + structName) + " {\n") + $j_java$002elang$002e$002dObject.$f_sc_IterableOnceOps__mkString__T__T__T__T(new $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$c_sjs_js_WrappedArray(allFields), "", "\n", "")) + "\n}"));
 }
 export { $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T as $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T };
 function $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T($thiz, groupIdx, names, types) {
-  var array$1 = $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().fO($j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().fN(names, $j_java$002elang$002e$002dObject.$ct_sjs_js_WrappedArray__sjs_js_Array__(new $j_java$002elang$002e$002dObject.$c_sjs_js_WrappedArray(), types)));
+  var array$1 = $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bV($j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bU(names, new $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$c_sjs_js_WrappedArray(types)));
   var len = (array$1.length | 0);
   var res = new Array(len);
   var i = 0;
@@ -62,11 +63,11 @@ function $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array_
     matchResult5: {
       var $x_1;
       if ((x0 !== null)) {
-        var x20 = x0.S();
+        var x20 = x0.u();
         if ((x20 !== null)) {
-          var name = x20.S();
-          var typ = x20.a8();
-          var bindingIdx = (x0.a8() | 0);
+          var name = x20.u();
+          var typ = x20.D();
+          var bindingIdx = (x0.D() | 0);
           var $x_1 = (((((((("@group(" + groupIdx) + ") @binding(") + bindingIdx) + ") var<uniform> ") + name) + ": ") + typ) + ";");
           break matchResult5;
         }
@@ -76,7 +77,7 @@ function $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array_
     res[$x_2] = $x_1;
     i = ((1 + i) | 0);
   }
-  return $j_java$002elang$002e$002dObject.$f_sc_IterableOnceOps__mkString__T__T__T__T($j_java$002elang$002e$002dObject.$ct_sjs_js_WrappedArray__sjs_js_Array__(new $j_java$002elang$002e$002dObject.$c_sjs_js_WrappedArray(), res), "", "\n", "");
+  return $j_java$002elang$002e$002dObject.$f_sc_IterableOnceOps__mkString__T__T__T__T(new $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$c_sjs_js_WrappedArray(res), "", "\n", "");
 }
 export { $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T as $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T };
 /** @constructor */
@@ -91,7 +92,7 @@ function $h_Lgpu_shader_derive$() {
 export { $h_Lgpu_shader_derive$ as $h_Lgpu_shader_derive$ };
 $h_Lgpu_shader_derive$.prototype = $p;
 var $d_Lgpu_shader_derive$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lgpu_shader_derive$, "gpu.shader.derive$", ({
-  ci: 1
+  au: 1
 }));
 export { $d_Lgpu_shader_derive$ as $d_Lgpu_shader_derive$ };
 var $n_Lgpu_shader_derive$;

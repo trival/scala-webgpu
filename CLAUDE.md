@@ -74,6 +74,31 @@ GPU-side representations. Vec3 uniforms pad to Vec4Buffer (std140).
 - `documents/done/shader-def-implementation-plan.md` — Completed ShaderDef
   design.
 
+## JS Bundle Size Rules
+
+Zero Scala stdlib at runtime — only use the type system and compile-time
+features. Every runtime construct must compile to minimal JS:
+
+- **No `enum`**: Use `opaque type Foo = String` with `val` constants in the
+  companion. Add `extension (x: Foo) inline def toJs: js.Any` if the opaque
+  type must be passed to `js.Dynamic.literal`. Note: `inline val` is not
+  allowed on opaque types — use plain `val`.
+- **No `scala.collection.*`**: Use `Arr` (`js.Array`), `js.Dictionary`, or
+  manual loops. `js.Dictionary[V]` works as a string-keyed cache (plain JS
+  object). For integer-indexed sparse data, use `Arr[T | Null]`.
+- **No `Option`**: Use `Opt[T]` (`js.UndefOr[T]`) from trivalibs with
+  `Opt.Null` as the empty value. Check with `.isEmpty` / `.safe` / `.getOr`.
+- **No `case class` for keys**: Build string keys manually with `s"..."` for
+  cache lookups in `js.Dictionary`.
+- **`.map/.filter/.sortBy` must delegate to JS**: Use `inline` extension
+  methods on `Arr` (in trivalibs) that compile to raw `js.Array` methods —
+  never Scala collection traits. Add new helpers in trivalibs as needed.
+- **JS-native classes for structured data**: `class Foo(...) extends js.Object`
+  preserves field names in JS output with zero overhead.
+- **`js.Dynamic` / `Obj.literal`** fine internally; user-facing API typed.
+- **Trivalibs helpers everywhere**: `Arr`, `Obj.literal`, `Opt`, `Opt.Null`,
+  `maybe()`.
+
 ## Conventions
 
 - **Formatting**: scalafmt with `trailingCommas = always`, Scala 3 dialect.

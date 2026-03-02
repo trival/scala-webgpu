@@ -1,65 +1,72 @@
 package gpu.painter
 
 import scala.scalajs.js
-import trivalibs.utils.js.Obj
 
-enum PrimitiveTopology(val webgpu: String):
-  case TriangleList extends PrimitiveTopology("triangle-list")
-  case TriangleStrip extends PrimitiveTopology("triangle-strip")
-  case LineList extends PrimitiveTopology("line-list")
-  case LineStrip extends PrimitiveTopology("line-strip")
-  case PointList extends PrimitiveTopology("point-list")
+opaque type PrimitiveTopology = String
+object PrimitiveTopology:
+  val TriangleList: PrimitiveTopology = "triangle-list"
+  val TriangleStrip: PrimitiveTopology = "triangle-strip"
+  val LineList: PrimitiveTopology = "line-list"
+  val LineStrip: PrimitiveTopology = "line-strip"
+  val PointList: PrimitiveTopology = "point-list"
+  extension (t: PrimitiveTopology)
+    inline def toJs: js.Any = t.asInstanceOf[js.Any]
 
-enum CullMode(val webgpu: String):
-  case None extends CullMode("none")
-  case Front extends CullMode("front")
-  case Back extends CullMode("back")
+opaque type CullMode = String
+object CullMode:
+  val None: CullMode = "none"
+  val Front: CullMode = "front"
+  val Back: CullMode = "back"
+  extension (c: CullMode) inline def toJs: js.Any = c.asInstanceOf[js.Any]
 
-enum FrontFace(val webgpu: String):
-  case CCW extends FrontFace("ccw")
-  case CW extends FrontFace("cw")
+opaque type FrontFace = String
+object FrontFace:
+  val CCW: FrontFace = "ccw"
+  val CW: FrontFace = "cw"
+  extension (f: FrontFace) inline def toJs: js.Any = f.asInstanceOf[js.Any]
 
-enum BlendMode:
-  case Replace, Alpha, Additive, Multiply
+opaque type BlendFactor = String
+object BlendFactor:
+  val Zero: BlendFactor = "zero"
+  val One: BlendFactor = "one"
+  val Src: BlendFactor = "src"
+  val OneMinusSrc: BlendFactor = "one-minus-src"
+  val SrcAlpha: BlendFactor = "src-alpha"
+  val OneMinusSrcAlpha: BlendFactor = "one-minus-src-alpha"
+  val Dst: BlendFactor = "dst"
+  val OneMinusDst: BlendFactor = "one-minus-dst"
+  val DstAlpha: BlendFactor = "dst-alpha"
+  val OneMinusDstAlpha: BlendFactor = "one-minus-dst-alpha"
 
-  def toBlendState: js.UndefOr[js.Dynamic] = this match
-    case Replace => js.undefined
-    case Alpha =>
-      Obj.literal(
-        color = Obj.literal(
-          srcFactor = "src-alpha",
-          dstFactor = "one-minus-src-alpha",
-          operation = "add",
-        ),
-        alpha = Obj.literal(
-          srcFactor = "one",
-          dstFactor = "one-minus-src-alpha",
-          operation = "add",
-        ),
-      )
-    case Additive =>
-      Obj.literal(
-        color = Obj.literal(
-          srcFactor = "src-alpha",
-          dstFactor = "one",
-          operation = "add",
-        ),
-        alpha = Obj.literal(
-          srcFactor = "one",
-          dstFactor = "one",
-          operation = "add",
-        ),
-      )
-    case Multiply =>
-      Obj.literal(
-        color = Obj.literal(
-          srcFactor = "dst-color",
-          dstFactor = "zero",
-          operation = "add",
-        ),
-        alpha = Obj.literal(
-          srcFactor = "dst-alpha",
-          dstFactor = "zero",
-          operation = "add",
-        ),
-      )
+opaque type BlendOp = String
+object BlendOp:
+  val Add: BlendOp = "add"
+  val Subtract: BlendOp = "subtract"
+  val ReverseSubtract: BlendOp = "reverse-subtract"
+  val Min: BlendOp = "min"
+  val Max: BlendOp = "max"
+
+class BlendFn(
+    val srcFactor: BlendFactor,
+    val dstFactor: BlendFactor,
+    val operation: BlendOp = BlendOp.Add,
+) extends js.Object
+
+class BlendState(
+    val color: BlendFn,
+    val alpha: BlendFn,
+) extends js.Object
+
+object BlendState:
+  val Alpha = BlendState(
+    color = BlendFn(BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha),
+    alpha = BlendFn(BlendFactor.One, BlendFactor.OneMinusSrcAlpha),
+  )
+  val Additive = BlendState(
+    color = BlendFn(BlendFactor.SrcAlpha, BlendFactor.One),
+    alpha = BlendFn(BlendFactor.One, BlendFactor.One),
+  )
+  val Multiply = BlendState(
+    color = BlendFn(BlendFactor.Dst, BlendFactor.Zero),
+    alpha = BlendFn(BlendFactor.DstAlpha, BlendFactor.Zero),
+  )

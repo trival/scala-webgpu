@@ -48,9 +48,9 @@ def main(): Unit =
     vertices(2)(1) := (0.0, 0.0, 1.0)
 
     val form = painter.form(vertices)
-    val shape = Shape(form, shade)
+    val shape = painter.shape(form, shade)
 
-    painter.draw(shape, clearColor = Some((0.1, 0.1, 0.1, 1.0)))
+    painter.draw(shape, clearColor = (0.1, 0.1, 0.1, 1.0))
 
     statusEl.textContent = "Painter triangle rendered!"
     statusEl.setAttribute("class", "success")

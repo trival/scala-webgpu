@@ -8,18 +8,8 @@ import trivalibs.bufferdata.StructArray
 import trivalibs.utils.js.*
 import webgpu.*
 
-import scala.collection.mutable
 import scala.compiletime.erasedValue
 import scala.scalajs.js
-
-private case class PipelineKey(
-    shadeId: Int,
-    blendMode: BlendMode,
-    cullMode: CullMode,
-    topology: PrimitiveTopology,
-    frontFace: FrontFace,
-    targetFormat: String,
-)
 
 class Painter(
     val device: GPUDevice,
@@ -28,7 +18,7 @@ class Painter(
     val context: GPUCanvasContext,
     val preferredFormat: String,
 ):
-  private val pipelineCache = mutable.HashMap[PipelineKey, GPURenderPipeline]()
+  private val pipelineCache = Dict[GPURenderPipeline]()
   private var nextShadeId = 0
 
   def width: Int = canvas.width
@@ -96,19 +86,32 @@ class Painter(
     BufferBinding[T](device)
 
   // =========================================================================
+  // Shape factory
+  // =========================================================================
+
+  def shape(
+      form: Form,
+      shade: Shade,
+      bindings: BindingSlots = Arr(),
+      cullMode: CullMode = CullMode.None,
+      blendState: Opt[BlendState] = Opt.Null,
+  ): Shape =
+    Shape(form, shade, bindings, cullMode, blendState)
+
+  // =========================================================================
   // draw() — direct-to-canvas rendering
   // =========================================================================
 
   def draw(
       shape: Shape,
-      clearColor: Option[(Double, Double, Double, Double)] = None,
+      clearColor: Opt[(Double, Double, Double, Double)] = Opt.Null,
   ): Unit =
     val encoder = device.createCommandEncoder()
     val textureView = context.getCurrentTexture().createView()
 
     val colorAttachment =
-      if clearColor.isDefined then
-        val (r, g, b, a) = clearColor.get
+      if !clearColor.isEmpty then
+        val (r, g, b, a) = clearColor.safe
         Obj.literal(
           view = textureView,
           loadOp = "clear",
@@ -126,19 +129,20 @@ class Painter(
       Obj.literal(colorAttachments = Arr(colorAttachment)),
     )
 
-    val key = PipelineKey(
-      shape.shade.id,
-      shape.blendMode,
-      shape.cullMode,
-      shape.form.topology,
-      shape.form.frontFace,
-      preferredFormat,
-    )
-    val pipeline = pipelineCache.getOrElseUpdate(key, createPipeline(shape, key))
+    val cacheKey = pipelineKeyStr(shape, preferredFormat)
+    val pipeline =
+      if js.DynamicImplicits.truthValue(
+          pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(cacheKey),
+        )
+      then pipelineCache(cacheKey)
+      else
+        val p = createPipeline(shape)
+        pipelineCache(cacheKey) = p
+        p
 
     pass.setPipeline(pipeline)
 
-    if shape.bindings.nonEmpty && shape.shade.valueBindGroupLayout != null then
+    if shape.bindings.length > 0 && shape.shade.valueBindGroupLayout != null then
       val bindGroup = createBindGroup(shape)
       pass.setBindGroup(0, bindGroup)
 
@@ -152,17 +156,20 @@ class Painter(
   // Pipeline creation + caching
   // =========================================================================
 
+  private def pipelineKeyStr(shape: Shape, format: String): String =
+    val s = shape.shade
+    val f = shape.form
+    s"${s.id}|${shape.blendState.isEmpty}|${shape.cullMode}|${f.topology}|${f.frontFace}|${format}"
+
   private def createPipeline(
       shape: Shape,
-      key: PipelineKey,
   ): GPURenderPipeline =
     val shade = shape.shade
-    val blendState = key.blendMode.toBlendState
 
     val target: js.Dynamic =
-      if blendState.isEmpty then Obj.literal(format = key.targetFormat)
+      if shape.blendState.isEmpty then Obj.literal(format = preferredFormat)
       else
-        Obj.literal(format = key.targetFormat, blend = blendState.get)
+        Obj.literal(format = preferredFormat, blend = shape.blendState.safe)
 
     val vertexDescriptor =
       if shade.vertexBufferLayout != null then
@@ -187,9 +194,9 @@ class Painter(
           targets = Arr(target),
         ),
         primitive = Obj.literal(
-          topology = key.topology.webgpu,
-          cullMode = key.cullMode.webgpu,
-          frontFace = key.frontFace.webgpu,
+          topology = shape.form.topology.toJs,
+          cullMode = shape.cullMode.toJs,
+          frontFace = shape.form.frontFace.toJs,
         ),
       ),
     )
@@ -199,14 +206,21 @@ class Painter(
   // =========================================================================
 
   private def createBindGroup(shape: Shape): GPUBindGroup =
-    val entries = shape.bindings.toSeq.sortBy(_._1).map: (idx, binding) =>
-      Obj.literal(
-        binding = idx,
-        resource = Obj.literal(buffer = binding.gpuBuffer),
-      )
+    val entries = Arr[js.Dynamic]()
+    var i = 0
+    while i < shape.bindings.length do
+      val b = shape.bindings(i)
+      if b != null then
+        entries.push(
+          Obj.literal(
+            binding = i,
+            resource = Obj.literal(buffer = b.gpuBuffer),
+          ),
+        )
+      i += 1
     device.createBindGroup(
       Obj.literal(
         layout = shape.shade.valueBindGroupLayout,
-        entries = Arr(entries*),
+        entries = entries,
       ),
     )

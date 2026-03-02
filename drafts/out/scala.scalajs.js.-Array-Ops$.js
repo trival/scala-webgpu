@@ -13,18 +13,18 @@ function $h_sjs_js_ArrayOps$() {
 }
 export { $h_sjs_js_ArrayOps$ as $h_sjs_js_ArrayOps$ };
 $h_sjs_js_ArrayOps$.prototype = $p;
-$p.fN = (function(this$, that) {
+$p.bU = (function(this$, that) {
   var b = [];
   var len = (this$.length | 0);
   var i = 0;
-  var it = that.c();
-  while (((i < len) && it.i())) {
-    b.push(new $j_scala$002e$002dTuple2.$c_T2(this$[i], it.g()));
+  var it = that.n();
+  while (((i < len) && it.s())) {
+    b.push(new $j_scala$002e$002dTuple2.$c_T2(this$[i], it.p()));
     i = ((1 + i) | 0);
   }
   return b;
 });
-$p.fO = (function(this$) {
+$p.bV = (function(this$) {
   var len = (this$.length | 0);
   var b = new Array(len);
   var i = 0;
@@ -35,7 +35,7 @@ $p.fO = (function(this$) {
   return b;
 });
 var $d_sjs_js_ArrayOps$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_sjs_js_ArrayOps$, "scala.scalajs.js.ArrayOps$", ({
-  fg: 1
+  c3: 1
 }));
 export { $d_sjs_js_ArrayOps$ as $d_sjs_js_ArrayOps$ };
 var $n_sjs_js_ArrayOps$;

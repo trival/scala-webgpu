@@ -1,5 +1,6 @@
 'use strict';
 import * as $j_java$002elang$002e$002dObject from "./java.lang.-Object.js";
+import * as $j_scala$002ecollection$002e$002dIterator$0024$0024anon$002420 from "./scala.collection.-Iterator$$anon$20.js";
 var $p;
 /** @constructor */
 function $c_s_Option() {
@@ -12,17 +13,17 @@ function $h_s_Option() {
 }
 export { $h_s_Option as $h_s_Option };
 $h_s_Option.prototype = $p;
-$p.am = (function() {
+$p.M = (function() {
   return new $j_java$002elang$002e$002dObject.$c_s_Product$$anon$1(this);
 });
-$p.n = (function() {
+$p.G = (function() {
   return (this === $m_s_None$());
 });
-$p.o = (function() {
-  return (this.n() ? 0 : 1);
+$p.w = (function() {
+  return (this.G() ? 0 : 1);
 });
-$p.c = (function() {
-  return (this.n() ? $j_java$002elang$002e$002dObject.$m_sc_Iterator$().G : new $j_java$002elang$002e$002dObject.$c_sc_Iterator$$anon$20(this.dI()));
+$p.n = (function() {
+  return (this.G() ? $j_java$002elang$002e$002dObject.$m_sc_Iterator$().J : new $j_scala$002ecollection$002e$002dIterator$0024$0024anon$002420.$c_sc_Iterator$$anon$20(this.bP()));
 });
 /** @constructor */
 function $c_s_None$() {
@@ -35,33 +36,33 @@ function $h_s_None$() {
 }
 export { $h_s_None$ as $h_s_None$ };
 $h_s_None$.prototype = $p;
-$p.j = (function() {
+$p.i = (function() {
   return 2433880;
 });
 $p.m = (function() {
   return "None";
 });
-$p.H = (function() {
+$p.z = (function() {
   return 0;
 });
-$p.J = (function() {
+$p.B = (function() {
   return "None";
 });
-$p.I = (function(n) {
+$p.A = (function(n) {
   throw $j_java$002elang$002e$002dObject.$ct_jl_IndexOutOfBoundsException__T__(new $j_java$002elang$002e$002dObject.$c_jl_IndexOutOfBoundsException(), ("" + n));
 });
-$p.gO = (function() {
+$p.c6 = (function() {
   throw new $j_java$002elang$002e$002dObject.$c_ju_NoSuchElementException("None.get");
 });
-$p.dI = (function() {
-  this.gO();
+$p.bP = (function() {
+  this.c6();
 });
 var $d_s_None$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_s_None$, "scala.None$", ({
-  cY: 1,
-  aU: 1,
-  c: 1,
+  aS: 1,
+  a0: 1,
   b: 1,
-  r: 1,
+  c: 1,
+  F: 1,
   a: 1
 }));
 export { $d_s_None$ as $d_s_None$ };

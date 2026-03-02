@@ -1,13 +1,16 @@
 package gpu.painter
 
 import gpu.buffers.BufferBinding
+import trivalibs.utils.js.*
 
-type BindingSlots = Map[Int, BufferBinding[?, ?]]
+import scala.scalajs.js
+
+type BindingSlots = Arr[BufferBinding[?, ?] | Null]
 
 class Shape(
     val form: Form,
     val shade: Shade,
-    var bindings: BindingSlots = Map.empty,
+    var bindings: BindingSlots = Arr(),
     var cullMode: CullMode = CullMode.None,
-    var blendMode: BlendMode = BlendMode.Replace,
+    var blendState: Opt[BlendState] = Opt.Null,
 )
