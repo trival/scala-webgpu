@@ -778,105 +778,6 @@ var $d_F = new $TypeData().p(0.0, "F", "float", $ac_F, Float32Array);
 export { $d_F as $d_F };
 var $d_D = new $TypeData().p(0.0, "D", "double", $ac_D, Float64Array);
 export { $d_D as $d_D };
-function $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($thiz, structName, locNames, locTypes, builtins) {
-  var array$1 = $m_sjs_js_ArrayOps$().fO($m_sjs_js_ArrayOps$().fN(locNames, $ct_sjs_js_WrappedArray__sjs_js_Array__(new $c_sjs_js_WrappedArray(), locTypes)));
-  var len = (array$1.length | 0);
-  var res = new Array(len);
-  var i = 0;
-  while ((i < len)) {
-    var $x_2 = i;
-    var x0 = array$1[i];
-    matchResult3: {
-      var $x_1;
-      if ((x0 !== null)) {
-        var x11 = x0.S();
-        if ((x11 !== null)) {
-          var name = x11.S();
-          var typ = x11.a8();
-          var $x_1 = (((((("  @location(" + (x0.a8() | 0)) + ") ") + name) + ": ") + typ) + ",");
-          break matchResult3;
-        }
-      }
-      throw new $c_s_MatchError(x0);
-    }
-    res[$x_2] = $x_1;
-    i = ((1 + i) | 0);
-  }
-  var len$1 = (builtins.length | 0);
-  var res$1 = new Array(len$1);
-  var i$1 = 0;
-  while ((i$1 < len$1)) {
-    var $x_4 = i$1;
-    var x0$1 = builtins[i$1];
-    matchResult4: {
-      var $x_3;
-      if ((x0$1 !== null)) {
-        var name$1 = x0$1.bB;
-        var builtin = x0$1.bC;
-        var typ$1 = x0$1.bD;
-        var $x_3 = (((((("  @builtin(" + builtin) + ") ") + name$1) + ": ") + typ$1) + ",");
-        break matchResult4;
-      }
-      throw new $c_s_MatchError(x0$1);
-    }
-    res$1[$x_4] = $x_3;
-    i$1 = ((1 + i$1) | 0);
-  }
-  var allFields = $m_sjs_js_ArrayOpsCommon$().q(res, res$1);
-  return (((allFields.length | 0) === 0) ? "" : (((("struct " + structName) + " {\n") + $f_sc_IterableOnceOps__mkString__T__T__T__T($ct_sjs_js_WrappedArray__sjs_js_Array__(new $c_sjs_js_WrappedArray(), allFields), "", "\n", "")) + "\n}"));
-}
-export { $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T as $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T };
-function $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T($thiz, groupIdx, names, types) {
-  var array$1 = $m_sjs_js_ArrayOps$().fO($m_sjs_js_ArrayOps$().fN(names, $ct_sjs_js_WrappedArray__sjs_js_Array__(new $c_sjs_js_WrappedArray(), types)));
-  var len = (array$1.length | 0);
-  var res = new Array(len);
-  var i = 0;
-  while ((i < len)) {
-    var $x_2 = i;
-    var x0 = array$1[i];
-    matchResult5: {
-      var $x_1;
-      if ((x0 !== null)) {
-        var x20 = x0.S();
-        if ((x20 !== null)) {
-          var name = x20.S();
-          var typ = x20.a8();
-          var bindingIdx = (x0.a8() | 0);
-          var $x_1 = (((((((("@group(" + groupIdx) + ") @binding(") + bindingIdx) + ") var<uniform> ") + name) + ": ") + typ) + ";");
-          break matchResult5;
-        }
-      }
-      throw new $c_s_MatchError(x0);
-    }
-    res[$x_2] = $x_1;
-    i = ((1 + i) | 0);
-  }
-  return $f_sc_IterableOnceOps__mkString__T__T__T__T($ct_sjs_js_WrappedArray__sjs_js_Array__(new $c_sjs_js_WrappedArray(), res), "", "\n", "");
-}
-export { $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T as $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T };
-/** @constructor */
-function $c_Lgpu_shader_derive$() {
-}
-export { $c_Lgpu_shader_derive$ as $c_Lgpu_shader_derive$ };
-$p = $c_Lgpu_shader_derive$.prototype = new $h_O();
-$p.constructor = $c_Lgpu_shader_derive$;
-/** @constructor */
-function $h_Lgpu_shader_derive$() {
-}
-export { $h_Lgpu_shader_derive$ as $h_Lgpu_shader_derive$ };
-$h_Lgpu_shader_derive$.prototype = $p;
-var $d_Lgpu_shader_derive$ = new $TypeData().i($c_Lgpu_shader_derive$, "gpu.shader.derive$", ({
-  ci: 1
-}));
-export { $d_Lgpu_shader_derive$ as $d_Lgpu_shader_derive$ };
-var $n_Lgpu_shader_derive$;
-function $m_Lgpu_shader_derive$() {
-  if ((!$n_Lgpu_shader_derive$)) {
-    $n_Lgpu_shader_derive$ = new $c_Lgpu_shader_derive$();
-  }
-  return $n_Lgpu_shader_derive$;
-}
-export { $m_Lgpu_shader_derive$ as $m_Lgpu_shader_derive$ };
 function $p_jl_System$SystemProperties$__loadSystemProperties__O($thiz) {
   var result = ({});
   result["java.version"] = "1.8";
@@ -3022,129 +2923,6 @@ function $m_sr_Statics$() {
 }
 export { $m_sr_Statics$ as $m_sr_Statics$ };
 /** @constructor */
-function $c_sjs_js_ArrayOps$() {
-}
-export { $c_sjs_js_ArrayOps$ as $c_sjs_js_ArrayOps$ };
-$p = $c_sjs_js_ArrayOps$.prototype = new $h_O();
-$p.constructor = $c_sjs_js_ArrayOps$;
-/** @constructor */
-function $h_sjs_js_ArrayOps$() {
-}
-export { $h_sjs_js_ArrayOps$ as $h_sjs_js_ArrayOps$ };
-$h_sjs_js_ArrayOps$.prototype = $p;
-$p.fN = (function(this$, that) {
-  var b = [];
-  var len = (this$.length | 0);
-  var i = 0;
-  var it = that.c();
-  while (((i < len) && it.i())) {
-    b.push(new $c_T2(this$[i], it.g()));
-    i = ((1 + i) | 0);
-  }
-  return b;
-});
-$p.fO = (function(this$) {
-  var len = (this$.length | 0);
-  var b = new Array(len);
-  var i = 0;
-  while ((i < len)) {
-    b[i] = new $c_T2(this$[i], i);
-    i = ((1 + i) | 0);
-  }
-  return b;
-});
-var $d_sjs_js_ArrayOps$ = new $TypeData().i($c_sjs_js_ArrayOps$, "scala.scalajs.js.ArrayOps$", ({
-  fg: 1
-}));
-export { $d_sjs_js_ArrayOps$ as $d_sjs_js_ArrayOps$ };
-var $n_sjs_js_ArrayOps$;
-function $m_sjs_js_ArrayOps$() {
-  if ((!$n_sjs_js_ArrayOps$)) {
-    $n_sjs_js_ArrayOps$ = new $c_sjs_js_ArrayOps$();
-  }
-  return $n_sjs_js_ArrayOps$;
-}
-export { $m_sjs_js_ArrayOps$ as $m_sjs_js_ArrayOps$ };
-/** @constructor */
-function $c_sjs_js_ArrayOpsCommon$() {
-}
-export { $c_sjs_js_ArrayOpsCommon$ as $c_sjs_js_ArrayOpsCommon$ };
-$p = $c_sjs_js_ArrayOpsCommon$.prototype = new $h_O();
-$p.constructor = $c_sjs_js_ArrayOpsCommon$;
-/** @constructor */
-function $h_sjs_js_ArrayOpsCommon$() {
-}
-export { $h_sjs_js_ArrayOpsCommon$ as $h_sjs_js_ArrayOpsCommon$ };
-$h_sjs_js_ArrayOpsCommon$.prototype = $p;
-$p.q = (function(left, right) {
-  var leftLength = (left.length | 0);
-  var rightLength = (right.length | 0);
-  var result = new Array(((leftLength + rightLength) | 0));
-  var i = 0;
-  while (true) {
-    if ((i !== leftLength)) {
-      result[i] = left[i];
-      i = ((1 + i) | 0);
-      continue;
-    }
-    break;
-  }
-  var i$1 = 0;
-  while (true) {
-    if ((i$1 !== rightLength)) {
-      result[((i$1 + leftLength) | 0)] = right[i$1];
-      i$1 = ((1 + i$1) | 0);
-      continue;
-    }
-    break;
-  }
-  return result;
-});
-var $d_sjs_js_ArrayOpsCommon$ = new $TypeData().i($c_sjs_js_ArrayOpsCommon$, "scala.scalajs.js.ArrayOpsCommon$", ({
-  fh: 1
-}));
-export { $d_sjs_js_ArrayOpsCommon$ as $d_sjs_js_ArrayOpsCommon$ };
-var $n_sjs_js_ArrayOpsCommon$;
-function $m_sjs_js_ArrayOpsCommon$() {
-  if ((!$n_sjs_js_ArrayOpsCommon$)) {
-    $n_sjs_js_ArrayOpsCommon$ = new $c_sjs_js_ArrayOpsCommon$();
-  }
-  return $n_sjs_js_ArrayOpsCommon$;
-}
-export { $m_sjs_js_ArrayOpsCommon$ as $m_sjs_js_ArrayOpsCommon$ };
-/** @constructor */
-function $c_sjsr_Compat$() {
-}
-export { $c_sjsr_Compat$ as $c_sjsr_Compat$ };
-$p = $c_sjsr_Compat$.prototype = new $h_O();
-$p.constructor = $c_sjsr_Compat$;
-/** @constructor */
-function $h_sjsr_Compat$() {
-}
-export { $h_sjsr_Compat$ as $h_sjsr_Compat$ };
-$h_sjsr_Compat$.prototype = $p;
-$p.b = (function(seq) {
-  if ((seq instanceof $c_sjsr_WrappedVarArgs)) {
-    return seq.cR;
-  } else {
-    var result = [];
-    seq.d0(new $c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((x$2$2) => (result.push(x$2$2) | 0))));
-    return result;
-  }
-});
-var $d_sjsr_Compat$ = new $TypeData().i($c_sjsr_Compat$, "scala.scalajs.runtime.Compat$", ({
-  fo: 1
-}));
-export { $d_sjsr_Compat$ as $d_sjsr_Compat$ };
-var $n_sjsr_Compat$;
-function $m_sjsr_Compat$() {
-  if ((!$n_sjsr_Compat$)) {
-    $n_sjsr_Compat$ = new $c_sjsr_Compat$();
-  }
-  return $n_sjsr_Compat$;
-}
-export { $m_sjsr_Compat$ as $m_sjsr_Compat$ };
-/** @constructor */
 function $c_s_util_Sorting$() {
 }
 export { $c_s_util_Sorting$ as $c_s_util_Sorting$ };
@@ -3729,39 +3507,6 @@ $p.gV = (function(xs, seed) {
   }
   return ((rangeState === 2) ? this.h5(initial, rangeDiff, prev, seed) : this.a9(h, n));
 });
-var $d_Lwebgpu_GPUCommandBuffer = new $TypeData().i(2, "webgpu.GPUCommandBuffer", ({
-  fx: 1
-}), $noIsInstance);
-export { $d_Lwebgpu_GPUCommandBuffer as $d_Lwebgpu_GPUCommandBuffer };
-/** @constructor */
-function $c_Lwebgpu_WebGPU$() {
-}
-export { $c_Lwebgpu_WebGPU$ as $c_Lwebgpu_WebGPU$ };
-$p = $c_Lwebgpu_WebGPU$.prototype = new $h_O();
-$p.constructor = $c_Lwebgpu_WebGPU$;
-/** @constructor */
-function $h_Lwebgpu_WebGPU$() {
-}
-export { $h_Lwebgpu_WebGPU$ as $h_Lwebgpu_WebGPU$ };
-$h_Lwebgpu_WebGPU$.prototype = $p;
-$p.dK = (function() {
-  return window.navigator.gpu;
-});
-$p.dJ = (function(canvas) {
-  return canvas.getContext("webgpu");
-});
-var $d_Lwebgpu_WebGPU$ = new $TypeData().i($c_Lwebgpu_WebGPU$, "webgpu.WebGPU$", ({
-  fy: 1
-}));
-export { $d_Lwebgpu_WebGPU$ as $d_Lwebgpu_WebGPU$ };
-var $n_Lwebgpu_WebGPU$;
-function $m_Lwebgpu_WebGPU$() {
-  if ((!$n_Lwebgpu_WebGPU$)) {
-    $n_Lwebgpu_WebGPU$ = new $c_Lwebgpu_WebGPU$();
-  }
-  return $n_Lwebgpu_WebGPU$;
-}
-export { $m_Lwebgpu_WebGPU$ as $m_Lwebgpu_WebGPU$ };
 function $p_jl_Character$__nonASCIIZeroDigitCodePoints$lzycompute__AI($thiz) {
   if (((((32 & $thiz.cE) << 24) >> 24) === 0)) {
     $thiz.dd = new $ac_I(new Int32Array([1632, 1776, 1984, 2406, 2534, 2662, 2790, 2918, 3046, 3174, 3302, 3430, 3558, 3664, 3792, 3872, 4160, 4240, 6112, 6160, 6470, 6608, 6784, 6800, 6992, 7088, 7232, 7248, 42528, 43216, 43264, 43472, 43504, 43600, 44016, 65296, 66720, 68912, 69734, 69872, 69942, 70096, 70384, 70736, 70864, 71248, 71360, 71472, 71904, 72016, 72784, 73040, 73120, 73552, 92768, 92864, 93008, 120782, 120792, 120802, 120812, 120822, 123200, 123632, 124144, 125264, 130032]));
@@ -4172,20 +3917,6 @@ $p.m = (function() {
   return "<function1>";
 });
 /** @constructor */
-function $c_sr_AbstractFunction2() {
-}
-export { $c_sr_AbstractFunction2 as $c_sr_AbstractFunction2 };
-$p = $c_sr_AbstractFunction2.prototype = new $h_O();
-$p.constructor = $c_sr_AbstractFunction2;
-/** @constructor */
-function $h_sr_AbstractFunction2() {
-}
-export { $h_sr_AbstractFunction2 as $h_sr_AbstractFunction2 };
-$h_sr_AbstractFunction2.prototype = $p;
-$p.m = (function() {
-  return "<function2>";
-});
-/** @constructor */
 function $c_sr_IntRef(elem) {
   this.cP = 0;
   this.cP = elem;
@@ -4227,11 +3958,6 @@ var $d_sr_ObjectRef = new $TypeData().i($c_sr_ObjectRef, "scala.runtime.ObjectRe
   a: 1
 }));
 export { $d_sr_ObjectRef as $d_sr_ObjectRef };
-var $d_sjs_js_Object = new $TypeData().i(2, "scala.scalajs.js.Object", ({
-  bH: 1,
-  aH: 1
-}), ((x) => (x instanceof Object)));
-export { $d_sjs_js_Object as $d_sjs_js_Object };
 /** @constructor */
 function $c_s_util_hashing_MurmurHash3$() {
   this.E = 0;
@@ -4345,42 +4071,6 @@ export { $d_jl_Class as $d_jl_Class };
 class $c_jl_Exception extends $c_jl_Throwable {
 }
 export { $c_jl_Exception as $c_jl_Exception };
-function $f_s_Product2__productElement__I__O($thiz, n) {
-  switch (n) {
-    case 0: {
-      return $thiz.S();
-      break;
-    }
-    case 1: {
-      return $thiz.a8();
-      break;
-    }
-    default: {
-      throw $ct_jl_IndexOutOfBoundsException__T__(new $c_jl_IndexOutOfBoundsException(), (n + " is out of bounds (min 0, max 1)"));
-    }
-  }
-}
-export { $f_s_Product2__productElement__I__O as $f_s_Product2__productElement__I__O };
-function $f_s_Product3__productElement__I__O($thiz, n) {
-  switch (n) {
-    case 0: {
-      return $thiz.bB;
-      break;
-    }
-    case 1: {
-      return $thiz.bC;
-      break;
-    }
-    case 2: {
-      return $thiz.bD;
-      break;
-    }
-    default: {
-      throw $ct_jl_IndexOutOfBoundsException__T__(new $c_jl_IndexOutOfBoundsException(), (n + " is out of bounds (min 0, max 2)"));
-    }
-  }
-}
-export { $f_s_Product3__productElement__I__O as $f_s_Product3__productElement__I__O };
 function $ct_sc_ClassTagIterableFactory$AnyIterableDelegate__sc_ClassTagIterableFactory__($thiz, delegate) {
   $thiz.cJ = delegate;
   return $thiz;
@@ -4569,139 +4259,12 @@ var $d_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28 = 
   j: 1
 }));
 export { $d_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28 as $d_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28 };
-/** @constructor */
-function $c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc(f) {
-  this.eY = null;
-  this.eY = f;
-}
-export { $c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc as $c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc };
-$p = $c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc.prototype = new $h_sr_AbstractFunction2();
-$p.constructor = $c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc;
-/** @constructor */
-function $h_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc() {
-}
-export { $h_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc as $h_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc };
-$h_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc.prototype = $p;
-$p.aF = (function(x0, x1) {
-  return (0, this.eY)(x0, x1);
-});
-var $d_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc = new $TypeData().i($c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc, "scala.runtime.AbstractFunction2.$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc", ({
-  f1: 1,
-  f0: 1,
-  aT: 1
-}));
-export { $d_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc as $d_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc };
 var $d_sr_Nothing$ = new $TypeData().i(0, "scala.runtime.Nothing$", ({
   f7: 1,
   y: 1,
   a: 1
 }));
 export { $d_sr_Nothing$ as $d_sr_Nothing$ };
-/** @constructor */
-function $c_sjs_js_Any$() {
-}
-export { $c_sjs_js_Any$ as $c_sjs_js_Any$ };
-$p = $c_sjs_js_Any$.prototype = new $h_O();
-$p.constructor = $c_sjs_js_Any$;
-/** @constructor */
-function $h_sjs_js_Any$() {
-}
-export { $h_sjs_js_Any$ as $h_sjs_js_Any$ };
-$h_sjs_js_Any$.prototype = $p;
-$p.bQ = (function(f) {
-  return ((arg1$2) => f.l(arg1$2));
-});
-var $d_sjs_js_Any$ = new $TypeData().i($c_sjs_js_Any$, "scala.scalajs.js.Any$", ({
-  fe: 1,
-  fk: 1,
-  fl: 1
-}));
-export { $d_sjs_js_Any$ as $d_sjs_js_Any$ };
-var $n_sjs_js_Any$;
-function $m_sjs_js_Any$() {
-  if ((!$n_sjs_js_Any$)) {
-    $n_sjs_js_Any$ = new $c_sjs_js_Any$();
-  }
-  return $n_sjs_js_Any$;
-}
-export { $m_sjs_js_Any$ as $m_sjs_js_Any$ };
-function $p_Lgpu_shader_ShaderDef__buildWGSL__T__T__T__T__T__T__T($thiz, vertexInputStruct, vertexOutputStruct, fragmentOutputStruct, uniformDecls, vertexBody, fragmentBody) {
-  var items$proxy1 = $m_sr_ScalaRunTime$().d(new ($d_T.r().C)([vertexInputStruct, vertexOutputStruct, fragmentOutputStruct, uniformDecls, $p_Lgpu_shader_ShaderDef__buildVertexMain__T__T($thiz, vertexBody), $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T($thiz, fragmentBody)]));
-  var array = [...$m_sjsr_Compat$().b(items$proxy1)];
-  var res = [];
-  var len = (array.length | 0);
-  var i = 0;
-  while ((i < len)) {
-    var x0 = array[i];
-    if (($m_sc_StringOps$(), (x0 !== ""))) {
-      (res.push(x0) | 0);
-    }
-    i = ((1 + i) | 0);
-  }
-  return $f_sc_IterableOnceOps__mkString__T__T__T__T($ct_sjs_js_WrappedArray__sjs_js_Array__(new $c_sjs_js_WrappedArray(), res), "", "\n\n", "");
-}
-export { $p_Lgpu_shader_ShaderDef__buildWGSL__T__T__T__T__T__T__T as $p_Lgpu_shader_ShaderDef__buildWGSL__T__T__T__T__T__T__T };
-function $p_Lgpu_shader_ShaderDef__buildVertexMain__T__T($thiz, body) {
-  return (("@vertex\nfn vs_main(in: VertexInput) -> VertexOutput {\n  var out: VertexOutput;\n" + body) + "\n  return out;\n}");
-}
-export { $p_Lgpu_shader_ShaderDef__buildVertexMain__T__T as $p_Lgpu_shader_ShaderDef__buildVertexMain__T__T };
-function $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T($thiz, body) {
-  return (("@fragment\nfn fs_main(in: VertexOutput) -> FragmentOutput {\n  var out: FragmentOutput;\n" + body) + "\n  return out;\n}");
-}
-export { $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T as $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T };
-/** @constructor */
-function $c_Lgpu_shader_ShaderDef(vertexBody, fragmentBody) {
-  this.bj = null;
-  this.bi = null;
-  this.bj = vertexBody;
-  this.bi = fragmentBody;
-}
-export { $c_Lgpu_shader_ShaderDef as $c_Lgpu_shader_ShaderDef };
-$p = $c_Lgpu_shader_ShaderDef.prototype = new $h_O();
-$p.constructor = $c_Lgpu_shader_ShaderDef;
-/** @constructor */
-function $h_Lgpu_shader_ShaderDef() {
-}
-export { $h_Lgpu_shader_ShaderDef as $h_Lgpu_shader_ShaderDef };
-$h_Lgpu_shader_ShaderDef.prototype = $p;
-$p.am = (function() {
-  return new $c_s_Product$$anon$1(this);
-});
-$p.j = (function() {
-  return $m_s_util_hashing_MurmurHash3$().bS(this, (-1488826029), true);
-});
-$p.h = (function(x$0) {
-  return ((this === x$0) || ((x$0 instanceof $c_Lgpu_shader_ShaderDef) && ((this.bj === x$0.bj) && (this.bi === x$0.bi))));
-});
-$p.m = (function() {
-  return $m_sr_ScalaRunTime$().dv(this);
-});
-$p.H = (function() {
-  return 2;
-});
-$p.J = (function() {
-  return "ShaderDef";
-});
-$p.I = (function(n) {
-  if ((n === 0)) {
-    return this.bj;
-  }
-  if ((n === 1)) {
-    return this.bi;
-  }
-  throw $ct_jl_IndexOutOfBoundsException__T__(new $c_jl_IndexOutOfBoundsException(), ("" + n));
-});
-function $isArrayOf_Lgpu_shader_ShaderDef(obj, depth) {
-  return (!(!(((obj && obj.$classData) && (obj.$classData.D === depth)) && obj.$classData.B.n.aK)));
-}
-export { $isArrayOf_Lgpu_shader_ShaderDef as $isArrayOf_Lgpu_shader_ShaderDef };
-var $d_Lgpu_shader_ShaderDef = new $TypeData().i($c_Lgpu_shader_ShaderDef, "gpu.shader.ShaderDef", ({
-  aK: 1,
-  b: 1,
-  r: 1,
-  a: 1
-}));
-export { $d_Lgpu_shader_ShaderDef as $d_Lgpu_shader_ShaderDef };
 function $f_jl_Boolean__equals__O__Z($thiz, that) {
   return ($thiz === that);
 }
@@ -5557,110 +5120,6 @@ var $d_s_Product$$anon$1 = new $TypeData().i($c_s_Product$$anon$1, "scala.Produc
   t: 1
 }));
 export { $d_s_Product$$anon$1 as $d_s_Product$$anon$1 };
-/** @constructor */
-function $c_T2(_1, _2) {
-  this.eo = null;
-  this.ep = null;
-  this.eo = _1;
-  this.ep = _2;
-}
-export { $c_T2 as $c_T2 };
-$p = $c_T2.prototype = new $h_O();
-$p.constructor = $c_T2;
-/** @constructor */
-function $h_T2() {
-}
-export { $h_T2 as $h_T2 };
-$h_T2.prototype = $p;
-$p.H = (function() {
-  return 2;
-});
-$p.I = (function(n) {
-  return $f_s_Product2__productElement__I__O(this, n);
-});
-$p.S = (function() {
-  return this.eo;
-});
-$p.a8 = (function() {
-  return this.ep;
-});
-$p.m = (function() {
-  return (((("(" + this.S()) + ",") + this.a8()) + ")");
-});
-$p.J = (function() {
-  return "Tuple2";
-});
-$p.am = (function() {
-  return new $c_sr_ScalaRunTime$$anon$1(this);
-});
-$p.j = (function() {
-  return $m_s_util_hashing_MurmurHash3$().bS(this, (-116390334), true);
-});
-$p.h = (function(x$1) {
-  return ((this === x$1) || ((x$1 instanceof $c_T2) && ($m_sr_BoxesRunTime$().O(this.S(), x$1.S()) && $m_sr_BoxesRunTime$().O(this.a8(), x$1.a8()))));
-});
-function $isArrayOf_T2(obj, depth) {
-  return (!(!(((obj && obj.$classData) && (obj.$classData.D === depth)) && obj.$classData.B.n.aW)));
-}
-export { $isArrayOf_T2 as $isArrayOf_T2 };
-var $d_T2 = new $TypeData().i($c_T2, "scala.Tuple2", ({
-  aW: 1,
-  d2: 1,
-  r: 1,
-  b: 1,
-  a: 1
-}));
-export { $d_T2 as $d_T2 };
-/** @constructor */
-function $c_T3(_1, _2, _3) {
-  this.bB = null;
-  this.bC = null;
-  this.bD = null;
-  this.bB = _1;
-  this.bC = _2;
-  this.bD = _3;
-}
-export { $c_T3 as $c_T3 };
-$p = $c_T3.prototype = new $h_O();
-$p.constructor = $c_T3;
-/** @constructor */
-function $h_T3() {
-}
-export { $h_T3 as $h_T3 };
-$h_T3.prototype = $p;
-$p.am = (function() {
-  return new $c_s_Product$$anon$1(this);
-});
-$p.H = (function() {
-  return 3;
-});
-$p.I = (function(n) {
-  return $f_s_Product3__productElement__I__O(this, n);
-});
-$p.j = (function() {
-  return $m_s_util_hashing_MurmurHash3$().bS(this, (-192629203), true);
-});
-$p.h = (function(x$0) {
-  return ((this === x$0) || ((x$0 instanceof $c_T3) && (($m_sr_BoxesRunTime$().O(this.bB, x$0.bB) && $m_sr_BoxesRunTime$().O(this.bC, x$0.bC)) && $m_sr_BoxesRunTime$().O(this.bD, x$0.bD))));
-});
-$p.J = (function() {
-  return "Tuple3";
-});
-$p.m = (function() {
-  return (((((("(" + this.bB) + ",") + this.bC) + ",") + this.bD) + ")");
-});
-function $isArrayOf_T3(obj, depth) {
-  return (!(!(((obj && obj.$classData) && (obj.$classData.D === depth)) && obj.$classData.B.n.aX)));
-}
-export { $isArrayOf_T3 as $isArrayOf_T3 };
-var $d_T3 = new $TypeData().i($c_T3, "scala.Tuple3", ({
-  aX: 1,
-  b: 1,
-  r: 1,
-  d3: 1,
-  a: 1
-}));
-export { $d_T3 as $d_T3 };
 /** @constructor */
 function $c_sc_ClassTagSeqFactory$AnySeqDelegate(delegate) {
   this.cJ = null;
