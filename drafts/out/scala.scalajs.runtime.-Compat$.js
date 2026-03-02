@@ -15,11 +15,11 @@ function $h_sjsr_Compat$() {
 export { $h_sjsr_Compat$ as $h_sjsr_Compat$ };
 $h_sjsr_Compat$.prototype = $p;
 $p.b = (function(seq) {
-  if (false) {
-    return seq.cn;
+  if ((seq instanceof $j_scala$002escalajs$002eruntime$002e$002dWrapped$002dVar$002dArgs.$c_sjsr_WrappedVarArgs)) {
+    return seq.aG;
   } else {
     var result = [];
-    seq.bN(new $j_scala$002eruntime$002e$002dAbstract$002dFunction1$002e$0024$0024$002dLambda$002470e1780b84463d18653aacefee3ab989ac625f28.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((x$2$2) => (result.push(x$2$2) | 0))));
+    seq.aI(new $j_scala$002eruntime$002e$002dAbstract$002dFunction1$002e$0024$0024$002dLambda$002470e1780b84463d18653aacefee3ab989ac625f28.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((x$2$2) => (result.push(x$2$2) | 0))));
     return result;
   }
 });

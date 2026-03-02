@@ -5,7 +5,7 @@ import * as $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$002dCommon$0024 f
 import * as $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray from "./scala.scalajs.js.-Wrapped-Array.js";
 var $p;
 function $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T($thiz, structName, locNames, locTypes, builtins) {
-  var array$1 = $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bV($j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bU(locNames, new $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$c_sjs_js_WrappedArray(locTypes)));
+  var array$1 = $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bX($j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bW(locNames, new $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$c_sjs_js_WrappedArray(locTypes)));
   var len = (array$1.length | 0);
   var res = new Array(len);
   var i = 0;
@@ -15,11 +15,11 @@ function $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Arra
     matchResult3: {
       var $x_1;
       if ((x0 !== null)) {
-        var x11 = x0.u();
+        var x11 = x0.r();
         if ((x11 !== null)) {
-          var name = x11.u();
-          var typ = x11.D();
-          var $x_1 = (((((("  @location(" + (x0.D() | 0)) + ") ") + name) + ": ") + typ) + ",");
+          var name = x11.r();
+          var typ = x11.u();
+          var $x_1 = (((((("  @location(" + (x0.u() | 0)) + ") ") + name) + ": ") + typ) + ",");
           break matchResult3;
         }
       }
@@ -37,9 +37,9 @@ function $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Arra
     matchResult4: {
       var $x_3;
       if ((x0$1 !== null)) {
-        var name$1 = x0$1.at;
-        var builtin = x0$1.au;
-        var typ$1 = x0$1.av;
+        var name$1 = x0$1.au;
+        var builtin = x0$1.av;
+        var typ$1 = x0$1.aw;
         var $x_3 = (((((("  @builtin(" + builtin) + ") ") + name$1) + ": ") + typ$1) + ",");
         break matchResult4;
       }
@@ -53,7 +53,7 @@ function $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Arra
 }
 export { $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T as $p_Lgpu_shader_derive$__generateCombinedStructFromLists__T__sjs_js_Array__sjs_js_Array__sjs_js_Array__T };
 function $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array__sjs_js_Array__T($thiz, groupIdx, names, types) {
-  var array$1 = $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bV($j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bU(names, new $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$c_sjs_js_WrappedArray(types)));
+  var array$1 = $j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bX($j_scala$002escalajs$002ejs$002e$002dArray$002dOps$0024.$m_sjs_js_ArrayOps$().bW(names, new $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$c_sjs_js_WrappedArray(types)));
   var len = (array$1.length | 0);
   var res = new Array(len);
   var i = 0;
@@ -63,11 +63,11 @@ function $p_Lgpu_shader_derive$__generateUniformGroupFromLists__I__sjs_js_Array_
     matchResult5: {
       var $x_1;
       if ((x0 !== null)) {
-        var x20 = x0.u();
+        var x20 = x0.r();
         if ((x20 !== null)) {
-          var name = x20.u();
-          var typ = x20.D();
-          var bindingIdx = (x0.D() | 0);
+          var name = x20.r();
+          var typ = x20.u();
+          var bindingIdx = (x0.u() | 0);
           var $x_1 = (((((((("@group(" + groupIdx) + ") @binding(") + bindingIdx) + ") var<uniform> ") + name) + ": ") + typ) + ";");
           break matchResult5;
         }

@@ -13,14 +13,14 @@ function $h_Lgpu_math_package$package$$anon$1() {
 }
 export { $h_Lgpu_math_package$package$$anon$1 as $h_Lgpu_math_package$package$$anon$1 };
 $h_Lgpu_math_package$package$$anon$1.prototype = $p;
-$p.ae = (function(x) {
+$p.ai = (function(x) {
   return x;
 });
 $p.j = (function(x) {
   return Math.fround(x);
 });
 var $d_Lgpu_math_package$package$$anon$1 = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lgpu_math_package$package$$anon$1, "gpu.math.package$package$$anon$1", ({
-  al: 1,
+  am: 1,
   Z: 1,
   e: 1
 }));

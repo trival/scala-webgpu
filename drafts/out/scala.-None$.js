@@ -16,14 +16,14 @@ $h_s_Option.prototype = $p;
 $p.M = (function() {
   return new $j_java$002elang$002e$002dObject.$c_s_Product$$anon$1(this);
 });
-$p.G = (function() {
+$p.I = (function() {
   return (this === $m_s_None$());
 });
 $p.w = (function() {
-  return (this.G() ? 0 : 1);
+  return (this.I() ? 0 : 1);
 });
 $p.n = (function() {
-  return (this.G() ? $j_java$002elang$002e$002dObject.$m_sc_Iterator$().J : new $j_scala$002ecollection$002e$002dIterator$0024$0024anon$002420.$c_sc_Iterator$$anon$20(this.bP()));
+  return (this.I() ? $j_java$002elang$002e$002dObject.$m_sc_Iterator$().K : new $j_scala$002ecollection$002e$002dIterator$0024$0024anon$002420.$c_sc_Iterator$$anon$20(this.bQ()));
 });
 /** @constructor */
 function $c_s_None$() {
@@ -42,20 +42,20 @@ $p.i = (function() {
 $p.m = (function() {
   return "None";
 });
-$p.z = (function() {
+$p.A = (function() {
   return 0;
 });
-$p.B = (function() {
+$p.C = (function() {
   return "None";
 });
-$p.A = (function(n) {
+$p.B = (function(n) {
   throw $j_java$002elang$002e$002dObject.$ct_jl_IndexOutOfBoundsException__T__(new $j_java$002elang$002e$002dObject.$c_jl_IndexOutOfBoundsException(), ("" + n));
 });
-$p.c6 = (function() {
+$p.c8 = (function() {
   throw new $j_java$002elang$002e$002dObject.$c_ju_NoSuchElementException("None.get");
 });
-$p.bP = (function() {
-  this.c6();
+$p.bQ = (function() {
+  this.c8();
 });
 var $d_s_None$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_s_None$, "scala.None$", ({
   aS: 1,

@@ -30,10 +30,10 @@ function $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T($thiz, body) {
 export { $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T as $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T };
 /** @constructor */
 function $c_Lgpu_shader_ShaderDef(vertexBody, fragmentBody) {
-  this.Z = null;
-  this.Y = null;
-  this.Z = vertexBody;
-  this.Y = fragmentBody;
+  this.a4 = null;
+  this.a3 = null;
+  this.a4 = vertexBody;
+  this.a3 = fragmentBody;
 }
 export { $c_Lgpu_shader_ShaderDef as $c_Lgpu_shader_ShaderDef };
 $p = $c_Lgpu_shader_ShaderDef.prototype = new $j_java$002elang$002e$002dObject.$h_O();
@@ -47,23 +47,23 @@ $p.M = (function() {
   return new $j_java$002elang$002e$002dObject.$c_s_Product$$anon$1(this);
 });
 $p.i = (function() {
-  return $j_java$002elang$002e$002dObject.$m_s_util_hashing_MurmurHash3$().V(this, (-1488826029), true);
+  return $j_java$002elang$002e$002dObject.$m_s_util_hashing_MurmurHash3$().X(this, (-1488826029), true);
 });
 $p.m = (function() {
-  return $j_java$002elang$002e$002dObject.$m_sr_ScalaRunTime$().bC(this);
+  return $j_java$002elang$002e$002dObject.$m_sr_ScalaRunTime$().bE(this);
 });
-$p.z = (function() {
+$p.A = (function() {
   return 2;
 });
-$p.B = (function() {
+$p.C = (function() {
   return "ShaderDef";
 });
-$p.A = (function(n) {
+$p.B = (function(n) {
   if ((n === 0)) {
-    return this.Z;
+    return this.a4;
   }
   if ((n === 1)) {
-    return this.Y;
+    return this.a3;
   }
   throw $j_java$002elang$002e$002dObject.$ct_jl_IndexOutOfBoundsException__T__(new $j_java$002elang$002e$002dObject.$c_jl_IndexOutOfBoundsException(), ("" + n));
 });

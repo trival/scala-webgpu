@@ -5,10 +5,10 @@ import * as $j_java$002elang$002e$002dObject from "./java.lang.-Object.js";
 var $p;
 /** @constructor */
 function $c_Lgpu_math_package$package$() {
+  this.be = null;
+  this.bf = false;
   this.bc = null;
   this.bd = false;
-  this.ba = null;
-  this.bb = false;
 }
 export { $c_Lgpu_math_package$package$ as $c_Lgpu_math_package$package$ };
 $p = $c_Lgpu_math_package$package$.prototype = new $j_java$002elang$002e$002dObject.$h_O();
@@ -18,22 +18,22 @@ function $h_Lgpu_math_package$package$() {
 }
 export { $h_Lgpu_math_package$package$ as $h_Lgpu_math_package$package$ };
 $h_Lgpu_math_package$package$.prototype = $p;
-$p.aH = (function() {
+$p.aK = (function() {
+  if ((!this.bf)) {
+    this.be = new $j_gpu$002emath$002epackage$0024package$0024$0024anon$00241.$c_Lgpu_math_package$package$$anon$1();
+    this.bf = true;
+  }
+  return this.be;
+});
+$p.g = (function() {
   if ((!this.bd)) {
-    this.bc = new $j_gpu$002emath$002epackage$0024package$0024$0024anon$00241.$c_Lgpu_math_package$package$$anon$1();
+    this.bc = new $j_gpu$002emath$002epackage$0024package$0024$0024anon$00244.$c_Lgpu_math_package$package$$anon$4();
     this.bd = true;
   }
   return this.bc;
 });
-$p.g = (function() {
-  if ((!this.bb)) {
-    this.ba = new $j_gpu$002emath$002epackage$0024package$0024$0024anon$00244.$c_Lgpu_math_package$package$$anon$4();
-    this.bb = true;
-  }
-  return this.ba;
-});
 var $d_Lgpu_math_package$package$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lgpu_math_package$package$, "gpu.math.package$package$", ({
-  ak: 1
+  al: 1
 }));
 export { $d_Lgpu_math_package$package$ as $d_Lgpu_math_package$package$ };
 var $n_Lgpu_math_package$package$;

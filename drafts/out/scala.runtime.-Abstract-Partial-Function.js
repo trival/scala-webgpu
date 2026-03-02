@@ -17,5 +17,5 @@ $p.m = (function() {
   return "<function1>";
 });
 $p.j = (function(x) {
-  return this.aF(x, $j_scala$002e$002dPartial$002dFunction$0024.$m_s_PartialFunction$().ar);
+  return this.aH(x, $j_scala$002e$002dPartial$002dFunction$0024.$m_s_PartialFunction$().as);
 });

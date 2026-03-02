@@ -12,14 +12,14 @@ function $h_Lwebgpu_WebGPU$() {
 }
 export { $h_Lwebgpu_WebGPU$ as $h_Lwebgpu_WebGPU$ };
 $h_Lwebgpu_WebGPU$.prototype = $p;
-$p.aX = (function() {
+$p.b1 = (function() {
   return window.navigator.gpu;
 });
-$p.aW = (function(canvas) {
+$p.b0 = (function(canvas) {
   return canvas.getContext("webgpu");
 });
 var $d_Lwebgpu_WebGPU$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lwebgpu_WebGPU$, "webgpu.WebGPU$", ({
-  ck: 1
+  cj: 1
 }));
 export { $d_Lwebgpu_WebGPU$ as $d_Lwebgpu_WebGPU$ };
 var $n_Lwebgpu_WebGPU$;

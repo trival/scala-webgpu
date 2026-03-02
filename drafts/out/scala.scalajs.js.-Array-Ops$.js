@@ -13,18 +13,18 @@ function $h_sjs_js_ArrayOps$() {
 }
 export { $h_sjs_js_ArrayOps$ as $h_sjs_js_ArrayOps$ };
 $h_sjs_js_ArrayOps$.prototype = $p;
-$p.bU = (function(this$, that) {
+$p.bW = (function(this$, that) {
   var b = [];
   var len = (this$.length | 0);
   var i = 0;
   var it = that.n();
-  while (((i < len) && it.s())) {
+  while (((i < len) && it.t())) {
     b.push(new $j_scala$002e$002dTuple2.$c_T2(this$[i], it.p()));
     i = ((1 + i) | 0);
   }
   return b;
 });
-$p.bV = (function(this$) {
+$p.bX = (function(this$) {
   var len = (this$.length | 0);
   var b = new Array(len);
   var i = 0;

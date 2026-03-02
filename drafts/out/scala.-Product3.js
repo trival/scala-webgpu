@@ -4,15 +4,15 @@ var $p;
 function $f_s_Product3__productElement__I__O($thiz, n) {
   switch (n) {
     case 0: {
-      return $thiz.at;
-      break;
-    }
-    case 1: {
       return $thiz.au;
       break;
     }
-    case 2: {
+    case 1: {
       return $thiz.av;
+      break;
+    }
+    case 2: {
+      return $thiz.aw;
       break;
     }
     default: {

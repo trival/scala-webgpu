@@ -13,4 +13,7 @@ class Shape(
     var bindings: BindingSlots = Arr(),
     var cullMode: CullMode = CullMode.None,
     var blendState: Opt[BlendState] = Opt.Null,
-)
+):
+  def bind(slots: (Int, BufferBinding[?, ?])*): Shape =
+    for (slot, binding) <- slots do bindings(slot) = binding
+    this

@@ -12,7 +12,7 @@ function $h_sjs_js_Any$() {
 }
 export { $h_sjs_js_Any$ as $h_sjs_js_Any$ };
 $h_sjs_js_Any$.prototype = $p;
-$p.U = (function(f) {
+$p.W = (function(f) {
   return ((arg1$2) => f.j(arg1$2));
 });
 var $d_sjs_js_Any$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_sjs_js_Any$, "scala.scalajs.js.Any$", ({

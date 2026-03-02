@@ -16,8 +16,8 @@ function $h_Lgpu_painter_init$package$() {
 }
 export { $h_Lgpu_painter_init$package$ as $h_Lgpu_painter_init$package$ };
 $h_Lgpu_painter_init$package$.prototype = $p;
-$p.c9 = (function(canvas, init) {
-  var gpuOpt = $j_webgpu$002e$002dWeb$002dG$002dP$002dU$0024.$m_Lwebgpu_WebGPU$().aX();
+$p.cb = (function(canvas, init) {
+  var gpuOpt = $j_webgpu$002e$002dWeb$002dG$002dP$002dU$0024.$m_Lwebgpu_WebGPU$().b1();
   if ((gpuOpt === (void 0))) {
     return Promise.reject(new $j_java$002elang$002e$002dObject.$c_sjs_js_JavaScriptException(Error("WebGPU is not supported")));
   } else {
@@ -33,7 +33,7 @@ $p.c9 = (function(canvas, init) {
       var promise$proxy2 = adapter$2.requestDevice();
       var f$proxy1 = new $j_scala$002eruntime$002e$002dAbstract$002dFunction1$002e$0024$0024$002dLambda$002470e1780b84463d18653aacefee3ab989ac625f28.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((device$3) => {
         var queue = device$3.queue;
-        var context = $j_webgpu$002e$002dWeb$002dG$002dP$002dU$0024.$m_Lwebgpu_WebGPU$().aW(canvas);
+        var context = $j_webgpu$002e$002dWeb$002dG$002dP$002dU$0024.$m_Lwebgpu_WebGPU$().b0(canvas);
         var format = gpuOpt.getPreferredCanvasFormat();
         context.configure(({
           "device": device$3,
@@ -56,9 +56,9 @@ $p.c9 = (function(canvas, init) {
         canvas.height = h$1;
         init.j(painter);
       }));
-      return promise$proxy2.then($j_scala$002escalajs$002ejs$002e$002dAny$0024.$m_sjs_js_Any$().U(f$proxy1));
+      return promise$proxy2.then($j_scala$002escalajs$002ejs$002e$002dAny$0024.$m_sjs_js_Any$().W(f$proxy1));
     }));
-    return promise$proxy3.then($j_scala$002escalajs$002ejs$002e$002dAny$0024.$m_sjs_js_Any$().U(f$proxy2));
+    return promise$proxy3.then($j_scala$002escalajs$002ejs$002e$002dAny$0024.$m_sjs_js_Any$().W(f$proxy2));
   }
 });
 var $d_Lgpu_painter_init$package$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lgpu_painter_init$package$, "gpu.painter.init$package$", ({

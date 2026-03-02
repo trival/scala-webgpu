@@ -4,8 +4,8 @@ import * as $j_scala$002eruntime$002e$002dAbstract$002dFunction1 from "./scala.r
 var $p;
 /** @constructor */
 function $c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(f) {
-  this.bw = null;
-  this.bw = f;
+  this.by = null;
+  this.by = f;
 }
 export { $c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28 as $c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28 };
 $p = $c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28.prototype = new $j_scala$002eruntime$002e$002dAbstract$002dFunction1.$h_sr_AbstractFunction1();
@@ -16,7 +16,7 @@ function $h_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f
 export { $h_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28 as $h_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28 };
 $h_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28.prototype = $p;
 $p.j = (function(x0) {
-  return (0, this.bw)(x0);
+  return (0, this.by)(x0);
 });
 var $d_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28 = new $j_java$002elang$002e$002dObject.$TypeData().i($c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28, "scala.runtime.AbstractFunction1.$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28", ({
   bT: 1,

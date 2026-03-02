@@ -13,8 +13,8 @@ function $h_Lgpu_buffers_UniformValue$given\uff3fUniformValue\uff3fVec4\uff3fVec
 export { $h_Lgpu_buffers_UniformValue$given\uff3fUniformValue\uff3fVec4\uff3fVec4Buffer$ as $h_Lgpu_buffers_UniformValue$given\uff3fUniformValue\uff3fVec4\uff3fVec4Buffer$ };
 $h_Lgpu_buffers_UniformValue$given\uff3fUniformValue\uff3fVec4\uff3fVec4Buffer$.prototype = $p;
 var $d_Lgpu_buffers_UniformValue$given\uff3fUniformValue\uff3fVec4\uff3fVec4Buffer$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lgpu_buffers_UniformValue$given\uff3fUniformValue\uff3fVec4\uff3fVec4Buffer$, "gpu.buffers.UniformValue$given_UniformValue_Vec4_Vec4Buffer$", ({
-  ai: 1,
-  ah: 1
+  aj: 1,
+  ai: 1
 }));
 export { $d_Lgpu_buffers_UniformValue$given\uff3fUniformValue\uff3fVec4\uff3fVec4Buffer$ as $d_Lgpu_buffers_UniformValue$given\uff3fUniformValue\uff3fVec4\uff3fVec4Buffer$ };
 var $n_Lgpu_buffers_UniformValue$given\uff3fUniformValue\uff3fVec4\uff3fVec4Buffer$;

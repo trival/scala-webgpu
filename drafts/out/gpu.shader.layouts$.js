@@ -44,7 +44,7 @@ function $h_Lgpu_shader_layouts$() {
 }
 export { $h_Lgpu_shader_layouts$ as $h_Lgpu_shader_layouts$ };
 $h_Lgpu_shader_layouts$.prototype = $p;
-$p.bM = (function(device, bindGroupLayouts) {
+$p.bO = (function(device, bindGroupLayouts) {
   return device.createPipelineLayout(({
     "bindGroupLayouts": bindGroupLayouts
   }));

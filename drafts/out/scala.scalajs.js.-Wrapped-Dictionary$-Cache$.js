@@ -3,9 +3,9 @@ import * as $j_java$002elang$002e$002dObject from "./java.lang.-Object.js";
 var $p;
 /** @constructor */
 function $c_sjs_js_WrappedDictionary$Cache$() {
-  this.bA = null;
+  this.bC = null;
   $n_sjs_js_WrappedDictionary$Cache$ = this;
-  this.bA = Object.prototype.hasOwnProperty;
+  this.bC = Object.prototype.hasOwnProperty;
 }
 export { $c_sjs_js_WrappedDictionary$Cache$ as $c_sjs_js_WrappedDictionary$Cache$ };
 $p = $c_sjs_js_WrappedDictionary$Cache$.prototype = new $j_java$002elang$002e$002dObject.$h_O();
