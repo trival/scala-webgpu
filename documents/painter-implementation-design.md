@@ -315,38 +315,64 @@ Rust uses builders extensively. Scala design:
   `var`s
 - Simple assignment instead of builder ceremony for common cases
 
-### 4.6 Scala 3 Enums for GPU State
+### 4.6 Opaque Types for GPU State (No Enums)
+
+Scala 3 `enum` generates significant JS boilerplate (wrapper objects, pattern
+match tables). For GPU constants that are just WebGPU string values, we use
+**opaque types** backed by `String` — zero runtime overhead, compiles to bare
+string constants in JS output.
 
 ```scala
-enum PrimitiveTopology(val webgpu: String):
-  case TriangleList  extends PrimitiveTopology("triangle-list")
-  case TriangleStrip extends PrimitiveTopology("triangle-strip")
-  case LineList      extends PrimitiveTopology("line-list")
-  case LineStrip     extends PrimitiveTopology("line-strip")
-  case PointList     extends PrimitiveTopology("point-list")
+opaque type PrimitiveTopology = String
+object PrimitiveTopology:
+  val TriangleList: PrimitiveTopology = "triangle-list"
+  val TriangleStrip: PrimitiveTopology = "triangle-strip"
+  val LineList: PrimitiveTopology = "line-list"
+  val LineStrip: PrimitiveTopology = "line-strip"
+  val PointList: PrimitiveTopology = "point-list"
+  extension (t: PrimitiveTopology)
+    inline def toJs: js.Any = t.asInstanceOf[js.Any]
 
-enum CullMode(val webgpu: String):
-  case None  extends CullMode("none")
-  case Front extends CullMode("front")
-  case Back  extends CullMode("back")
+opaque type CullMode = String
+object CullMode:
+  val None: CullMode = "none"
+  val Front: CullMode = "front"
+  val Back: CullMode = "back"
+  extension (c: CullMode) inline def toJs: js.Any = c.asInstanceOf[js.Any]
 
-enum BlendMode:
-  case Replace, Alpha, Additive, Multiply
-  def toBlendState: js.Dynamic = ... // expand to full GPUBlendState
-
-enum TextureFormat(val webgpu: String):
-  case RGBA8Unorm  extends TextureFormat("rgba8unorm")
-  case RGBA8Snorm  extends TextureFormat("rgba8snorm")
-  case BGRA8Unorm  extends TextureFormat("bgra8unorm")
-  case RGBA16Float extends TextureFormat("rgba16float")
-  case RGBA32Float extends TextureFormat("rgba32float")
-  case Depth24Plus extends TextureFormat("depth24plus")
-  // extend as needed
-
-enum FrontFace(val webgpu: String):
-  case CCW extends FrontFace("ccw")
-  case CW  extends FrontFace("cw")
+opaque type FrontFace = String
+object FrontFace:
+  val CCW: FrontFace = "ccw"
+  val CW: FrontFace = "cw"
+  extension (f: FrontFace) inline def toJs: js.Any = f.asInstanceOf[js.Any]
 ```
+
+Blend state uses `js.Object` subclasses for structured data with zero overhead:
+
+```scala
+class BlendFn(
+    val srcFactor: BlendFactor,
+    val dstFactor: BlendFactor,
+    val operation: BlendOp = BlendOp.Add,
+) extends js.Object
+
+class BlendState(
+    val color: BlendFn,
+    val alpha: BlendFn,
+) extends js.Object
+
+object BlendState:
+  val Alpha = BlendState(
+    color = BlendFn(BlendFactor.SrcAlpha, BlendFactor.OneMinusSrcAlpha),
+    alpha = BlendFn(BlendFactor.One, BlendFactor.OneMinusSrcAlpha),
+  )
+  val Additive = BlendState(...)
+  val Multiply = BlendState(...)
+```
+
+The `.toJs` extension on opaque types is needed because `String` does not extend
+`js.Any` in Scala.js, so `asInstanceOf` is the only way to pass them into
+`js.Dynamic.literal`.
 
 ---
 
@@ -368,7 +394,7 @@ class Painter(
   lazy val fullscreenVertexModule: GPUShaderModule = // built-in fullscreen triangle
 
   // Direct-to-canvas convenience (permanent shortcut for quick sketches)
-  def draw(shape: Shape, clearColor: Option[Vec4Tuple] = None, blendMode: BlendMode = BlendMode.Replace): Unit
+  def draw(shape: Shape, clearColor: Opt[(Double, Double, Double, Double)] = Opt.Null): Unit
 
   // Panel-based rendering (intermediate render target + blit)
   def paint(panel: Panel): Unit
@@ -384,7 +410,8 @@ class Painter(
   // Resource factories (hide device from user)
   inline def binding[T](value: T): BufferBinding[T, ?]
   inline def binding[T]: BufferBinding[T, ?]
-  def form(...): Form
+  def form[F <: Tuple](vertices: StructArray[F], ...): Form
+  def shape(form: Form, shade: Shade, ...): Shape
   def panel(...): Panel
 ```
 
@@ -548,20 +575,21 @@ class Panel(
   def height: Int
 ```
 
-### 5.7 CanvasApp
+### 5.7 initPainter — Bootstrap Function
 
 ```scala
-trait CanvasApp:
-  def init(painter: Painter): Unit
-  def frame(painter: Painter, dt: Double): Unit
-  def resize(painter: Painter, width: Int, height: Int): Unit = ()
-
-object CanvasApp:
-  def launch(canvas: HTMLCanvasElement)(app: CanvasApp): js.Promise[Unit]
+def initPainter(canvas: HTMLCanvasElement)(
+    init: Painter => Unit,
+): js.Promise[Unit]
 ```
 
-`launch` handles: GPU/adapter/device acquisition, context configuration,
-ResizeObserver setup, requestAnimationFrame loop with deltaTime.
+`initPainter` handles: GPU/adapter/device acquisition, context configuration,
+ResizeObserver setup, and initial canvas sizing. It does **not** manage a render
+loop — the user drives `requestAnimationFrame` directly, which avoids
+unnecessary framework abstraction and lets browser APIs be used naturally.
+
+The callback receives a fully initialized `Painter`. Animation, input handling,
+and frame scheduling are the user's responsibility via standard DOM APIs.
 
 ---
 
@@ -582,7 +610,7 @@ examples continue to work.
 
 **Scope — included**:
 
-- `CanvasApp` framework (GPU init, rAF loop, resize)
+- `initPainter` bootstrap (GPU init, canvas setup, ResizeObserver)
 - `Painter` with `draw(shape)` (direct) + `paint(panel)` / `show(panel)` (panel)
 - `Shade` wrapping `ShaderDef` (shader module + pipeline layout)
 - `Form` (vertex buffer + topology, no index buffer yet)
@@ -591,7 +619,8 @@ examples continue to work.
 - `Panel` owns a render texture — `paint()` renders into it, `show()` blits to
   canvas via built-in fullscreen triangle + blit shader
 - Pipeline cache with `PipelineKey`
-- Minimal enums: `PrimitiveTopology`, `CullMode`, `FrontFace`, `BlendMode`
+- Opaque type constants: `PrimitiveTopology`, `CullMode`, `FrontFace`,
+  `BlendFactor`, `BlendOp`, `BlendState`
 - Built-in fullscreen triangle vertex shader + blit fragment shader in Painter
 
 **Scope — excluded (deferred)**:
@@ -609,7 +638,7 @@ examples continue to work.
 1. `simple_triangle` — raw WebGPU, hardcoded vertices in shader (exists)
 2. `buffer_triangle` — raw WebGPU + typed vertex buffers/uniforms via helpers
    (exists)
-3. `painter_triangle` — Painter/Shade/Form/Shape + `draw()` via CanvasApp
+3. `painter_triangle` — Painter/Shade/Form/Shape + `draw()` via initPainter
    (**Step A**)
 4. `panel_triangle` — Panel render-to-texture + blit (**Step B**)
 
@@ -620,23 +649,25 @@ never deleted — they remain as reference points and must keep compiling.
 
 For Milestone 1, bindings are deliberately simple. Since the painter convention
 puts all value/buffer bindings in group 0, the key is just the binding index
-(not a `(group, binding)` tuple). The map stores `BufferBinding` objects
-directly — the Painter extracts `.gpuBuffer` internally during rendering.
+(not a `(group, binding)` tuple). Bindings are stored in a sparse `Arr`
+(JS array) — null slots for unused binding points, zero Scala collection
+overhead.
 
 ```scala
-// MVP: binding index → BufferBinding (group 0 is implicit)
-type BindingSlots = Map[Int, BufferBinding[?, ?]]
+// MVP: sparse array indexed by binding slot (group 0 is implicit)
+type BindingSlots = Arr[BufferBinding[?, ?] | Null]
 
 class Shape(
   val form: Form,
   val shade: Shade,
-  var bindings: BindingSlots = Map.empty,
+  var bindings: BindingSlots = Arr(),
   var cullMode: CullMode = CullMode.None,
-  var blendMode: BlendMode = BlendMode.Replace,
-)
+  var blendState: Opt[BlendState] = Opt.Null,
+):
+  def bind(slots: (Int, BufferBinding[?, ?])*): Shape
 ```
 
-The Painter provides a factory so users don't pass `device` around:
+The Painter provides factories so users don't pass `device` around:
 
 ```scala
 // On Painter:
@@ -644,45 +675,38 @@ inline def binding[T](value: T): BufferBinding[T, ?]  // with initial value
 inline def binding[T]: BufferBinding[T, ?]             // uninitialized
 
 // Usage:
-val mvp = painter.binding(Mat4.identity)   // infers BufferBinding[Mat4, ...]
-val time = painter.binding[Float]          // uninitialized, set later
-
-shape.bindings = Map(0 -> mvp, 1 -> time)
+val tintColor = painter.binding[Vec4]
+val shape = painter.shape(form, shade).bind(0 -> tintColor)
 
 // Update each render cycle:
-mvp.set(newMatrix)
-time.set(elapsed)
+tintColor.update: c =>
+  c.r = newR; c.g = newG; c.b = newB
 ```
 
-No merge hierarchy, no panel bindings. Shapes hold their own bindings directly.
+`Shape.bind()` returns `this` for fluent chaining. No merge hierarchy, no panel
+bindings. Shapes hold their own bindings directly.
 
-#### 6.2 CanvasApp
+#### 6.2 initPainter
 
 ```scala
-trait CanvasApp:
-  def init(painter: Painter): Unit
-  def frame(painter: Painter, dt: Double): Unit
-  def resize(painter: Painter, width: Int, height: Int): Unit = ()
-
-object CanvasApp:
-  def launch(canvas: HTMLCanvasElement)(app: CanvasApp): js.Promise[Unit]
+def initPainter(canvas: HTMLCanvasElement)(
+    init: Painter => Unit,
+): js.Promise[Unit]
 ```
 
-`launch` handles: GPU/adapter/device acquisition, context configuration,
-ResizeObserver setup, requestAnimationFrame loop with deltaTime.
+**Responsibilities**:
 
-**Lifecycle**:
+1. Acquire GPU adapter and device (Promise-based)
+2. Configure canvas context with device and preferred format
+3. Set up ResizeObserver — automatically updates `canvas.width`/`canvas.height`
+4. Set initial canvas dimensions from `clientWidth`/`clientHeight`
+5. Call `init(painter)` with fully initialized Painter
 
-1. `init(painter)` — setup resources (shapes, panels, bindings)
-2. Automatic initial `resize(painter, w, h)` with current canvas dimensions
-3. Automatic initial `frame(painter, 0.0)` — first frame happens without user
-   intervention
-4. On ResizeObserver events: `resize(painter, w, h)` then `frame(painter, 0.0)`
-5. `painter.requestNextFrame()` in `frame()` schedules the next rAF callback. If
-   not called, the loop pauses (event-driven / static scene mode).
-
-This means `init` never needs to call `requestNextFrame()` — the framework
-always renders at least once after init and after every resize.
+**Not managed**: render loop, frame timing, input. The user calls
+`requestAnimationFrame` directly, keeping control over animation and enabling
+static scenes with no overhead. This replaces the original `CanvasApp`
+abstraction, which imposed Rust-style lifecycle management that is unnecessary
+in the browser where these APIs are already ergonomic.
 
 ---
 
@@ -699,10 +723,11 @@ shape directly to the swap chain texture without any intermediate Panel.
 ```scala
 def draw(
   shape: Shape,
-  clearColor: Option[Vec4Tuple] = None,
-  blendMode: BlendMode = BlendMode.Replace,
+  clearColor: Opt[(Double, Double, Double, Double)] = Opt.Null,
 ): Unit
 ```
+
+Blend state lives on the `Shape` (via `shape.blendState`), not on `draw()`.
 
 **Algorithm**:
 
@@ -726,29 +751,34 @@ reused inside `paint(panel)` — the only difference is the render target.
 ##### 6.4 Step A — Draft Example: `painter_triangle`
 
 ```scala
-type Attribs = (position: Vec2, color: Vec3)
-type Varyings = (color: Vec3)
+initPainter(canvas): painter =>
+  type Attribs = (position: Vec2, color: Vec3)
+  type Varyings = (color: Vec3)
+  type Uniforms = (tintColor: Vec4)
 
-class PainterTriangleApp extends CanvasApp:
-  var shape: Shape = _
+  val shade = painter.shade[Attribs, Varyings, Uniforms](
+    vertBody = """
+      |  out.position = vec4<f32>(in.position, 0.0, 1.0);
+      |  out.color = in.color;
+    """.stripMargin,
+    fragBody = """
+      |  out.color = vec4<f32>(in.color, 1.0) * tintColor;
+    """.stripMargin,
+  )
 
-  def init(painter: Painter) =
-    val shade = painter.shade[Attribs, Varyings, EmptyTuple](
-      """
-        |output.position = vec4f(input.position, 0.0, 1.0);
-        |output.color = input.color;
-      """.stripMargin,
-      "output.color = vec4f(input.color, 1.0);",
-    )
-    val vertices = allocateAttribs[Attribs](3)
-    // ... fill vertices ...
-    val form = painter.form(vertices)
-    shape = Shape(form, shade)
+  val vertices = allocateAttribs[Attribs](3)
+  // ... fill vertices ...
+  val form = painter.form(vertices)
+  val tintColor = painter.binding[Vec4]
+  val shape = painter.shape(form, shade).bind(0 -> tintColor)
 
-  def frame(painter: Painter, dt: Double) =
-    painter.draw(shape, clearColor = Some((0.1, 0.1, 0.1, 1.0)))
-    // Static scene — no requestNextFrame().
-    // For animation: painter.requestNextFrame() to continue the loop.
+  def render(time: Double): Unit =
+    tintColor.update: c =>
+      c.r = Math.sin(time / 1000.0) * 0.5 + 0.5
+    painter.draw(shape, clearColor = (0.1, 0.1, 0.1, 1.0))
+    dom.window.requestAnimationFrame(t => render(t))
+
+  dom.window.requestAnimationFrame(t => render(t))
 ```
 
 ##### 6.5 Step A — Implementation Steps
@@ -771,15 +801,15 @@ class PainterTriangleApp extends CanvasApp:
 - `Painter`: device holder, pipeline cache, `draw(shape)` renders directly to
   canvas swap chain texture
 
-**Step 4 — CanvasApp**
+**Step 4 — initPainter**
 
-- Async GPU init, rAF loop, ResizeObserver, deltaTime
-- Lifecycle: init → auto resize → auto frame
+- Async GPU init, ResizeObserver, canvas setup
+- User drives render loop via `requestAnimationFrame`
 
 **Step 5 — `painter_triangle` draft**
 
-- Working example: colored triangle using `painter.draw(shape)` in CanvasApp
-- Validate full pipeline: CanvasApp → Painter → Shade/Form/Shape → GPU
+- Working example: colored triangle using `painter.draw(shape)` via initPainter
+- Validate full pipeline: initPainter → Painter → Shade/Form/Shape → GPU
 
 ---
 
@@ -846,32 +876,29 @@ bind group is recreated per-show because the panel texture view may change
 ##### 6.8 Step B — Draft Example: `panel_triangle`
 
 ```scala
-type Attribs = (position: Vec2, color: Vec3)
-type Varyings = (color: Vec3)
+initPainter(canvas): painter =>
+  type Attribs = (position: Vec2, color: Vec3)
+  type Varyings = (color: Vec3)
 
-class PanelTriangleApp extends CanvasApp:
-  var panel: Panel = _
+  val shade = painter.shade[Attribs, Varyings, EmptyTuple](
+    vertBody = """
+      |  out.position = vec4<f32>(in.position, 0.0, 1.0);
+      |  out.color = in.color;
+    """.stripMargin,
+    fragBody = """
+      |  out.color = vec4<f32>(in.color, 1.0);
+    """.stripMargin,
+  )
+  val vertices = allocateAttribs[Attribs](3)
+  // ... fill vertices ...
+  val form = painter.form(vertices)
+  val shape = painter.shape(form, shade)
+  val panel = painter.panel(clearColor = (0.1, 0.1, 0.1, 1.0))
+  panel.shapes += shape
 
-  def init(painter: Painter) =
-    val shade = painter.shade[Attribs, Varyings, EmptyTuple](
-      """
-        |output.position = vec4f(input.position, 0.0, 1.0);
-        |output.color = input.color;
-      """.stripMargin,
-      "output.color = vec4f(input.color, 1.0);",
-    )
-    val vertices = allocateAttribs[Attribs](3)
-    // ... fill vertices ...
-    val form = painter.form(vertices)
-    val shape = Shape(form, shade)
-    panel = painter.panel(clearColor = Some((0.1, 0.1, 0.1, 1.0)))
-    panel.shapes += shape
-
-  def frame(painter: Painter, dt: Double) =
-    painter.paint(panel)
-    painter.show(panel)
-    // Static scene — no requestNextFrame().
-    // For animation: painter.requestNextFrame() to continue the loop.
+  painter.paint(panel)
+  painter.show(panel)
+  // Static scene — single render. For animation: requestAnimationFrame loop.
 ```
 
 ##### 6.9 Step B — Implementation Steps
@@ -1318,8 +1345,8 @@ def copyTextureToTexture(src: js.Dynamic, dst: js.Dynamic, size: js.Dynamic): Un
    parameter, does that complicate storage in collections (`List[Shade[?]]`)?
    May need a non-generic base trait with typed extension.
 
-3. **Form creation ergonomics**: Should `painter.form(structArray)` infer vertex
-   count and stride directly from the `StructArray`, or require explicit count?
+3. ~~**Form creation ergonomics**~~: **Resolved** —
+   `painter.form(structArray)` infers vertex count from `StructArray.length`.
 
 4. **Panel texture format**: When panels get advanced features (Milestone 4),
    should formats be inferred from the shades or always explicit?
@@ -1330,14 +1357,14 @@ def copyTextureToTexture(src: js.Dynamic, dst: js.Dynamic, size: js.Dynamic): Un
 
 ```
 src/gpu/painter/
-├── enums.scala        — PrimitiveTopology, CullMode, FrontFace, BlendMode, TextureFormat
+├── enums.scala        — Opaque types: PrimitiveTopology, CullMode, FrontFace, BlendFactor, BlendOp, BlendState
 ├── Shade.scala        — Shade class + factories
 ├── Form.scala         — Form class
 ├── Shape.scala        — Shape class + binding storage
 ├── Layer.scala        — Layer: fullscreen post-processing (Rust "Effect")
 ├── Panel.scala        — Panel: render target + shapes (Rust "Layer")
 ├── Painter.scala      — Painter class, pipeline cache, draw/paint/show
-├── CanvasApp.scala    — CanvasApp trait + launch
+├── init.scala         — initPainter bootstrap function
 └── package.scala      — re-exports
 
 src/webgpu/
@@ -1351,3 +1378,42 @@ drafts/                    — iterative working examples
 ├── painter_triangle/      — Painter + draw() (Step A)
 └── panel_triangle/        — Panel + paint/show (Step B)
 ```
+
+---
+
+## 11. Implementation Status
+
+### Milestone 1, Step A — Direct-to-Canvas Rendering: **Done**
+
+All planned components are implemented and working:
+
+- **`initPainter`** (`src/gpu/painter/init.scala`) — Promise-based GPU bootstrap
+  with ResizeObserver and canvas setup
+- **`Shade`** (`src/gpu/painter/shade.scala`) — wraps `ShaderDef` into
+  `GPUShaderModule` + pipeline layout, with unique ID for cache keying
+- **`Form`** (`src/gpu/painter/form.scala`) — vertex buffer from `StructArray`,
+  topology, front face
+- **`Shape`** (`src/gpu/painter/shape.scala`) — Form + Shade + sparse binding
+  slots + cull/blend state, with fluent `.bind()` API
+- **`Painter`** (`src/gpu/painter/painter.scala`) — device holder, factory
+  methods (`shade`, `form`, `binding`, `shape`), `draw()` with pipeline caching
+- **Enums** (`src/gpu/painter/enums.scala`) — `PrimitiveTopology`, `CullMode`,
+  `FrontFace`, `BlendFactor`, `BlendOp`, `BlendState` as opaque types
+- **Draft** (`drafts/painter_triangle/`) — animated colored triangle with
+  uniform tint color, validates the full pipeline end-to-end
+
+#### Design Divergences from Original Plan
+
+| Original Design | Actual Implementation | Reason |
+| --- | --- | --- |
+| `CanvasApp` trait with lifecycle | `initPainter` callback | Browser APIs are already ergonomic; Rust-style lifecycle management adds unnecessary abstraction |
+| `enum` for GPU constants | `opaque type = String` with `.toJs` | Enums generate ~400 lines of JS boilerplate; opaque types compile to bare string constants |
+| `Map[Int, BufferBinding]` for bindings | `Arr[BufferBinding \| Null]` (sparse JS array) | Zero Scala collection overhead; aligns with JS bundle size rules |
+| `BlendMode` enum (Replace/Alpha/...) | `BlendState` class + `BlendFactor`/`BlendOp` opaque types | More flexible composition; pre-built constants for common modes |
+| `shape.bindings = Map(...)` assignment | `shape.bind(0 -> b)` fluent API | Cleaner chaining: `painter.shape(form, shade).bind(0 -> tintColor)` |
+| `Option` for optional values | `Opt` (`js.UndefOr`) | Follows JS bundle size rules |
+| `Dict` (js.Dictionary) for pipeline cache | `Dict[GPURenderPipeline]` with string keys | Zero-cost JS object as hashmap |
+
+### Milestone 1, Step B — Panel + Blit: Not Started
+
+### Milestone 2 — Type-Safe Named Bindings: Not Started
