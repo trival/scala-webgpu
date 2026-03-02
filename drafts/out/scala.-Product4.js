@@ -4,19 +4,19 @@ var $p;
 function $f_s_Product4__productElement__I__O($thiz, n) {
   switch (n) {
     case 0: {
-      return $thiz.ax;
+      return $thiz.br;
       break;
     }
     case 1: {
-      return $thiz.ay;
+      return $thiz.bs;
       break;
     }
     case 2: {
-      return $thiz.az;
+      return $thiz.bt;
       break;
     }
     case 3: {
-      return $thiz.aA;
+      return $thiz.bu;
       break;
     }
     default: {

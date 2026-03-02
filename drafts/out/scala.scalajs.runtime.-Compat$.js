@@ -1,6 +1,5 @@
 'use strict';
 import * as $j_java$002elang$002e$002dObject from "./java.lang.-Object.js";
-import * as $j_scala$002eruntime$002e$002dAbstract$002dFunction1$002e$0024$0024$002dLambda$002470e1780b84463d18653aacefee3ab989ac625f28 from "./scala.runtime.-Abstract-Function1.$$-Lambda$70e1780b84463d18653aacefee3ab989ac625f28.js";
 import * as $j_scala$002escalajs$002eruntime$002e$002dWrapped$002dVar$002dArgs from "./scala.scalajs.runtime.-Wrapped-Var-Args.js";
 var $p;
 /** @constructor */
@@ -16,15 +15,15 @@ export { $h_sjsr_Compat$ as $h_sjsr_Compat$ };
 $h_sjsr_Compat$.prototype = $p;
 $p.b = (function(seq) {
   if ((seq instanceof $j_scala$002escalajs$002eruntime$002e$002dWrapped$002dVar$002dArgs.$c_sjsr_WrappedVarArgs)) {
-    return seq.aG;
+    return seq.bC;
   } else {
     var result = [];
-    seq.aI(new $j_scala$002eruntime$002e$002dAbstract$002dFunction1$002e$0024$0024$002dLambda$002470e1780b84463d18653aacefee3ab989ac625f28.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((x$2$2) => (result.push(x$2$2) | 0))));
+    seq.bE(new $j_java$002elang$002e$002dObject.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((x$2$2) => (result.push(x$2$2) | 0))));
     return result;
   }
 });
 var $d_sjsr_Compat$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_sjsr_Compat$, "scala.scalajs.runtime.Compat$", ({
-  cb: 1
+  dt: 1
 }));
 export { $d_sjsr_Compat$ as $d_sjsr_Compat$ };
 var $n_sjsr_Compat$;

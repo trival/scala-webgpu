@@ -4,8 +4,8 @@ import * as $j_java$002elang$002e$002dObject from "./java.lang.-Object.js";
 var $p;
 /** @constructor */
 function $c_Lgpu_buffers_AttribLayoutHelper$() {
-  this.b8 = null;
-  this.b9 = false;
+  this.cg = null;
+  this.ch = false;
 }
 export { $c_Lgpu_buffers_AttribLayoutHelper$ as $c_Lgpu_buffers_AttribLayoutHelper$ };
 $p = $c_Lgpu_buffers_AttribLayoutHelper$.prototype = new $j_java$002elang$002e$002dObject.$h_O();
@@ -15,15 +15,15 @@ function $h_Lgpu_buffers_AttribLayoutHelper$() {
 }
 export { $h_Lgpu_buffers_AttribLayoutHelper$ as $h_Lgpu_buffers_AttribLayoutHelper$ };
 $h_Lgpu_buffers_AttribLayoutHelper$.prototype = $p;
-$p.bR = (function() {
-  if ((!this.b9)) {
-    this.b8 = new $j_gpu$002ebuffers$002e$002dAttrib$002dLayout$002dHelper$0024$0024anon$00242.$c_Lgpu_buffers_AttribLayoutHelper$$anon$2();
-    this.b9 = true;
+$p.dk = (function() {
+  if ((!this.ch)) {
+    this.cg = new $j_gpu$002ebuffers$002e$002dAttrib$002dLayout$002dHelper$0024$0024anon$00242.$c_Lgpu_buffers_AttribLayoutHelper$$anon$2();
+    this.ch = true;
   }
-  return this.b8;
+  return this.cg;
 });
 var $d_Lgpu_buffers_AttribLayoutHelper$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lgpu_buffers_AttribLayoutHelper$, "gpu.buffers.AttribLayoutHelper$", ({
-  ad: 1
+  aP: 1
 }));
 export { $d_Lgpu_buffers_AttribLayoutHelper$ as $d_Lgpu_buffers_AttribLayoutHelper$ };
 var $n_Lgpu_buffers_AttribLayoutHelper$;

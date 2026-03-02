@@ -13,7 +13,7 @@ function $h_Lgpu_buffers_AttribLayoutHelper$$anon$2() {
 export { $h_Lgpu_buffers_AttribLayoutHelper$$anon$2 as $h_Lgpu_buffers_AttribLayoutHelper$$anon$2 };
 $h_Lgpu_buffers_AttribLayoutHelper$$anon$2.prototype = $p;
 var $d_Lgpu_buffers_AttribLayoutHelper$$anon$2 = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lgpu_buffers_AttribLayoutHelper$$anon$2, "gpu.buffers.AttribLayoutHelper$$anon$2", ({
-  ae: 1,
-  ac: 1
+  aQ: 1,
+  aO: 1
 }));
 export { $d_Lgpu_buffers_AttribLayoutHelper$$anon$2 as $d_Lgpu_buffers_AttribLayoutHelper$$anon$2 };

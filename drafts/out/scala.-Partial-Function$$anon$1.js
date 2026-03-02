@@ -15,14 +15,14 @@ $h_s_PartialFunction$$anon$1.prototype = $p;
 $p.m = (function() {
   return "<function1>";
 });
-$p.c0 = (function(x) {
+$p.dM = (function(x) {
   throw new $j_java$002elang$002e$002dObject.$c_s_MatchError(x);
 });
-$p.j = (function(v1) {
-  this.c0(v1);
+$p.f = (function(v1) {
+  this.dM(v1);
 });
 var $d_s_PartialFunction$$anon$1 = new $j_java$002elang$002e$002dObject.$TypeData().i($c_s_PartialFunction$$anon$1, "scala.PartialFunction$$anon$1", ({
-  aU: 1,
+  bY: 1,
   e: 1,
   f: 1,
   a: 1

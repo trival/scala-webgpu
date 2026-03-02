@@ -4,11 +4,11 @@ var $p;
 function $f_s_Product2__productElement__I__O($thiz, n) {
   switch (n) {
     case 0: {
-      return $thiz.r();
+      return $thiz.w();
       break;
     }
     case 1: {
-      return $thiz.u();
+      return $thiz.z();
       break;
     }
     default: {

@@ -3,9 +3,9 @@ import * as $j_java$002elang$002e$002dObject from "./java.lang.-Object.js";
 var $p;
 /** @constructor */
 function $c_sjs_js_WrappedDictionary$Cache$() {
-  this.bC = null;
+  this.dc = null;
   $n_sjs_js_WrappedDictionary$Cache$ = this;
-  this.bC = Object.prototype.hasOwnProperty;
+  this.dc = Object.prototype.hasOwnProperty;
 }
 export { $c_sjs_js_WrappedDictionary$Cache$ as $c_sjs_js_WrappedDictionary$Cache$ };
 $p = $c_sjs_js_WrappedDictionary$Cache$.prototype = new $j_java$002elang$002e$002dObject.$h_O();
@@ -16,7 +16,7 @@ function $h_sjs_js_WrappedDictionary$Cache$() {
 export { $h_sjs_js_WrappedDictionary$Cache$ as $h_sjs_js_WrappedDictionary$Cache$ };
 $h_sjs_js_WrappedDictionary$Cache$.prototype = $p;
 var $d_sjs_js_WrappedDictionary$Cache$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_sjs_js_WrappedDictionary$Cache$, "scala.scalajs.js.WrappedDictionary$Cache$", ({
-  ca: 1
+  ds: 1
 }));
 export { $d_sjs_js_WrappedDictionary$Cache$ as $d_sjs_js_WrappedDictionary$Cache$ };
 var $n_sjs_js_WrappedDictionary$Cache$;

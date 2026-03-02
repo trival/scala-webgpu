@@ -12,7 +12,7 @@ function $h_sjs_js_ArrayOpsCommon$() {
 }
 export { $h_sjs_js_ArrayOpsCommon$ as $h_sjs_js_ArrayOpsCommon$ };
 $h_sjs_js_ArrayOpsCommon$.prototype = $p;
-$p.d = (function(left, right) {
+$p.g = (function(left, right) {
   var leftLength = (left.length | 0);
   var rightLength = (right.length | 0);
   var result = new Array(((leftLength + rightLength) | 0));
@@ -37,7 +37,7 @@ $p.d = (function(left, right) {
   return result;
 });
 var $d_sjs_js_ArrayOpsCommon$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_sjs_js_ArrayOpsCommon$, "scala.scalajs.js.ArrayOpsCommon$", ({
-  c4: 1
+  dk: 1
 }));
 export { $d_sjs_js_ArrayOpsCommon$ as $d_sjs_js_ArrayOpsCommon$ };
 var $n_sjs_js_ArrayOpsCommon$;

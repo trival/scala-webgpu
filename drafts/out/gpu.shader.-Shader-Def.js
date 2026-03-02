@@ -17,7 +17,7 @@ function $p_Lgpu_shader_ShaderDef__buildWGSL__T__T__T__T__T__T__T($thiz, vertexI
     }
     i = ((1 + i) | 0);
   }
-  return $j_java$002elang$002e$002dObject.$f_sc_IterableOnceOps__mkString__T__T__T__T(new $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$c_sjs_js_WrappedArray(res), "", "\n\n", "");
+  return $j_java$002elang$002e$002dObject.$f_sc_IterableOnceOps__mkString__T__T__T__T($j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$ct_sjs_js_WrappedArray__sjs_js_Array__(new $j_scala$002escalajs$002ejs$002e$002dWrapped$002dArray.$c_sjs_js_WrappedArray(), res), "", "\n\n", "");
 }
 export { $p_Lgpu_shader_ShaderDef__buildWGSL__T__T__T__T__T__T__T as $p_Lgpu_shader_ShaderDef__buildWGSL__T__T__T__T__T__T__T };
 function $p_Lgpu_shader_ShaderDef__buildVertexMain__T__T($thiz, body) {
@@ -30,10 +30,10 @@ function $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T($thiz, body) {
 export { $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T as $p_Lgpu_shader_ShaderDef__buildFragmentMain__T__T };
 /** @constructor */
 function $c_Lgpu_shader_ShaderDef(vertexBody, fragmentBody) {
-  this.a4 = null;
-  this.a3 = null;
-  this.a4 = vertexBody;
-  this.a3 = fragmentBody;
+  this.aP = null;
+  this.aO = null;
+  this.aP = vertexBody;
+  this.aO = fragmentBody;
 }
 export { $c_Lgpu_shader_ShaderDef as $c_Lgpu_shader_ShaderDef };
 $p = $c_Lgpu_shader_ShaderDef.prototype = new $j_java$002elang$002e$002dObject.$h_O();
@@ -43,34 +43,34 @@ function $h_Lgpu_shader_ShaderDef() {
 }
 export { $h_Lgpu_shader_ShaderDef as $h_Lgpu_shader_ShaderDef };
 $h_Lgpu_shader_ShaderDef.prototype = $p;
-$p.M = (function() {
+$p.a6 = (function() {
   return new $j_java$002elang$002e$002dObject.$c_s_Product$$anon$1(this);
 });
-$p.i = (function() {
-  return $j_java$002elang$002e$002dObject.$m_s_util_hashing_MurmurHash3$().X(this, (-1488826029), true);
+$p.j = (function() {
+  return $j_java$002elang$002e$002dObject.$m_s_util_hashing_MurmurHash3$().aI(this, (-1488826029), true);
 });
 $p.m = (function() {
-  return $j_java$002elang$002e$002dObject.$m_sr_ScalaRunTime$().bE(this);
+  return $j_java$002elang$002e$002dObject.$m_sr_ScalaRunTime$().de(this);
 });
-$p.A = (function() {
+$p.I = (function() {
   return 2;
 });
-$p.C = (function() {
+$p.K = (function() {
   return "ShaderDef";
 });
-$p.B = (function(n) {
+$p.J = (function(n) {
   if ((n === 0)) {
-    return this.a4;
+    return this.aP;
   }
   if ((n === 1)) {
-    return this.a3;
+    return this.aO;
   }
   throw $j_java$002elang$002e$002dObject.$ct_jl_IndexOutOfBoundsException__T__(new $j_java$002elang$002e$002dObject.$c_jl_IndexOutOfBoundsException(), ("" + n));
 });
 var $d_Lgpu_shader_ShaderDef = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lgpu_shader_ShaderDef, "gpu.shader.ShaderDef", ({
-  at: 1,
-  c: 1,
-  F: 1,
+  b5: 1,
+  d: 1,
+  S: 1,
   a: 1
 }));
 export { $d_Lgpu_shader_ShaderDef as $d_Lgpu_shader_ShaderDef };

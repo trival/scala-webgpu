@@ -13,15 +13,15 @@ function $h_Lgpu_math_package$package$$anon$4() {
 }
 export { $h_Lgpu_math_package$package$$anon$4 as $h_Lgpu_math_package$package$$anon$4 };
 $h_Lgpu_math_package$package$$anon$4.prototype = $p;
-$p.e = (function(_$1) {
+$p.k = (function(_$1) {
   return Math.fround(_$1);
 });
-$p.j = (function(x) {
+$p.f = (function(x) {
   return Math.fround((+x));
 });
 var $d_Lgpu_math_package$package$$anon$4 = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lgpu_math_package$package$$anon$4, "gpu.math.package$package$$anon$4", ({
-  an: 1,
-  Z: 1,
+  aZ: 1,
+  ah: 1,
   e: 1
 }));
 export { $d_Lgpu_math_package$package$$anon$4 as $d_Lgpu_math_package$package$$anon$4 };

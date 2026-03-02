@@ -1,7 +1,6 @@
 'use strict';
 import * as $j_gpu$002epainter$002e$002dPainter from "./gpu.painter.-Painter.js";
 import * as $j_java$002elang$002e$002dObject from "./java.lang.-Object.js";
-import * as $j_scala$002eruntime$002e$002dAbstract$002dFunction1$002e$0024$0024$002dLambda$002470e1780b84463d18653aacefee3ab989ac625f28 from "./scala.runtime.-Abstract-Function1.$$-Lambda$70e1780b84463d18653aacefee3ab989ac625f28.js";
 import * as $j_scala$002escalajs$002ejs$002e$002dAny$0024 from "./scala.scalajs.js.-Any$.js";
 import * as $j_webgpu$002e$002dWeb$002dG$002dP$002dU$0024 from "./webgpu.-Web-G-P-U$.js";
 var $p;
@@ -16,8 +15,8 @@ function $h_Lgpu_painter_init$package$() {
 }
 export { $h_Lgpu_painter_init$package$ as $h_Lgpu_painter_init$package$ };
 $h_Lgpu_painter_init$package$.prototype = $p;
-$p.cb = (function(canvas, init) {
-  var gpuOpt = $j_webgpu$002e$002dWeb$002dG$002dP$002dU$0024.$m_Lwebgpu_WebGPU$().b1();
+$p.e1 = (function(canvas, init) {
+  var gpuOpt = $j_webgpu$002e$002dWeb$002dG$002dP$002dU$0024.$m_Lwebgpu_WebGPU$().c6();
   if ((gpuOpt === (void 0))) {
     return Promise.reject(new $j_java$002elang$002e$002dObject.$c_sjs_js_JavaScriptException(Error("WebGPU is not supported")));
   } else {
@@ -29,11 +28,11 @@ $p.cb = (function(canvas, init) {
         return value$2;
       }
     }));
-    var f$proxy2 = new $j_scala$002eruntime$002e$002dAbstract$002dFunction1$002e$0024$0024$002dLambda$002470e1780b84463d18653aacefee3ab989ac625f28.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((adapter$2) => {
+    var f$proxy2 = new $j_java$002elang$002e$002dObject.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((adapter$2) => {
       var promise$proxy2 = adapter$2.requestDevice();
-      var f$proxy1 = new $j_scala$002eruntime$002e$002dAbstract$002dFunction1$002e$0024$0024$002dLambda$002470e1780b84463d18653aacefee3ab989ac625f28.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((device$3) => {
+      var f$proxy1 = new $j_java$002elang$002e$002dObject.$c_sr_AbstractFunction1_$$Lambda$70e1780b84463d18653aacefee3ab989ac625f28(((device$3) => {
         var queue = device$3.queue;
-        var context = $j_webgpu$002e$002dWeb$002dG$002dP$002dU$0024.$m_Lwebgpu_WebGPU$().b0(canvas);
+        var context = $j_webgpu$002e$002dWeb$002dG$002dP$002dU$0024.$m_Lwebgpu_WebGPU$().c5(canvas);
         var format = gpuOpt.getPreferredCanvasFormat();
         context.configure(({
           "device": device$3,
@@ -54,15 +53,15 @@ $p.cb = (function(canvas, init) {
         var h$1 = (canvas.clientHeight | 0);
         canvas.width = w$1;
         canvas.height = h$1;
-        init.j(painter);
+        init.f(painter);
       }));
-      return promise$proxy2.then($j_scala$002escalajs$002ejs$002e$002dAny$0024.$m_sjs_js_Any$().W(f$proxy1));
+      return promise$proxy2.then($j_scala$002escalajs$002ejs$002e$002dAny$0024.$m_sjs_js_Any$().aH(f$proxy1));
     }));
-    return promise$proxy3.then($j_scala$002escalajs$002ejs$002e$002dAny$0024.$m_sjs_js_Any$().W(f$proxy2));
+    return promise$proxy3.then($j_scala$002escalajs$002ejs$002e$002dAny$0024.$m_sjs_js_Any$().aH(f$proxy2));
   }
 });
 var $d_Lgpu_painter_init$package$ = new $j_java$002elang$002e$002dObject.$TypeData().i($c_Lgpu_painter_init$package$, "gpu.painter.init$package$", ({
-  as: 1
+  b4: 1
 }));
 export { $d_Lgpu_painter_init$package$ as $d_Lgpu_painter_init$package$ };
 var $n_Lgpu_painter_init$package$;

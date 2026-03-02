@@ -175,8 +175,30 @@ object BufferTriangle:
     // Animation state
     var startTime = js.Date.now()
 
+    // FPS tracking
+    val fpsEl = document.getElementById("fps").asInstanceOf[HTMLElement]
+    var frameCount = 0
+    var lastFpsTime = 0.0
+    var lastFpsLog = 0.0
+
     // Render frame with animation
     def render(time: Double): Unit =
+      // FPS calculation
+      frameCount += 1
+      if lastFpsTime == 0.0 then
+        lastFpsTime = time
+        lastFpsLog = time
+      val fpsElapsed = time - lastFpsTime
+      if fpsElapsed >= 1000.0 then
+        val fps = frameCount * 1000.0 / fpsElapsed
+        val frameTime = fpsElapsed / frameCount
+        fpsEl.textContent = f"${fps}%.1f FPS (${frameTime}%.2f ms/frame)"
+        if time - lastFpsLog >= 1000.0 then
+          dom.console.log(f"${fps}%.1f FPS — ${frameTime}%.2f ms/frame")
+          lastFpsLog = time
+        frameCount = 0
+        lastFpsTime = time
+
       // Animate tint color
       val elapsed = (time - startTime) / 2000.0
       val r = (Math.sin(elapsed * 2.0) * 0.5 + 0.5)

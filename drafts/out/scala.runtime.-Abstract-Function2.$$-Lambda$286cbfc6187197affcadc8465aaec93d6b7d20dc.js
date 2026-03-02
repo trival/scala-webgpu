@@ -4,8 +4,8 @@ import * as $j_scala$002eruntime$002e$002dAbstract$002dFunction2 from "./scala.r
 var $p;
 /** @constructor */
 function $c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc(f) {
-  this.bz = null;
-  this.bz = f;
+  this.d9 = null;
+  this.d9 = f;
 }
 export { $c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc as $c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc };
 $p = $c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc.prototype = new $j_scala$002eruntime$002e$002dAbstract$002dFunction2.$h_sr_AbstractFunction2();
@@ -15,12 +15,12 @@ function $h_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20
 }
 export { $h_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc as $h_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc };
 $h_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc.prototype = $p;
-$p.G = (function(x0, x1) {
-  return (0, this.bz)(x0, x1);
+$p.a3 = (function(x0, x1) {
+  return (0, this.d9)(x0, x1);
 });
 var $d_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc = new $j_java$002elang$002e$002dObject.$TypeData().i($c_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc, "scala.runtime.AbstractFunction2.$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc", ({
-  bV: 1,
-  bU: 1,
-  aQ: 1
+  d7: 1,
+  d6: 1,
+  bU: 1
 }));
 export { $d_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc as $d_sr_AbstractFunction2_$$Lambda$286cbfc6187197affcadc8465aaec93d6b7d20dc };

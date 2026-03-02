@@ -14,6 +14,7 @@ const server = serve({
 		"/simple_triangle": simpleTriangle,
 	},
 
+	// development: false,
 	development: true,
 });
 
