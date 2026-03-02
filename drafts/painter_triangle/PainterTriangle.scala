@@ -20,21 +20,20 @@ import scala.scalajs.js.annotation.*
 def main(): Unit =
   val canvas =
     document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
-  val statusEl = document.getElementById("status").asInstanceOf[HTMLElement]
 
   initPainter(canvas): painter =>
     type Attribs = (position: Vec2, color: Vec3)
     type Varyings = (color: Vec3)
-    type Uniforms = (tintColor: Vec4)
+    type Uniforms = (tintColor: Vec3)
 
     val shade = painter.shade[Attribs, Varyings, Uniforms](
       vertBody = """
-        |  out.position = vec4<f32>(in.position, 0.0, 1.0);
-        |  out.color = in.color;
-        """.stripMargin,
+        out.position = vec4<f32>(in.position, 0.0, 1.0);
+        out.color = in.color;
+        """,
       fragBody = """
-        |  out.color = vec4<f32>(in.color, 1.0) * tintColor;
-        """.stripMargin,
+        out.color = vec4<f32>(in.color * tintColor, 1.0);
+        """,
     )
 
     val vertices = allocateAttribs[Attribs](3)
@@ -52,12 +51,12 @@ def main(): Unit =
     vertices(2)(1) := (0.0, 0.0, 1.0)
 
     val form = painter.form(vertices)
-    val tintColor = painter.binding[Vec4]
+    val tintColor = painter.binding[Vec3]
     val shape = painter.shape(form, shade).bind(0 -> tintColor)
 
     var time = 0.0
 
-    val animator = animate: tpf =>
+    animate: tpf =>
       time += tpf
       val elapsed = time / 2000.0
 
@@ -67,10 +66,3 @@ def main(): Unit =
         c.b = Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5
 
       painter.draw(shape, clearColor = (0.1, 0.1, 0.1, 1.0))
-
-    val fpsEl = document.getElementById("fps").asInstanceOf[HTMLElement]
-    animator.onFps: fps =>
-      fpsEl.textContent = f"${fps}%.1f FPS"
-
-    statusEl.textContent = "Painter triangle with animated tint!"
-    statusEl.setAttribute("class", "success")
