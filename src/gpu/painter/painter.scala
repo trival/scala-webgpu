@@ -64,14 +64,7 @@ class Painter(
       topology: PrimitiveTopology = PrimitiveTopology.TriangleList,
       frontFace: FrontFace = FrontFace.CCW,
   ): Form =
-    val buffer = device.createBuffer(
-      Obj.literal(
-        size = vertices.arrayBuffer.byteLength,
-        usage = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-      ),
-    )
-    queue.writeBuffer(buffer, 0.0, vertices.arrayBuffer)
-    Form(buffer, vertices.length, topology, frontFace)
+    Form(device, queue, vertices, topology, frontFace)
 
   // =========================================================================
   // Binding factory
@@ -142,7 +135,8 @@ class Painter(
 
     pass.setPipeline(pipeline)
 
-    if shape.bindings.length > 0 && shape.shade.valueBindGroupLayout != null then
+    if shape.bindings.length > 0 && shape.shade.valueBindGroupLayout != null
+    then
       val bindGroup = createBindGroup(shape)
       pass.setBindGroup(0, bindGroup)
 
@@ -168,8 +162,7 @@ class Painter(
 
     val target: js.Dynamic =
       if shape.blendState.isEmpty then Obj.literal(format = preferredFormat)
-      else
-        Obj.literal(format = preferredFormat, blend = shape.blendState.safe)
+      else Obj.literal(format = preferredFormat, blend = shape.blendState.safe)
 
     val vertexDescriptor =
       if shade.vertexBufferLayout != null then

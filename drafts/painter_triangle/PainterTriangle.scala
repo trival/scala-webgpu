@@ -4,8 +4,9 @@ import gpu.buffers.*
 import gpu.math.*
 import gpu.math.given
 import gpu.painter.*
-import gpu.shader.{*, given}
 import gpu.shader.None as GPUNone
+import gpu.shader.{*, given}
+import gpu.utils.animation.animate
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
@@ -54,44 +55,22 @@ def main(): Unit =
     val tintColor = painter.binding[Vec4]
     val shape = painter.shape(form, shade).bind(0 -> tintColor)
 
-    val startTime = js.Date.now()
+    var time = 0.0
 
-    // FPS tracking
-    val fpsEl = document.getElementById("fps").asInstanceOf[HTMLElement]
-    var frameCount = 0
-    var lastFpsTime = 0.0
-    var lastFpsLog = 0.0
+    val animator = animate: tpf =>
+      time += tpf
+      val elapsed = time / 2000.0
 
-    def render(time: Double): Unit =
-      // FPS calculation
-      frameCount += 1
-      if lastFpsTime == 0.0 then
-        lastFpsTime = time
-        lastFpsLog = time
-      val fpsElapsed = time - lastFpsTime
-      if fpsElapsed >= 1000.0 then
-        val fps = frameCount * 1000.0 / fpsElapsed
-        val frameTime = fpsElapsed / frameCount
-        fpsEl.textContent = f"${fps}%.1f FPS (${frameTime}%.2f ms/frame)"
-        if time - lastFpsLog >= 1000.0 then
-          dom.console.log(f"${fps}%.1f FPS — ${frameTime}%.2f ms/frame")
-          lastFpsLog = time
-        frameCount = 0
-        lastFpsTime = time
-
-      val elapsed = (time - startTime) / 2000.0
-      val r = Math.sin(elapsed * 2.0) * 0.5 + 0.5
-      val g = Math.sin(elapsed * 2.0 + 2.0) * 0.5 + 0.5
-      val b = Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5
       tintColor.update: c =>
-        c.r = r
-        c.g = g
-        c.b = b
+        c.r = Math.sin(elapsed * 2.0) * 0.5 + 0.5
+        c.g = Math.sin(elapsed * 2.0 + 2.0) * 0.5 + 0.5
+        c.b = Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5
 
       painter.draw(shape, clearColor = (0.1, 0.1, 0.1, 1.0))
-      dom.window.requestAnimationFrame(t => render(t))
 
-    dom.window.requestAnimationFrame(t => render(t))
+    val fpsEl = document.getElementById("fps").asInstanceOf[HTMLElement]
+    animator.onFps: fps =>
+      fpsEl.textContent = f"${fps}%.1f FPS"
 
     statusEl.textContent = "Painter triangle with animated tint!"
     statusEl.setAttribute("class", "success")
