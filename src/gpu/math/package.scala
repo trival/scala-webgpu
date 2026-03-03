@@ -1,9 +1,10 @@
 package gpu.math
 
-given Conversion[Float, Float] = identity
-given Conversion[Double, Double] = identity
-given Conversion[Float, Double] = identity
-given Conversion[Double, Float] = _.toFloat
+inline given Conversion[Float, Float] = identity
+inline given Conversion[Double, Double] = identity
+inline given Conversion[Float, Double] = identity
+inline given Conversion[Double, Float]:
+  inline def apply(x: Double): Float = x.toFloat
 
 export Vec2Buffer.given
 export Vec2dBuffer.given

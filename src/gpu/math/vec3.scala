@@ -4,9 +4,9 @@ import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.F64
 import trivalibs.bufferdata.StructRef
 import trivalibs.utils.numbers.NumExt
+import trivalibs.utils.numbers.NumOps
 
-trait Vec3Base[Num: {NumExt, Fractional}, Vec]:
-  import Fractional.Implicits.given
+trait Vec3Base[Num: {NumExt, NumOps}, Vec]:
 
   extension (v: Vec)
     def x: Num
@@ -21,7 +21,7 @@ trait Vec3Base[Num: {NumExt, Fractional}, Vec]:
     inline def length_squared: Num = v.dot(v)
     inline def length: Num = v.length_squared.sqrt
 
-trait Vec3Mutable[Num: {NumExt, Fractional}, Vec] extends Vec3Base[Num, Vec]:
+trait Vec3Mutable[Num: {NumExt, NumOps}, Vec] extends Vec3Base[Num, Vec]:
   extension (v: Vec)
     def x_=(value: Num): Unit
     def y_=(value: Num): Unit
@@ -30,8 +30,7 @@ trait Vec3Mutable[Num: {NumExt, Fractional}, Vec] extends Vec3Base[Num, Vec]:
     inline def g_=(value: Num): Unit = y_=(value)
     inline def b_=(value: Num): Unit = z_=(value)
 
-trait Vec3ImmutableOps[Num: {NumExt, Fractional}, Vec]:
-  import Fractional.Implicits.given
+trait Vec3ImmutableOps[Num: {NumExt, NumOps}, Vec]:
 
   inline def create(x: Num, y: Num, z: Num): Vec
   inline def from[Num2, Vec2](
@@ -73,8 +72,7 @@ trait Vec3ImmutableOps[Num: {NumExt, Fractional}, Vec]:
     inline def normalized: Vec =
       v / v.length
 
-trait Vec3MutableOps[Num: {NumExt, Fractional}, Vec]:
-  import Fractional.Implicits.given
+trait Vec3MutableOps[Num: {NumExt, NumOps}, Vec]:
 
   extension (v: Vec)(using Vec3Mutable[Num, Vec])
     inline def set[Num2, Vec2](

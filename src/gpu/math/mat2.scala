@@ -1,6 +1,7 @@
 package gpu.math
 
 import trivalibs.utils.numbers.NumExt.given
+import trivalibs.utils.numbers.NumOps
 import trivalibs.bufferdata.StructRef
 import trivalibs.bufferdata.F32
 
@@ -43,15 +44,13 @@ trait Mat2Mutable[Num, Mat] extends Mat2Base[Num, Mat]:
       m.m01 = r._1; m.m11 = r._2
 
 // format: off
-trait Mat2SharedOps[Num: Fractional, Mat]:
-  import Fractional.Implicits.given
+trait Mat2SharedOps[Num: NumOps, Mat]:
 
   extension (m: Mat)(using Mat2Base[Num, Mat])
     inline def determinant: Num =
       m.m00 * m.m11 - m.m10 * m.m01
 
-trait Mat2ImmutableOps[Num: Fractional, Mat]:
-  import Fractional.Implicits.given
+trait Mat2ImmutableOps[Num: NumOps, Mat]:
 
   inline def create(m00: Num, m01: Num, m10: Num, m11: Num): Mat
 
@@ -61,11 +60,11 @@ trait Mat2ImmutableOps[Num: Fractional, Mat]:
   inline def fromRotation(angle: Double)(using Conversion[Double, Num]): Mat =
     val c: Num = angle.cos
     val s: Num = angle.sin
-    create(c, s, summon[Fractional[Num]].negate(s), c)
+    create(c, s, -s, c)
 
   inline def identity: Mat =
-    val z = summon[Fractional[Num]].zero
-    val o = summon[Fractional[Num]].one
+    val z = summon[NumOps[Num]].zero
+    val o = summon[NumOps[Num]].one
     create(o, z, z, o)
 
   extension (m: Mat)(using Mat2Base[Num, Mat])
@@ -100,7 +99,7 @@ trait Mat2ImmutableOps[Num: Fractional, Mat]:
 
     inline def inversed: Mat =
       val det = m.m00 * m.m11 - m.m10 * m.m01
-      val invDet = summon[Fractional[Num]].one / det
+      val invDet = summon[NumOps[Num]].one / det
       create(
          m.m11 * invDet, -m.m01 * invDet,
         -m.m10 * invDet,  m.m00 * invDet
@@ -109,14 +108,13 @@ trait Mat2ImmutableOps[Num: Fractional, Mat]:
     inline def rotated(angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos
       val s: Num = angle.sin
-      val ns = summon[Fractional[Num]].negate(s)
+      val ns = -s
       create(
         c * m.m00 + ns * m.m01, s * m.m00 + c * m.m01,
         c * m.m10 + ns * m.m11, s * m.m10 + c * m.m11
       )
 
-trait Mat2MutableOps[Num: Fractional, Mat]:
-  import Fractional.Implicits.given
+trait Mat2MutableOps[Num: NumOps, Mat]:
 
   extension (m: Mat)(using mb: Mat2Mutable[Num, Mat])
     inline def set[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
@@ -138,8 +136,8 @@ trait Mat2MutableOps[Num: Fractional, Mat]:
       m.m10 = m.m10 * scalar; m.m11 = m.m11 * scalar
 
     inline def setIdentity(): Unit =
-      val z = summon[Fractional[Num]].zero
-      val o = summon[Fractional[Num]].one
+      val z = summon[NumOps[Num]].zero
+      val o = summon[NumOps[Num]].one
       m.m00 = o; m.m01 = z
       m.m10 = z; m.m11 = o
 
@@ -150,7 +148,7 @@ trait Mat2MutableOps[Num: Fractional, Mat]:
 
     inline def inverse(out: Mat = m): Mat =
       val det = m.m00 * m.m11 - m.m10 * m.m01
-      val invDet = summon[Fractional[Num]].one / det
+      val invDet = summon[NumOps[Num]].one / det
       val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
       out.m00 =  t11 * invDet; out.m01 = -t01 * invDet
       out.m10 = -t10 * invDet; out.m11 =  t00 * invDet
@@ -159,7 +157,7 @@ trait Mat2MutableOps[Num: Fractional, Mat]:
     inline def rotate(angle: Double, out: Mat = m)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos
       val s: Num = angle.sin
-      val ns = summon[Fractional[Num]].negate(s)
+      val ns = -s
       val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
       out.m00 = c * t00 + ns * t01; out.m01 = s * t00 + c * t01
       out.m10 = c * t10 + ns * t11; out.m11 = s * t10 + c * t11

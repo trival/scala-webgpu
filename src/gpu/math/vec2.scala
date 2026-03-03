@@ -4,9 +4,9 @@ import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.F64
 import trivalibs.bufferdata.StructRef
 import trivalibs.utils.numbers.NumExt
+import trivalibs.utils.numbers.NumOps
 
-trait Vec2Base[Num: {NumExt, Fractional}, Vec]:
-  import Fractional.Implicits.given
+trait Vec2Base[Num: {NumExt, NumOps}, Vec]:
 
   extension (v: Vec)
     def x: Num
@@ -19,15 +19,14 @@ trait Vec2Base[Num: {NumExt, Fractional}, Vec]:
     inline def length_squared: Num = v.dot(v)
     inline def length: Num = v.length_squared.sqrt
 
-trait Vec2Mutable[Num: {NumExt, Fractional}, Vec] extends Vec2Base[Num, Vec]:
+trait Vec2Mutable[Num: {NumExt, NumOps}, Vec] extends Vec2Base[Num, Vec]:
   extension (v: Vec)
     def x_=(value: Num): Unit
     def y_=(value: Num): Unit
     inline def u_=(value: Num): Unit = x_=(value)
     inline def v_=(value: Num): Unit = y_=(value)
 
-trait Vec2ImmutableOps[Num: {NumExt, Fractional}, Vec]:
-  import Fractional.Implicits.given
+trait Vec2ImmutableOps[Num: {NumExt, NumOps}, Vec]:
 
   inline def create(x: Num, y: Num): Vec
   inline def from[Num2, Vec2](
@@ -55,8 +54,7 @@ trait Vec2ImmutableOps[Num: {NumExt, Fractional}, Vec]:
     inline def normalized: Vec =
       v / v.length
 
-trait Vec2MutableOps[Num: {NumExt, Fractional}, Vec]:
-  import Fractional.Implicits.given
+trait Vec2MutableOps[Num: {NumExt, NumOps}, Vec]:
 
   extension (v: Vec)(using Vec2Mutable[Num, Vec])
     inline def set[Num2, Vec2](
