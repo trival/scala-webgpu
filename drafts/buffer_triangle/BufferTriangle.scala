@@ -6,6 +6,7 @@ import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
 import trivalibs.utils.js.*
+import trivalibs.utils.numbers.NumExt.given
 import webgpu.*
 
 import scala.scalajs.js
@@ -201,9 +202,9 @@ object BufferTriangle:
 
       // Animate tint color
       val elapsed = (time - startTime) / 2000.0
-      val r = (Math.sin(elapsed * 2.0) * 0.5 + 0.5)
-      val g = (Math.sin(elapsed * 2.0 + 2.0) * 0.5 + 0.5)
-      val b = (Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5)
+      val r = (elapsed * 2.0).sin * 0.5 + 0.5
+      val g = (elapsed * 2.0 + 2.0).sin * 0.5 + 0.5
+      val b = (elapsed * 2.0 + 4.0).sin * 0.5 + 0.5
       // tintColor := Vec4(r, g, b, 1)
       tintColor.update: c =>
         c.r = r

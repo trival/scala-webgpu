@@ -12,6 +12,7 @@ import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
 import trivalibs.utils.js.*
+import trivalibs.utils.numbers.NumExt.given
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
@@ -61,8 +62,8 @@ def main(): Unit =
       val elapsed = time / 2000.0
 
       tintColor.update: c =>
-        c.r = Math.sin(elapsed * 2.0) * 0.5 + 0.5
-        c.g = Math.sin(elapsed * 2.0 + 2.0) * 0.5 + 0.5
-        c.b = Math.sin(elapsed * 2.0 + 4.0) * 0.5 + 0.5
+        c.r = (elapsed * 2.0).sin * 0.5 + 0.5
+        c.g = (elapsed * 2.0 + 2.0).sin * 0.5 + 0.5
+        c.b = (elapsed * 2.0 + 4.0).sin * 0.5 + 0.5
 
       painter.draw(shape, clearColor = (0.1, 0.1, 0.1, 1.0))
