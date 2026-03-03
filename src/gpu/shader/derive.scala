@@ -2,6 +2,7 @@ package gpu.shader
 
 import scala.compiletime.*
 import scala.NamedTuple.AnyNamedTuple
+import gpu.buffers.BufferBinding
 import trivalibs.utils.js.Arr
 
 /** Utilities for deriving WGSL code from Scala types at compile time */
@@ -176,6 +177,105 @@ object derive:
   private inline def unwrapUniformType[T]: String =
     // For now, all wrapper types are just type aliases, so T is the actual type
     summonInline[WGSLType[T]].wgslName
+
+  // ===========================================================================
+  // Uniform Field Index Resolution (compile-time name → binding index)
+  // ===========================================================================
+
+  /** Resolve a field name to its binding index within a named tuple.
+    * Produces a compile-time error if the name doesn't match any field.
+    */
+  inline def uniformFieldIndex[Name <: String, U]: Int =
+    inline erasedValue[U] match
+      case _: AnyNamedTuple =>
+        uniformFieldIndexImpl[
+          Name,
+          NamedTuple.Names[U & AnyNamedTuple],
+          0,
+        ]
+
+  private inline def uniformFieldIndexImpl[
+      Name <: String,
+      Names <: Tuple,
+      Idx <: Int,
+  ]: Int =
+    inline erasedValue[Names] match
+      case _: EmptyTuple =>
+        error("Binding name not found in Uniforms type")
+      case _: (name *: rest) =>
+        inline constValue[name] match
+          case _: Name => constValue[Idx]
+          case _       => uniformFieldIndexImpl[Name, rest, compiletime.ops.int.S[Idx]]
+
+  /** Resolve the value type for a named field, unwrapping visibility wrappers.
+    * Returns the inner type (e.g. Vec3 from FragmentUniform[Vec3]).
+    */
+  inline def uniformFieldType[Name <: String, U]: Any =
+    inline erasedValue[U] match
+      case _: AnyNamedTuple =>
+        uniformFieldTypeImpl[
+          Name,
+          NamedTuple.Names[U & AnyNamedTuple],
+          NamedTuple.DropNames[U & AnyNamedTuple],
+        ]
+
+  private inline def uniformFieldTypeImpl[
+      Name <: String,
+      Names <: Tuple,
+      Types <: Tuple,
+  ]: Any =
+    inline (erasedValue[Names], erasedValue[Types]) match
+      case (_: EmptyTuple, _) =>
+        error("Binding name not found in Uniforms type")
+      case (_: (name *: namesRest), _: (head *: typesRest)) =>
+        inline constValue[name] match
+          case _: Name => erasedValue[UnwrapUniform[head]]
+          case _ =>
+            uniformFieldTypeImpl[Name, namesRest, typesRest]
+
+  /** Match type to unwrap visibility wrappers */
+  type UnwrapUniform[T] = T match
+    case VertexUniform[t]   => t
+    case FragmentUniform[t] => t
+    case SharedUniform[t]   => t
+    case _                  => T
+
+  /** Compile-time check that V matches the expected type for field Name in U.
+    * V can be the raw type T or a BufferBinding[T, ?] — both are accepted.
+    */
+  inline def checkUniformFieldType[Name <: String, V, U]: Unit =
+    inline erasedValue[U] match
+      case _: AnyNamedTuple =>
+        checkFieldTypeImpl[
+          Name,
+          V,
+          NamedTuple.Names[U & AnyNamedTuple],
+          NamedTuple.DropNames[U & AnyNamedTuple],
+        ]
+
+  private inline def checkFieldTypeImpl[
+      Name <: String,
+      V,
+      Names <: Tuple,
+      Types <: Tuple,
+  ]: Unit =
+    inline (erasedValue[Names], erasedValue[Types]) match
+      case (_: EmptyTuple, _) =>
+        error("Binding name not found in Uniforms type")
+      case (_: (name *: namesRest), _: (head *: typesRest)) =>
+        inline constValue[name] match
+          case _: Name =>
+            type Expected = UnwrapUniform[head]
+            summonFrom:
+              case _: (V =:= Expected) => ()
+              case _: (V <:< BufferBinding[Expected, ?]) => ()
+              case _ => error("Binding type mismatch: value type does not match uniform field type")
+          case _ =>
+            checkFieldTypeImpl[Name, V, namesRest, typesRest]
+
+  // ===========================================================================
+  // Uniform Group List Generation
+  // ===========================================================================
 
   private def generateUniformGroupFromLists(
       groupIdx: Int,

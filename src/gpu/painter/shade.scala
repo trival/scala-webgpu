@@ -3,7 +3,7 @@ package gpu.painter
 import scala.scalajs.js
 import webgpu.*
 
-class Shade(
+class Shade[U](
     val id: Int,
     val shaderModule: GPUShaderModule,
     val vertexBufferLayout: js.Dynamic | Null,

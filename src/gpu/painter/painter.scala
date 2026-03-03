@@ -31,7 +31,7 @@ class Painter(
   inline def shade[A, V, U](
       vertBody: String,
       fragBody: String,
-  ): Shade =
+  ): Shade[U] =
     val id = nextShadeId
     nextShadeId += 1
 
@@ -45,7 +45,7 @@ class Painter(
           device,
           Arr[GPUBindGroupLayout](),
         )
-        Shade(id, module, vbl, null, pl, false)
+        Shade[U](id, module, vbl, null, pl, false)
       case _ =>
         type Wrapped = (values: U)
         val sd = Shader[A, V, Wrapped](vertBody, fragBody)
@@ -53,7 +53,7 @@ class Painter(
         val module = device.createShaderModule(Obj.literal(code = wgsl))
         val vbl = sd.vertexBufferLayout
         val (bgls, pl) = sd.createPipelineLayout(device)
-        Shade(id, module, vbl, bgls(0), pl, false)
+        Shade[U](id, module, vbl, bgls(0), pl, false)
 
   // =========================================================================
   // Form factory
@@ -82,21 +82,21 @@ class Painter(
   // Shape factory
   // =========================================================================
 
-  def shape(
+  def shape[U](
       form: Form,
-      shade: Shade,
+      shade: Shade[U],
       bindings: BindingSlots = Arr(),
       cullMode: CullMode = CullMode.None,
       blendState: Opt[BlendState] = Opt.Null,
-  ): Shape =
-    Shape(form, shade, bindings, cullMode, blendState)
+  ): Shape[U] =
+    Shape[U](form, shade, device, bindings, cullMode, blendState)
 
   // =========================================================================
   // draw() — direct-to-canvas rendering
   // =========================================================================
 
   def draw(
-      shape: Shape,
+      shape: Shape[?],
       clearColor: Opt[(Double, Double, Double, Double)] = Opt.Null,
   ): Unit =
     val encoder = device.createCommandEncoder()
@@ -150,13 +150,13 @@ class Painter(
   // Pipeline creation + caching
   // =========================================================================
 
-  private def pipelineKeyStr(shape: Shape, format: String): String =
+  private def pipelineKeyStr(shape: Shape[?], format: String): String =
     val s = shape.shade
     val f = shape.form
     s"${s.id}|${shape.blendState.isEmpty}|${shape.cullMode}|${f.topology}|${f.frontFace}|${format}"
 
   private def createPipeline(
-      shape: Shape,
+      shape: Shape[?],
   ): GPURenderPipeline =
     val shade = shape.shade
 
@@ -198,7 +198,7 @@ class Painter(
   // Bind group creation
   // =========================================================================
 
-  private def createBindGroup(shape: Shape): GPUBindGroup =
+  private def createBindGroup(shape: Shape[?]): GPUBindGroup =
     val entries = Arr[js.Dynamic]()
     var i = 0
     while i < shape.bindings.length do

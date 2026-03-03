@@ -649,9 +649,8 @@ never deleted — they remain as reference points and must keep compiling.
 
 For Milestone 1, bindings are deliberately simple. Since the painter convention
 puts all value/buffer bindings in group 0, the key is just the binding index
-(not a `(group, binding)` tuple). Bindings are stored in a sparse `Arr`
-(JS array) — null slots for unused binding points, zero Scala collection
-overhead.
+(not a `(group, binding)` tuple). Bindings are stored in a sparse `Arr` (JS
+array) — null slots for unused binding points, zero Scala collection overhead.
 
 ```scala
 // MVP: sparse array indexed by binding slot (group 0 is implicit)
@@ -1345,8 +1344,8 @@ def copyTextureToTexture(src: js.Dynamic, dst: js.Dynamic, size: js.Dynamic): Un
    parameter, does that complicate storage in collections (`List[Shade[?]]`)?
    May need a non-generic base trait with typed extension.
 
-3. ~~**Form creation ergonomics**~~: **Resolved** —
-   `painter.form(structArray)` infers vertex count from `StructArray.length`.
+3. ~~**Form creation ergonomics**~~: **Resolved** — `painter.form(structArray)`
+   infers vertex count from `StructArray.length`.
 
 4. **Panel texture format**: When panels get advanced features (Milestone 4),
    should formats be inferred from the shades or always explicit?
@@ -1404,16 +1403,86 @@ All planned components are implemented and working:
 
 #### Design Divergences from Original Plan
 
-| Original Design | Actual Implementation | Reason |
-| --- | --- | --- |
-| `CanvasApp` trait with lifecycle | `initPainter` callback | Browser APIs are already ergonomic; Rust-style lifecycle management adds unnecessary abstraction |
-| `enum` for GPU constants | `opaque type = String` with `.toJs` | Enums generate ~400 lines of JS boilerplate; opaque types compile to bare string constants |
-| `Map[Int, BufferBinding]` for bindings | `Arr[BufferBinding \| Null]` (sparse JS array) | Zero Scala collection overhead; aligns with JS bundle size rules |
-| `BlendMode` enum (Replace/Alpha/...) | `BlendState` class + `BlendFactor`/`BlendOp` opaque types | More flexible composition; pre-built constants for common modes |
-| `shape.bindings = Map(...)` assignment | `shape.bind(0 -> b)` fluent API | Cleaner chaining: `painter.shape(form, shade).bind(0 -> tintColor)` |
-| `Option` for optional values | `Opt` (`js.UndefOr`) | Follows JS bundle size rules |
-| `Dict` (js.Dictionary) for pipeline cache | `Dict[GPURenderPipeline]` with string keys | Zero-cost JS object as hashmap |
+| Original Design                           | Actual Implementation                                     | Reason                                                                                           |
+| ----------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `CanvasApp` trait with lifecycle          | `initPainter` callback                                    | Browser APIs are already ergonomic; Rust-style lifecycle management adds unnecessary abstraction |
+| `enum` for GPU constants                  | `opaque type = String` with `.toJs`                       | Enums generate ~400 lines of JS boilerplate; opaque types compile to bare string constants       |
+| `Map[Int, BufferBinding]` for bindings    | `Arr[BufferBinding \| Null]` (sparse JS array)            | Zero Scala collection overhead; aligns with JS bundle size rules                                 |
+| `BlendMode` enum (Replace/Alpha/...)      | `BlendState` class + `BlendFactor`/`BlendOp` opaque types | More flexible composition; pre-built constants for common modes                                  |
+| `shape.bindings = Map(...)` assignment    | `shape.bind(0 -> b)` fluent API                           | Cleaner chaining: `painter.shape(form, shade).bind(0 -> tintColor)`                              |
+| `Option` for optional values              | `Opt` (`js.UndefOr`)                                      | Follows JS bundle size rules                                                                     |
+| `Dict` (js.Dictionary) for pipeline cache | `Dict[GPURenderPipeline]` with string keys                | Zero-cost JS object as hashmap                                                                   |
 
 ### Milestone 1, Step B — Panel + Blit: Not Started
 
-### Milestone 2 — Type-Safe Named Bindings: Not Started
+### Milestone 2 — Type-Safe Named Bindings: **Done**
+
+Type-safe named bindings are implemented and validated with a working draft
+example. Both raw values and external `BufferBinding` objects are supported,
+with compile-time validation of binding names and value types.
+
+#### What was implemented
+
+**`Shade[U]`** — phantom type parameter carries the `Uniforms` type:
+
+- `Shade` (`src/gpu/painter/shade.scala`) now takes a type parameter `U`
+  representing the Uniforms named tuple
+- `painter.shade[A, V, U](...)` returns `Shade[U]`, propagating the type
+
+**`Shape[U]`** — typed shape with named `bind()`:
+
+- `Shape` (`src/gpu/painter/shape.scala`) takes type parameter `U` from its
+  `Shade[U]`
+- Holds `device: GPUDevice` reference for auto-creating managed bindings
+- Retains the untyped `bind(slots: (Int, BufferBinding)*)` for backward
+  compatibility
+- New typed `bind("name" := value)` overloads (1–3 entries) using `BindPair`
+
+**`BindPair[N, V]`** — typed name-value pair:
+
+- `BindPair` class + `:=` extension method on string literals
+- `"color" := Vec3(1, 0, 0)` creates a `BindPair["color", Vec3]`
+- The string literal type `N` is preserved as a singleton type for compile-time
+  name resolution
+
+**Compile-time validation** (`src/gpu/shader/derive.scala`):
+
+- `uniformFieldIndex[Name, U]` — resolves field name to binding slot index at
+  compile time, produces error if name not found
+- `checkUniformFieldType[Name, V, U]` — validates value type matches the
+  expected uniform field type. Uses `summonFrom` to accept both:
+  - Raw values: `V =:= UnwrapUniform[field]`
+  - BufferBindings: `V <:< BufferBinding[UnwrapUniform[field], ?]`
+  - Custom error message: "Binding type mismatch" on failure
+
+**`processEntry` in Shape** — inline dispatch:
+
+- Calls `checkUniformFieldType` first (applies to both raw and binding values)
+- Uses `inline value match` to separate `BufferBinding` from raw values at
+  compile time (not runtime `match`, which would type-check both branches)
+- Raw values: reuses existing binding if slot occupied (calls `.set()`),
+  otherwise auto-creates a managed `BufferBinding` via `summonFrom` on
+  `UniformValue[V, f]`
+- External bindings: stored directly in the slot
+
+**Draft** (`drafts/painter_typed_bindings/`):
+
+- Two animated triangles sharing the same shade/form with different bindings
+- Tests 3 uniform types: `Vec3` (fragment color), `Mat2` (vertex rotation),
+  `Vec2` (vertex translation)
+- Triangle 1: raw values for all bindings, auto-managed internally
+- Triangle 2: external `BufferBinding[Mat2]` for rotation (updated via
+  `mat1.update(_.rotate(...))`), raw values for color and translation
+- Validates compile-time error for wrong binding name, wrong raw value type, and
+  wrong `BufferBinding` inner type
+
+#### Design divergences from original plan
+
+| Original Design                                                 | Actual Implementation                                           | Reason                                                                                                                    |
+| --------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `shape.set("name" -> value)` with `->` tuples                   | `shape.bind("name" := value)` with `BindPair`                   | `:=` creates a typed `BindPair[N, V]` preserving the singleton string type; `->` creates `(String, Any)` losing type info |
+| Named tuple subset syntax (Option C: `shape.set((color = v))`)  | String-keyed `BindPair` with `summonFrom`                       | Avoids named-tuple-reduction issues in match types; simpler to implement; still fully type-checked                        |
+| `Map[String, BufferBinding]` for managed bindings               | Same `Arr[BufferBinding \| Null]` sparse array from Milestone 1 | Name→index resolution happens at compile time; runtime storage remains index-based                                        |
+| Separate managed vs external binding maps                       | Single `BindingSlots` array                                     | Both managed and external bindings are `BufferBinding` objects; no need for separate storage                              |
+| `Shade` stores runtime `Map[String, (Int, Int)]` name→slot      | Compile-time only via `uniformFieldIndex` inline                | No runtime name resolution needed; all names resolve to indices at compile time                                           |
+| Match type `UnwrapBinding[V]` for BufferBinding type extraction | `summonFrom` with `V <:< BufferBinding[Expected, ?]`            | Match types on `final class` don't reliably reduce in Scala 3; `summonFrom` with `<:<` works correctly                    |
