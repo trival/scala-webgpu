@@ -2,6 +2,7 @@ package gpu.math
 
 import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.StructRef
+import trivalibs.utils.numbers.NumExt.given
 
 // Column-major 3x3 matrix traits
 // Storage order: m00, m01, m02, m10, m11, m12, m20, m21, m22
@@ -82,32 +83,80 @@ trait Mat3ImmutableOps[Num: Fractional, Mat]:
   ): Mat
   // format: on
 
-  inline def from[Num2, Mat2_](other: Mat2_)(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
-    create(other.m00, other.m01, other.m02, other.m10, other.m11, other.m12, other.m20, other.m21, other.m22)
+  inline def from[Num2, Mat2_](
+      other: Mat2_,
+  )(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
+    create(
+      other.m00,
+      other.m01,
+      other.m02,
+      other.m10,
+      other.m11,
+      other.m12,
+      other.m20,
+      other.m21,
+      other.m22,
+    )
+
+  inline def fromRotationX(angle: Double)(using Conversion[Double, Num]): Mat =
+    val c: Num = angle.cos; val s: Num = angle.sin
+    val ns = summon[Fractional[Num]].negate(s)
+    val z = summon[Fractional[Num]].zero; val o = summon[Fractional[Num]].one
+    create(o, z, z, z, c, s, z, ns, c)
+
+  inline def fromRotationY(angle: Double)(using Conversion[Double, Num]): Mat =
+    val c: Num = angle.cos; val s: Num = angle.sin
+    val ns = summon[Fractional[Num]].negate(s)
+    val z = summon[Fractional[Num]].zero; val o = summon[Fractional[Num]].one
+    create(c, z, ns, z, o, z, s, z, c)
+
+  inline def fromRotationZ(angle: Double)(using Conversion[Double, Num]): Mat =
+    val c: Num = angle.cos; val s: Num = angle.sin
+    val ns = summon[Fractional[Num]].negate(s)
+    val z = summon[Fractional[Num]].zero; val o = summon[Fractional[Num]].one
+    create(c, s, z, ns, c, z, z, z, o)
+
+  inline def identity: Mat =
+    val z = summon[Fractional[Num]].zero
+    val o = summon[Fractional[Num]].one
+    create(o, z, z, z, o, z, z, z, o)
 
   extension (m: Mat)(using Mat3Base[Num, Mat])
-    inline def identity: Mat =
-      val z = summon[Fractional[Num]].zero
-      val o = summon[Fractional[Num]].one
-      create(o, z, z, z, o, z, z, z, o)
-
     inline def +(other: Mat): Mat = create(
-      m.m00 + other.m00, m.m01 + other.m01, m.m02 + other.m02,
-      m.m10 + other.m10, m.m11 + other.m11, m.m12 + other.m12,
-      m.m20 + other.m20, m.m21 + other.m21, m.m22 + other.m22
+      m.m00 + other.m00,
+      m.m01 + other.m01,
+      m.m02 + other.m02,
+      m.m10 + other.m10,
+      m.m11 + other.m11,
+      m.m12 + other.m12,
+      m.m20 + other.m20,
+      m.m21 + other.m21,
+      m.m22 + other.m22,
     )
 
     inline def -(other: Mat): Mat = create(
-      m.m00 - other.m00, m.m01 - other.m01, m.m02 - other.m02,
-      m.m10 - other.m10, m.m11 - other.m11, m.m12 - other.m12,
-      m.m20 - other.m20, m.m21 - other.m21, m.m22 - other.m22
+      m.m00 - other.m00,
+      m.m01 - other.m01,
+      m.m02 - other.m02,
+      m.m10 - other.m10,
+      m.m11 - other.m11,
+      m.m12 - other.m12,
+      m.m20 - other.m20,
+      m.m21 - other.m21,
+      m.m22 - other.m22,
     )
 
     @scala.annotation.targetName("scalarMul")
     inline def *(scalar: Num): Mat = create(
-      m.m00 * scalar, m.m01 * scalar, m.m02 * scalar,
-      m.m10 * scalar, m.m11 * scalar, m.m12 * scalar,
-      m.m20 * scalar, m.m21 * scalar, m.m22 * scalar
+      m.m00 * scalar,
+      m.m01 * scalar,
+      m.m02 * scalar,
+      m.m10 * scalar,
+      m.m11 * scalar,
+      m.m12 * scalar,
+      m.m20 * scalar,
+      m.m21 * scalar,
+      m.m22 * scalar,
     )
 
     @scala.annotation.targetName("matMul")
@@ -127,13 +176,19 @@ trait Mat3ImmutableOps[Num: Fractional, Mat]:
         a02 * b10 + a12 * b11 + a22 * b12,
         a00 * b20 + a10 * b21 + a20 * b22,
         a01 * b20 + a11 * b21 + a21 * b22,
-        a02 * b20 + a12 * b21 + a22 * b22
+        a02 * b20 + a12 * b21 + a22 * b22,
       )
 
     inline def transposed: Mat = create(
-      m.m00, m.m10, m.m20,
-      m.m01, m.m11, m.m21,
-      m.m02, m.m12, m.m22
+      m.m00,
+      m.m10,
+      m.m20,
+      m.m01,
+      m.m11,
+      m.m21,
+      m.m02,
+      m.m12,
+      m.m22,
     )
 
     inline def inversed: Mat =
@@ -141,43 +196,107 @@ trait Mat3ImmutableOps[Num: Fractional, Mat]:
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
       // Cofactors (transposed = adjugate)
-      val c00 =  a11 * a22 - a12 * a21
+      val c00 = a11 * a22 - a12 * a21
       val c01 = -(a10 * a22 - a12 * a20)
-      val c02 =  a10 * a21 - a11 * a20
+      val c02 = a10 * a21 - a11 * a20
       val c10 = -(a01 * a22 - a02 * a21)
-      val c11 =  a00 * a22 - a02 * a20
+      val c11 = a00 * a22 - a02 * a20
       val c12 = -(a00 * a21 - a01 * a20)
-      val c20 =  a01 * a12 - a02 * a11
+      val c20 = a01 * a12 - a02 * a11
       val c21 = -(a00 * a12 - a02 * a10)
-      val c22 =  a00 * a11 - a01 * a10
+      val c22 = a00 * a11 - a01 * a10
       val det = a00 * c00 + a10 * c10 + a20 * c20
       val invDet = summon[Fractional[Num]].one / det
       create(
-        c00 * invDet, c10 * invDet, c20 * invDet,
-        c01 * invDet, c11 * invDet, c21 * invDet,
-        c02 * invDet, c12 * invDet, c22 * invDet
+        c00 * invDet,
+        c10 * invDet,
+        c20 * invDet,
+        c01 * invDet,
+        c11 * invDet,
+        c21 * invDet,
+        c02 * invDet,
+        c12 * invDet,
+        c22 * invDet,
+      )
+
+    // RotX: col0 unchanged, col1/col2 mixed
+    inline def rotatedX(angle: Double)(using Conversion[Double, Num]): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      create(
+        m.m00,
+        m.m01,
+        m.m02,
+        c * m.m10 + ns * m.m20,
+        c * m.m11 + ns * m.m21,
+        c * m.m12 + ns * m.m22,
+        s * m.m10 + c * m.m20,
+        s * m.m11 + c * m.m21,
+        s * m.m12 + c * m.m22,
+      )
+
+    // RotY: col1 unchanged, col0/col2 mixed
+    inline def rotatedY(angle: Double)(using Conversion[Double, Num]): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      create(
+        c * m.m00 + s * m.m20,
+        c * m.m01 + s * m.m21,
+        c * m.m02 + s * m.m22,
+        m.m10,
+        m.m11,
+        m.m12,
+        ns * m.m00 + c * m.m20,
+        ns * m.m01 + c * m.m21,
+        ns * m.m02 + c * m.m22,
+      )
+
+    // RotZ: col2 unchanged, col0/col1 mixed
+    inline def rotatedZ(angle: Double)(using Conversion[Double, Num]): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      create(
+        c * m.m00 + ns * m.m10,
+        c * m.m01 + ns * m.m11,
+        c * m.m02 + ns * m.m12,
+        s * m.m00 + c * m.m10,
+        s * m.m01 + c * m.m11,
+        s * m.m02 + c * m.m12,
+        m.m20,
+        m.m21,
+        m.m22,
       )
 
 trait Mat3MutableOps[Num: Fractional, Mat]:
   import Fractional.Implicits.given
 
   extension (m: Mat)(using mb: Mat3Mutable[Num, Mat])
-    inline def set[Num2, Mat2_](other: Mat2_)(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
+    inline def set[Num2, Mat2_](
+        other: Mat2_,
+    )(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
       m.m00 = other.m00; m.m01 = other.m01; m.m02 = other.m02
       m.m10 = other.m10; m.m11 = other.m11; m.m12 = other.m12
       m.m20 = other.m20; m.m21 = other.m21; m.m22 = other.m22
-    inline def :=[Num2, Mat2_](other: Mat2_)(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
+    inline def :=[Num2, Mat2_](
+        other: Mat2_,
+    )(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
       m.set(other)
 
     inline def +=(other: Mat): Unit =
-      m.m00 = m.m00 + other.m00; m.m01 = m.m01 + other.m01; m.m02 = m.m02 + other.m02
-      m.m10 = m.m10 + other.m10; m.m11 = m.m11 + other.m11; m.m12 = m.m12 + other.m12
-      m.m20 = m.m20 + other.m20; m.m21 = m.m21 + other.m21; m.m22 = m.m22 + other.m22
+      m.m00 = m.m00 + other.m00; m.m01 = m.m01 + other.m01;
+      m.m02 = m.m02 + other.m02
+      m.m10 = m.m10 + other.m10; m.m11 = m.m11 + other.m11;
+      m.m12 = m.m12 + other.m12
+      m.m20 = m.m20 + other.m20; m.m21 = m.m21 + other.m21;
+      m.m22 = m.m22 + other.m22
 
     inline def -=(other: Mat): Unit =
-      m.m00 = m.m00 - other.m00; m.m01 = m.m01 - other.m01; m.m02 = m.m02 - other.m02
-      m.m10 = m.m10 - other.m10; m.m11 = m.m11 - other.m11; m.m12 = m.m12 - other.m12
-      m.m20 = m.m20 - other.m20; m.m21 = m.m21 - other.m21; m.m22 = m.m22 - other.m22
+      m.m00 = m.m00 - other.m00; m.m01 = m.m01 - other.m01;
+      m.m02 = m.m02 - other.m02
+      m.m10 = m.m10 - other.m10; m.m11 = m.m11 - other.m11;
+      m.m12 = m.m12 - other.m12
+      m.m20 = m.m20 - other.m20; m.m21 = m.m21 - other.m21;
+      m.m22 = m.m22 - other.m22
 
     inline def *=(scalar: Num): Unit =
       m.m00 = m.m00 * scalar; m.m01 = m.m01 * scalar; m.m02 = m.m02 * scalar
@@ -205,20 +324,62 @@ trait Mat3MutableOps[Num: Fractional, Mat]:
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
       // Cofactors (transposed = adjugate)
-      val c00 =  a11 * a22 - a12 * a21
+      val c00 = a11 * a22 - a12 * a21
       val c01 = -(a10 * a22 - a12 * a20)
-      val c02 =  a10 * a21 - a11 * a20
+      val c02 = a10 * a21 - a11 * a20
       val c10 = -(a01 * a22 - a02 * a21)
-      val c11 =  a00 * a22 - a02 * a20
+      val c11 = a00 * a22 - a02 * a20
       val c12 = -(a00 * a21 - a01 * a20)
-      val c20 =  a01 * a12 - a02 * a11
+      val c20 = a01 * a12 - a02 * a11
       val c21 = -(a00 * a12 - a02 * a10)
-      val c22 =  a00 * a11 - a01 * a10
+      val c22 = a00 * a11 - a01 * a10
       val det = a00 * c00 + a10 * c10 + a20 * c20
       val invDet = summon[Fractional[Num]].one / det
       out.m00 = c00 * invDet; out.m01 = c10 * invDet; out.m02 = c20 * invDet
       out.m10 = c01 * invDet; out.m11 = c11 * invDet; out.m12 = c21 * invDet
       out.m20 = c02 * invDet; out.m21 = c12 * invDet; out.m22 = c22 * invDet
+      out
+
+    inline def rotateX(angle: Double, out: Mat = m)(using
+        Conversion[Double, Num],
+    ): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      val t10 = m.m10; val t11 = m.m11; val t12 = m.m12
+      val t20 = m.m20; val t21 = m.m21; val t22 = m.m22
+      out.m00 = m.m00; out.m01 = m.m01; out.m02 = m.m02
+      out.m10 = c * t10 + ns * t20; out.m11 = c * t11 + ns * t21;
+      out.m12 = c * t12 + ns * t22
+      out.m20 = s * t10 + c * t20; out.m21 = s * t11 + c * t21;
+      out.m22 = s * t12 + c * t22
+      out
+
+    inline def rotateY(angle: Double, out: Mat = m)(using
+        Conversion[Double, Num],
+    ): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      val t00 = m.m00; val t01 = m.m01; val t02 = m.m02
+      val t20 = m.m20; val t21 = m.m21; val t22 = m.m22
+      out.m00 = c * t00 + s * t20; out.m01 = c * t01 + s * t21;
+      out.m02 = c * t02 + s * t22
+      out.m10 = m.m10; out.m11 = m.m11; out.m12 = m.m12
+      out.m20 = ns * t00 + c * t20; out.m21 = ns * t01 + c * t21;
+      out.m22 = ns * t02 + c * t22
+      out
+
+    inline def rotateZ(angle: Double, out: Mat = m)(using
+        Conversion[Double, Num],
+    ): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      val t00 = m.m00; val t01 = m.m01; val t02 = m.m02
+      val t10 = m.m10; val t11 = m.m11; val t12 = m.m12
+      out.m00 = c * t00 + ns * t10; out.m01 = c * t01 + ns * t11;
+      out.m02 = c * t02 + ns * t12
+      out.m10 = s * t00 + c * t10; out.m11 = s * t01 + c * t11;
+      out.m12 = s * t02 + c * t12
+      out.m20 = m.m20; out.m21 = m.m21; out.m22 = m.m22
       out
 
 // format: on

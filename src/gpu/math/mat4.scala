@@ -1,7 +1,8 @@
 package gpu.math
 
-import trivalibs.bufferdata.F32
+import trivalibs.utils.numbers.NumExt.given
 import trivalibs.bufferdata.StructRef
+import trivalibs.bufferdata.F32
 
 // Column-major 4x4 matrix traits
 // Storage order: m00, m01, m02, m03, m10, m11, ..., m33
@@ -113,12 +114,30 @@ trait Mat4ImmutableOps[Num: Fractional, Mat]:
       other.m30, other.m31, other.m32, other.m33,
     )
 
-  extension (m: Mat)(using Mat4Base[Num, Mat])
-    inline def identity: Mat =
-      val z = summon[Fractional[Num]].zero
-      val o = summon[Fractional[Num]].one
-      create(o, z, z, z, z, o, z, z, z, z, o, z, z, z, z, o)
+  inline def fromRotationX(angle: Double)(using Conversion[Double, Num]): Mat =
+    val c: Num = angle.cos; val s: Num = angle.sin
+    val ns = summon[Fractional[Num]].negate(s)
+    val z = summon[Fractional[Num]].zero; val o = summon[Fractional[Num]].one
+    create(o, z, z, z, z, c, s, z, z, ns, c, z, z, z, z, o)
 
+  inline def fromRotationY(angle: Double)(using Conversion[Double, Num]): Mat =
+    val c: Num = angle.cos; val s: Num = angle.sin
+    val ns = summon[Fractional[Num]].negate(s)
+    val z = summon[Fractional[Num]].zero; val o = summon[Fractional[Num]].one
+    create(c, z, ns, z, z, o, z, z, s, z, c, z, z, z, z, o)
+
+  inline def fromRotationZ(angle: Double)(using Conversion[Double, Num]): Mat =
+    val c: Num = angle.cos; val s: Num = angle.sin
+    val ns = summon[Fractional[Num]].negate(s)
+    val z = summon[Fractional[Num]].zero; val o = summon[Fractional[Num]].one
+    create(c, s, z, z, ns, c, z, z, z, z, o, z, z, z, z, o)
+
+  inline def identity: Mat =
+    val z = summon[Fractional[Num]].zero
+    val o = summon[Fractional[Num]].one
+    create(o, z, z, z, z, o, z, z, z, z, o, z, z, z, z, o)
+
+  extension (m: Mat)(using Mat4Base[Num, Mat])
     inline def +(other: Mat): Mat = create(
       m.m00 + other.m00, m.m01 + other.m01, m.m02 + other.m02, m.m03 + other.m03,
       m.m10 + other.m10, m.m11 + other.m11, m.m12 + other.m12, m.m13 + other.m13,
@@ -216,6 +235,39 @@ trait Mat4ImmutableOps[Num: Fractional, Mat]:
         ( a20 * b03 - a21 * b01 + a22 * b00) * invDet
       )
 
+    // RotX: col0 unchanged, col1/col2 mixed, col3 unchanged
+    inline def rotatedX(angle: Double)(using Conversion[Double, Num]): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      create(
+        m.m00, m.m01, m.m02, m.m03,
+        c * m.m10 + ns * m.m20, c * m.m11 + ns * m.m21, c * m.m12 + ns * m.m22, c * m.m13 + ns * m.m23,
+        s * m.m10 + c * m.m20,  s * m.m11 + c * m.m21,  s * m.m12 + c * m.m22,  s * m.m13 + c * m.m23,
+        m.m30, m.m31, m.m32, m.m33,
+      )
+
+    // RotY: col1 unchanged, col0/col2 mixed, col3 unchanged
+    inline def rotatedY(angle: Double)(using Conversion[Double, Num]): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      create(
+        c * m.m00 + s * m.m20,  c * m.m01 + s * m.m21,  c * m.m02 + s * m.m22,  c * m.m03 + s * m.m23,
+        m.m10, m.m11, m.m12, m.m13,
+        ns * m.m00 + c * m.m20, ns * m.m01 + c * m.m21, ns * m.m02 + c * m.m22, ns * m.m03 + c * m.m23,
+        m.m30, m.m31, m.m32, m.m33,
+      )
+
+    // RotZ: col2 unchanged, col0/col1 mixed, col3 unchanged
+    inline def rotatedZ(angle: Double)(using Conversion[Double, Num]): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      create(
+        c * m.m00 + ns * m.m10, c * m.m01 + ns * m.m11, c * m.m02 + ns * m.m12, c * m.m03 + ns * m.m13,
+        s * m.m00 + c * m.m10,  s * m.m01 + c * m.m11,  s * m.m02 + c * m.m12,  s * m.m03 + c * m.m13,
+        m.m20, m.m21, m.m22, m.m23,
+        m.m30, m.m31, m.m32, m.m33,
+      )
+
 trait Mat4MutableOps[Num: Fractional, Mat]:
   import Fractional.Implicits.given
 
@@ -301,6 +353,39 @@ trait Mat4MutableOps[Num: Fractional, Mat]:
       out.m31 = ( a00 * b09 - a01 * b07 + a02 * b06) * invDet
       out.m32 = (-a30 * b03 + a31 * b01 - a32 * b00) * invDet
       out.m33 = ( a20 * b03 - a21 * b01 + a22 * b00) * invDet
+      out
+
+    inline def rotateX(angle: Double, out: Mat = m)(using Conversion[Double, Num]): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      val t10 = m.m10; val t11 = m.m11; val t12 = m.m12; val t13 = m.m13
+      val t20 = m.m20; val t21 = m.m21; val t22 = m.m22; val t23 = m.m23
+      out.m00 = m.m00; out.m01 = m.m01; out.m02 = m.m02; out.m03 = m.m03
+      out.m10 = c * t10 + ns * t20; out.m11 = c * t11 + ns * t21; out.m12 = c * t12 + ns * t22; out.m13 = c * t13 + ns * t23
+      out.m20 = s * t10 + c * t20;  out.m21 = s * t11 + c * t21;  out.m22 = s * t12 + c * t22;  out.m23 = s * t13 + c * t23
+      out.m30 = m.m30; out.m31 = m.m31; out.m32 = m.m32; out.m33 = m.m33
+      out
+
+    inline def rotateY(angle: Double, out: Mat = m)(using Conversion[Double, Num]): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      val t00 = m.m00; val t01 = m.m01; val t02 = m.m02; val t03 = m.m03
+      val t20 = m.m20; val t21 = m.m21; val t22 = m.m22; val t23 = m.m23
+      out.m00 = c * t00 + s * t20;  out.m01 = c * t01 + s * t21;  out.m02 = c * t02 + s * t22;  out.m03 = c * t03 + s * t23
+      out.m10 = m.m10; out.m11 = m.m11; out.m12 = m.m12; out.m13 = m.m13
+      out.m20 = ns * t00 + c * t20; out.m21 = ns * t01 + c * t21; out.m22 = ns * t02 + c * t22; out.m23 = ns * t03 + c * t23
+      out.m30 = m.m30; out.m31 = m.m31; out.m32 = m.m32; out.m33 = m.m33
+      out
+
+    inline def rotateZ(angle: Double, out: Mat = m)(using Conversion[Double, Num]): Mat =
+      val c: Num = angle.cos; val s: Num = angle.sin
+      val ns = summon[Fractional[Num]].negate(s)
+      val t00 = m.m00; val t01 = m.m01; val t02 = m.m02; val t03 = m.m03
+      val t10 = m.m10; val t11 = m.m11; val t12 = m.m12; val t13 = m.m13
+      out.m00 = c * t00 + ns * t10; out.m01 = c * t01 + ns * t11; out.m02 = c * t02 + ns * t12; out.m03 = c * t03 + ns * t13
+      out.m10 = s * t00 + c * t10;  out.m11 = s * t01 + c * t11;  out.m12 = s * t02 + c * t12;  out.m13 = s * t03 + c * t13
+      out.m20 = m.m20; out.m21 = m.m21; out.m22 = m.m22; out.m23 = m.m23
+      out.m30 = m.m30; out.m31 = m.m31; out.m32 = m.m32; out.m33 = m.m33
       out
 
 // format: on
