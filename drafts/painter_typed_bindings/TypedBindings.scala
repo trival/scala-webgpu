@@ -70,10 +70,10 @@ def main(): Unit =
 
       shape1.bind(
         "rotation" := Mat2.fromRotation(t * 2.0),
-        "translation" := Vec2(0.0, t.sin * 0.3),
+        "translation" := Vec2(0.0, t.sin * 0.7),
       )
       shape2.bind(
-        "translation" := Vec2((t * 0.7).cos * 0.3, 0.0),
+        "translation" := Vec2((t * 0.7).cos * 0.7, 0.0),
       )
 
       mat1.update:
