@@ -1,0 +1,1080 @@
+# WGSL Scala DSL — Implementation Design
+
+## 1. Overview
+
+### What This Replaces
+
+Currently, shader bodies are raw WGSL strings:
+
+```scala
+val shade = painter.shade[Attribs, Varyings, Uniforms](
+  vertWgsl = """
+    let rotated = rotation * in.position;
+    out.position = vec4<f32>(rotated + translation, 0.0, 1.0);
+    """,
+  fragWgsl = """
+    out.color = vec4<f32>(color, 1.0);
+    """,
+)
+```
+
+The existing `ShaderDef` already derives struct declarations, uniform bindings,
+and function signatures from type parameters. Only the function _bodies_ are
+untyped strings. This DSL replaces those strings with typed Scala expressions
+that compile to WGSL.
+
+### Why
+
+1. **Type safety** — catch WGSL errors at Scala compile time (wrong component
+   access, type mismatches in operators)
+2. **Unified CPU/GPU vocabulary** — the same `.sin`, `.normalized`, `+`, `*`
+   syntax works on CPU math types and GPU expression types
+3. **Refactoring safety** — renaming a uniform field propagates through the DSL;
+   currently it silently breaks the raw WGSL string
+4. **Path to shared functions** — once both sides share the same trait
+   vocabulary, a single function definition can emit either CPU code or WGSL
+
+### Target API
+
+```scala
+val shade = painter.shade[Attribs, Varyings, Uniforms]: program =>
+  program.vert[(rotated: Vec2)]: ctx =>
+    Block(
+      ctx.locals.rotated := ctx.bindings.rotation * ctx.in.position,
+      ctx.out.position := vec4(
+        ctx.locals.rotated + ctx.bindings.translation, 0.0, 1.0,
+      ),
+    )
+
+  program.frag: ctx =>
+    Block(
+      ctx.out.color := vec4(ctx.bindings.color, 1.0),
+    )
+```
+
+Key distinction: `val rotated = ctx.bindings.rotation * ctx.in.position` creates
+a Scala-level alias that **inlines** the expression everywhere it appears in the
+generated WGSL. By contrast, `ctx.locals.rotated := expr` generates an actual
+WGSL `let rotated = expr;` statement — a named intermediate value in the shader.
+
+---
+
+## 2. Math API Consistency & Evolution Guidelines
+
+### 2.1 The Principle: CPU/GPU Naming Parity
+
+Every math operation must use the **same name and syntax** on CPU and GPU. When
+adding new operations to `gpu.math`, they must also be expressible in WGSL. When
+exposing WGSL built-ins in the DSL, they must follow the naming conventions
+established in `src/gpu/math/api_and_naming_conventions.md`.
+
+**Extension method syntax is preferred over free function syntax:**
+
+```scala
+// ✅ Preferred — matches CPU API
+x.sin
+x.clamp(lo, hi)
+v.normalized
+v.dot(w)
+
+// ❌ Avoid — function call syntax
+sin(x)
+clamp(x, lo, hi)
+normalize(v)
+dot(v, w)
+```
+
+Free functions are provided only for WGSL built-ins that have no natural
+receiver object (e.g., `mix(a, b, t)`, `select(f, t, cond)`).
+
+### 2.2 Math Library Evolution Rules
+
+These guidelines govern all future changes to `src/gpu/math/`:
+
+1. **WGSL parity required** — only add operations that have a WGSL equivalent.
+   If an operation cannot be expressed in WGSL, it does not belong in the shared
+   math vocabulary. CPU-only utilities go in a separate package.
+
+2. **Extension method syntax** — follow the existing `x.sin`, `x.clamp(lo, hi)`
+   pattern from `NumExt`. New operations are added as extension methods, not
+   free functions.
+
+3. **Immutable/mutable naming** — per `api_and_naming_conventions.md`:
+   - Past tense / adjective for immutable ops: `v.normalized`, `m.transposed`
+   - Present tense + `(out)` for mutable ops: `v.normalize(out)`,
+     `m.transpose(out)`
+
+4. **Trait type parameter order** — always `[Num, Container]` (e.g.,
+   `[Double, Vec3]`, `[FloatExpr, Vec3Expr]`).
+
+5. **Consistent naming across types** — if `Vec3` has `.length`, `Vec2` and
+   `Vec4` must too. If `Mat4` has `.determinant`, so must `Mat2` and `Mat3`.
+
+6. **No CPU-only math in the shared API** — operations like `fit0111` /
+   `fit1101` that map to inline arithmetic (`x * 2 - 1`) are fine (they expand
+   to valid WGSL expressions). But operations requiring CPU-specific runtime
+   support (e.g., serialization, string formatting) stay in CPU-only packages.
+
+### 2.3 CPU ↔ WGSL Operation Mapping
+
+This table is the canonical reference for name parity. When adding a new
+operation to either side, add it here first.
+
+#### Scalar Operations (NumExt → FloatExpr)
+
+| CPU (`NumExt`)  | GPU (DSL)       | WGSL Output       | Notes                    |
+| --------------- | --------------- | ----------------- | ------------------------ |
+| `x.sin`         | `x.sin`         | `sin(x)`          |                          |
+| `x.cos`         | `x.cos`         | `cos(x)`          |                          |
+| `x.tan`         | `x.tan`         | `tan(x)`          |                          |
+| `x.asin`        | `x.asin`        | `asin(x)`         |                          |
+| `x.acos`        | `x.acos`        | `acos(x)`         |                          |
+| `x.atan`        | `x.atan`        | `atan(x)`         |                          |
+| `x.atan2(y)`    | `x.atan2(y)`    | `atan2(x, y)`     |                          |
+| `x.sqrt`        | `x.sqrt`        | `sqrt(x)`         |                          |
+| `x.pow(y)`      | `x.pow(y)`      | `pow(x, y)`       |                          |
+| `x.abs`         | `x.abs`         | `abs(x)`          |                          |
+| `x.floor`       | `x.floor`       | `floor(x)`        |                          |
+| `x.ceil`        | `x.ceil`        | `ceil(x)`         |                          |
+| `x.clamp(a, b)` | `x.clamp(a, b)` | `clamp(x, a, b)`  |                          |
+| `x.clamp01`     | `x.clamp01`     | `saturate(x)`     | WGSL `saturate` = [0, 1] |
+| `x.fit0111`     | `x.fit0111`     | `(x * 2.0 - 1.0)` | Inline arithmetic        |
+| `x.fit1101`     | `x.fit1101`     | `(x * 0.5 + 0.5)` | Inline arithmetic        |
+| —               | `x.sign`        | `sign(x)`         | Add to NumExt            |
+| —               | `x.round`       | `round(x)`        | Add to NumExt            |
+| —               | `x.trunc`       | `trunc(x)`        | Add to NumExt            |
+| —               | `x.fract`       | `fract(x)`        | Add to NumExt            |
+| —               | `x.exp`         | `exp(x)`          | Add to NumExt            |
+| —               | `x.exp2`        | `exp2(x)`         | Add to NumExt            |
+| —               | `x.log`         | `log(x)`          | Add to NumExt            |
+| —               | `x.log2`        | `log2(x)`         | Add to NumExt            |
+| —               | `x.inverseSqrt` | `inverseSqrt(x)`  | Add to NumExt            |
+| —               | `x.degrees`     | `degrees(x)`      | Add to NumExt            |
+| —               | `x.radians`     | `radians(x)`      | Add to NumExt            |
+| —               | `x.sinh`        | `sinh(x)`         | Add to NumExt            |
+| —               | `x.cosh`        | `cosh(x)`         | Add to NumExt            |
+| —               | `x.tanh`        | `tanh(x)`         | Add to NumExt            |
+
+Operations marked "Add to NumExt" should be added to
+`trivalibs/src/utils/numbers.scala` to maintain CPU/GPU parity. They all have
+trivial `Math.*` implementations.
+
+#### Vector Operations (Vec*Base/ImmutableOps → Vec*Expr)
+
+| CPU                | GPU (DSL)          | WGSL Output        | Notes                  |
+| ------------------ | ------------------ | ------------------ | ---------------------- |
+| `v + w`            | `v + w`            | `(v + w)`          |                        |
+| `v - w`            | `v - w`            | `(v - w)`          |                        |
+| `v * w`            | `v * w`            | `(v * w)`          | Componentwise          |
+| `v * s`            | `v * s`            | `(v * s)`          | Scalar multiply        |
+| `v / w`            | `v / w`            | `(v / w)`          | Componentwise          |
+| `v / s`            | `v / s`            | `(v / s)`          | Scalar divide          |
+| `v.dot(w)`         | `v.dot(w)`         | `dot(v, w)`        |                        |
+| `v.cross(w)`       | `v.cross(w)`       | `cross(v, w)`      | Vec3 only              |
+| `v.length`         | `v.length`         | `length(v)`        |                        |
+| `v.length_squared` | `v.length_squared` | `dot(v, v)`        | No WGSL built-in       |
+| `v.normalized`     | `v.normalized`     | `normalize(v)`     | Immutable convention   |
+| `v.x` / `.y` / …   | `v.x` / `.y` / …   | `v.x` / `.y` / …   | Component access       |
+| `v.r` / `.g` / …   | `v.r` / `.g` / …   | `v.x` / `.y` / …   | Color aliases          |
+| —                  | `v.distance(w)`    | `distance(v, w)`   | Add to VecBase         |
+| —                  | `v.reflect(n)`     | `reflect(v, n)`    | Add to VecImmutableOps |
+| —                  | `v.refract(n, η)`  | `refract(v, n, η)` | Add to VecImmutableOps |
+
+Note: MutableOps (`v.normalize()`, `v.add(w, out)`) have no GPU equivalent —
+WGSL is a functional language with no in-place mutation of vectors. MutableOps
+remain CPU-only.
+
+#### Matrix Operations (Mat*ImmutableOps → Mat*Expr)
+
+| CPU             | GPU (DSL)       | WGSL Output      | Notes            |
+| --------------- | --------------- | ---------------- | ---------------- |
+| `m * n`         | `m * n`         | `(m * n)`        | Matrix multiply  |
+| `m * v`         | `m * v`         | `(m * v)`        | Matrix × vector  |
+| `m * s`         | `m * s`         | `(m * s)`        | Scalar multiply  |
+| `m.transposed`  | `m.transposed`  | `transpose(m)`   |                  |
+| `m.determinant` | `m.determinant` | `determinant(m)` |                  |
+| `m.inversed`    | —               | —                | No WGSL built-in |
+
+#### Free Functions (No Natural Receiver)
+
+These are provided as package-level functions in `gpu.shader.dsl`:
+
+```scala
+mix(a, b, t)          // -> mix(a, b, t)       Linear interpolation
+step(edge, x)         // -> step(edge, x)
+smoothstep(lo, hi, x) // -> smoothstep(lo, hi, x)
+select(f, t, cond)    // -> select(f, t, cond)  Ternary-like
+fma(a, b, c)          // -> fma(a, b, c)        Fused multiply-add
+min(a, b)             // -> min(a, b)
+max(a, b)             // -> max(a, b)
+```
+
+These have overloads for `FloatExpr` and `Vec*Expr` arguments as appropriate.
+`min` and `max` are also free functions on CPU (`Math.min`, `Math.max`), so
+parity is maintained.
+
+---
+
+## 3. Expression Types
+
+### 3.1 Representation: Opaque Types over String
+
+Following the project's bundle-size rules (no `enum`, no `case class` for data
+nodes), expressions are **opaque types wrapping `String`** at runtime. The
+string contains a valid WGSL expression fragment. Type safety is enforced at
+compile time; at runtime, an expression is just a string.
+
+```scala
+package gpu.shader.dsl
+
+// Typed expression wrappers — phantom type information, zero runtime cost
+opaque type Expr = String
+opaque type FloatExpr <: Expr = String
+opaque type Vec2Expr  <: Expr = String
+opaque type Vec3Expr  <: Expr = String
+opaque type Vec4Expr  <: Expr = String
+opaque type Mat2Expr  <: Expr = String
+opaque type Mat3Expr  <: Expr = String
+opaque type Mat4Expr  <: Expr = String
+opaque type BoolExpr  <: Expr = String
+opaque type IntExpr   <: Expr = String
+opaque type UIntExpr  <: Expr = String
+```
+
+All `*Expr` types are subtypes of `Expr`, so any function accepting `Expr` works
+on all of them. But operators are defined only on specific types, preventing
+e.g. `Vec2Expr + Mat4Expr`.
+
+### 3.2 Why Not AST Nodes
+
+An AST (e.g., `sealed trait Expr; case class Add(l: Expr, r: Expr)`) would
+require class allocations for every sub-expression and pull in pattern matching
+infrastructure. The opaque-over-String approach gives:
+
+- **Zero allocation** — string concatenation only
+- **No pattern matching boilerplate** — no `match` trees in JS output
+- **Same type safety** — the Scala compiler enforces which operations are valid
+  on which expression types
+- **Readable WGSL output** — expressions are built as the exact strings that
+  appear in the final shader
+
+### 3.3 Companion Factories
+
+```scala
+object FloatExpr:
+  inline def apply(s: String): FloatExpr = s
+  inline def lit(v: Double): FloatExpr = v.toString
+  inline def lit(v: Float): FloatExpr = v.toString
+
+object Vec2Expr:
+  inline def apply(s: String): Vec2Expr = s
+
+object Vec3Expr:
+  inline def apply(s: String): Vec3Expr = s
+
+object Vec4Expr:
+  inline def apply(s: String): Vec4Expr = s
+// ... same pattern for Mat*Expr, BoolExpr, IntExpr, UIntExpr
+```
+
+### 3.4 Implicit Literal Conversions
+
+To allow writing `0.0` and `1.0` directly in DSL expressions:
+
+```scala
+given Conversion[Double, FloatExpr] = v => FloatExpr(v.toString)
+given Conversion[Float, FloatExpr]  = v => FloatExpr(v.toString)
+given Conversion[Int, FloatExpr]    = v => FloatExpr(s"f32($v)")
+given Conversion[Int, IntExpr]      = v => IntExpr(v.toString)
+```
+
+This enables:
+
+```scala
+ctx.out.position := vec4(ctx.locals.rotated + ctx.bindings.translation, 0.0, 1.0)
+//                                                                     ^^^  ^^^
+//                                    Double literals auto-convert to FloatExpr
+```
+
+---
+
+## 4. Operators and Math Extensions
+
+### 4.1 FloatExpr Operations
+
+```scala
+extension (a: FloatExpr)
+  // Arithmetic
+  inline def +(b: FloatExpr): FloatExpr = s"($a + $b)"
+  inline def -(b: FloatExpr): FloatExpr = s"($a - $b)"
+  inline def *(b: FloatExpr): FloatExpr = s"($a * $b)"
+  inline def /(b: FloatExpr): FloatExpr = s"($a / $b)"
+  inline def unary_- : FloatExpr = s"(-$a)"
+
+  // NumExt parity — extension method syntax
+  inline def sin: FloatExpr         = s"sin($a)"
+  inline def cos: FloatExpr         = s"cos($a)"
+  inline def tan: FloatExpr         = s"tan($a)"
+  inline def asin: FloatExpr        = s"asin($a)"
+  inline def acos: FloatExpr        = s"acos($a)"
+  inline def atan: FloatExpr        = s"atan($a)"
+  inline def atan2(b: FloatExpr): FloatExpr = s"atan2($a, $b)"
+  inline def sqrt: FloatExpr        = s"sqrt($a)"
+  inline def pow(e: FloatExpr): FloatExpr   = s"pow($a, $e)"
+  inline def abs: FloatExpr         = s"abs($a)"
+  inline def floor: FloatExpr       = s"floor($a)"
+  inline def ceil: FloatExpr        = s"ceil($a)"
+  inline def clamp(lo: FloatExpr, hi: FloatExpr): FloatExpr =
+    s"clamp($a, $lo, $hi)"
+  inline def clamp01: FloatExpr     = s"saturate($a)"
+  inline def fit0111: FloatExpr     = s"($a * 2.0 - 1.0)"
+  inline def fit1101: FloatExpr     = s"($a * 0.5 + 0.5)"
+
+  // Additional WGSL built-ins
+  inline def sign: FloatExpr        = s"sign($a)"
+  inline def round: FloatExpr       = s"round($a)"
+  inline def trunc: FloatExpr       = s"trunc($a)"
+  inline def fract: FloatExpr       = s"fract($a)"
+  inline def exp: FloatExpr         = s"exp($a)"
+  inline def exp2: FloatExpr        = s"exp2($a)"
+  inline def log: FloatExpr         = s"log($a)"
+  inline def log2: FloatExpr        = s"log2($a)"
+  inline def inverseSqrt: FloatExpr = s"inverseSqrt($a)"
+  inline def degrees: FloatExpr     = s"degrees($a)"
+  inline def radians: FloatExpr     = s"radians($a)"
+  inline def sinh: FloatExpr        = s"sinh($a)"
+  inline def cosh: FloatExpr        = s"cosh($a)"
+  inline def tanh: FloatExpr        = s"tanh($a)"
+
+  // Comparison → BoolExpr
+  inline def <(b: FloatExpr): BoolExpr  = s"($a < $b)"
+  inline def >(b: FloatExpr): BoolExpr  = s"($a > $b)"
+  inline def <=(b: FloatExpr): BoolExpr = s"($a <= $b)"
+  inline def >=(b: FloatExpr): BoolExpr = s"($a >= $b)"
+  inline def ===(b: FloatExpr): BoolExpr = s"($a == $b)"
+  inline def !==(b: FloatExpr): BoolExpr = s"($a != $b)"
+```
+
+Note: `==` and `!=` cannot be overridden in Scala (they are `final` on `Any`),
+so we use `===` and `!==`. This is standard in Scala DSLs.
+
+### 4.2 Vector Operations (Vec3Expr as Example)
+
+```scala
+extension (v: Vec3Expr)
+  // Arithmetic — mirrors Vec3ImmutableOps
+  @targetName("vec3AddVec")
+  inline def +(w: Vec3Expr): Vec3Expr   = s"($v + $w)"
+  @targetName("vec3AddScalar")
+  inline def +(s: FloatExpr): Vec3Expr  = s"($v + vec3<f32>($s))"
+  @targetName("vec3SubVec")
+  inline def -(w: Vec3Expr): Vec3Expr   = s"($v - $w)"
+  @targetName("vec3SubScalar")
+  inline def -(s: FloatExpr): Vec3Expr  = s"($v - vec3<f32>($s))"
+  @targetName("vec3MulVec")
+  inline def *(w: Vec3Expr): Vec3Expr   = s"($v * $w)"
+  @targetName("vec3MulScalar")
+  inline def *(s: FloatExpr): Vec3Expr  = s"($v * $s)"
+  @targetName("vec3DivVec")
+  inline def /(w: Vec3Expr): Vec3Expr   = s"($v / $w)"
+  @targetName("vec3DivScalar")
+  inline def /(s: FloatExpr): Vec3Expr  = s"($v / $s)"
+  inline def unary_- : Vec3Expr         = s"(-$v)"
+
+  // Properties — mirrors Vec3Base
+  inline def dot(w: Vec3Expr): FloatExpr     = s"dot($v, $w)"
+  inline def cross(w: Vec3Expr): Vec3Expr    = s"cross($v, $w)"
+  inline def length: FloatExpr               = s"length($v)"
+  inline def length_squared: FloatExpr       = s"dot($v, $v)"
+  inline def normalized: Vec3Expr            = s"normalize($v)"
+  inline def distance(w: Vec3Expr): FloatExpr = s"distance($v, $w)"
+  inline def reflect(n: Vec3Expr): Vec3Expr  = s"reflect($v, $n)"
+  inline def refract(n: Vec3Expr, eta: FloatExpr): Vec3Expr =
+    s"refract($v, $n, $eta)"
+
+  // Component access — mirrors .x/.y/.z and .r/.g/.b
+  inline def x: FloatExpr = s"$v.x"
+  inline def y: FloatExpr = s"$v.y"
+  inline def z: FloatExpr = s"$v.z"
+  inline def r: FloatExpr = s"$v.x"
+  inline def g: FloatExpr = s"$v.y"
+  inline def b: FloatExpr = s"$v.z"
+
+  // Componentwise NumExt operations
+  inline def sin: Vec3Expr   = s"sin($v)"
+  inline def cos: Vec3Expr   = s"cos($v)"
+  inline def abs: Vec3Expr   = s"abs($v)"
+  inline def floor: Vec3Expr = s"floor($v)"
+  inline def ceil: Vec3Expr  = s"ceil($v)"
+  inline def fract: Vec3Expr = s"fract($v)"
+  inline def clamp(lo: Vec3Expr, hi: Vec3Expr): Vec3Expr =
+    s"clamp($v, $lo, $hi)"
+  inline def clamp01: Vec3Expr = s"saturate($v)"
+
+  // Swizzles (most common; add more as needed)
+  inline def xy: Vec2Expr = s"$v.xy"
+  inline def xz: Vec2Expr = s"$v.xz"
+  inline def yz: Vec2Expr = s"$v.yz"
+```
+
+Vec2Expr and Vec4Expr follow the same pattern. Vec2Expr omits `.z`, `.w`,
+`cross`. Vec4Expr adds `.w`, `.a`, `.xyz`, `.rgb`, and additional swizzles.
+
+### 4.3 Matrix Operations
+
+```scala
+extension (m: Mat4Expr)
+  @targetName("mat4MulMat")
+  inline def *(n: Mat4Expr): Mat4Expr   = s"($m * $n)"
+  @targetName("mat4MulVec")
+  inline def *(v: Vec4Expr): Vec4Expr   = s"($m * $v)"
+  @targetName("mat4MulScalar")
+  inline def *(s: FloatExpr): Mat4Expr  = s"($m * $s)"
+  inline def transposed: Mat4Expr       = s"transpose($m)"
+  inline def determinant: FloatExpr     = s"determinant($m)"
+// Same pattern for Mat2Expr (× Vec2Expr) and Mat3Expr (× Vec3Expr)
+```
+
+### 4.4 BoolExpr Operations
+
+```scala
+extension (a: BoolExpr)
+  inline def &&(b: BoolExpr): BoolExpr = s"($a && $b)"
+  inline def ||(b: BoolExpr): BoolExpr = s"($a || $b)"
+  inline def unary_! : BoolExpr        = s"(!$a)"
+```
+
+---
+
+## 5. Constructors and Swizzles
+
+### 5.1 Vector Constructors
+
+The DSL provides `vec2`, `vec3`, `vec4` constructor objects in lowercase. This
+avoids collision with the existing CPU types `Vec2`, `Vec3`, `Vec4` in
+`gpu.math`, and matches WGSL syntax (`vec4<f32>(...)`).
+
+```scala
+package gpu.shader.dsl
+
+object vec2:
+  inline def apply(x: FloatExpr, y: FloatExpr): Vec2Expr =
+    s"vec2<f32>($x, $y)"
+
+object vec3:
+  inline def apply(x: FloatExpr, y: FloatExpr, z: FloatExpr): Vec3Expr =
+    s"vec3<f32>($x, $y, $z)"
+  inline def apply(xy: Vec2Expr, z: FloatExpr): Vec3Expr =
+    s"vec3<f32>($xy, $z)"
+  inline def apply(x: FloatExpr, yz: Vec2Expr): Vec3Expr =
+    s"vec3<f32>($x, $yz)"
+
+object vec4:
+  inline def apply(x: FloatExpr, y: FloatExpr, z: FloatExpr, w: FloatExpr): Vec4Expr =
+    s"vec4<f32>($x, $y, $z, $w)"
+  inline def apply(xyz: Vec3Expr, w: FloatExpr): Vec4Expr =
+    s"vec4<f32>($xyz, $w)"
+  inline def apply(xy: Vec2Expr, z: FloatExpr, w: FloatExpr): Vec4Expr =
+    s"vec4<f32>($xy, $z, $w)"
+  inline def apply(xy: Vec2Expr, zw: Vec2Expr): Vec4Expr =
+    s"vec4<f32>($xy, $zw)"
+  inline def apply(x: FloatExpr, yzw: Vec3Expr): Vec4Expr =
+    s"vec4<f32>($x, $yzw)"
+```
+
+User writes: `vec4(ctx.locals.rotated + ctx.bindings.translation, 0.0, 1.0)`
+WGSL output: `vec4<f32>((rotated + translation), 0.0, 1.0)`
+
+### 5.2 Swizzle Patterns
+
+Common swizzles are provided as extension methods. Additional swizzles are added
+incrementally as needed — full combinatorial coverage (hundreds of methods) is
+not needed up front.
+
+```scala
+// Vec4Expr swizzles
+extension (v: Vec4Expr)
+  inline def xy: Vec2Expr   = s"$v.xy"
+  inline def xz: Vec2Expr   = s"$v.xz"
+  inline def yz: Vec2Expr   = s"$v.yz"
+  inline def xw: Vec2Expr   = s"$v.xw"
+  inline def zw: Vec2Expr   = s"$v.zw"
+  inline def xyz: Vec3Expr  = s"$v.xyz"
+  inline def xyw: Vec3Expr  = s"$v.xyw"
+  inline def xzw: Vec3Expr  = s"$v.xzw"
+  inline def yzw: Vec3Expr  = s"$v.yzw"
+  inline def rgb: Vec3Expr  = s"$v.rgb"
+```
+
+---
+
+## 6. Context Object
+
+### 6.1 Structure
+
+The context provides typed access to shader inputs, outputs, bindings, and local
+variables:
+
+```
+ctx.in       — vertex attributes (vert) or varyings (frag)
+ctx.out      — varyings (vert) or fragment output (frag)
+ctx.bindings — uniforms (no prefix — uniforms are top-level in WGSL)
+ctx.locals   — local variables declared via the Locals type parameter
+```
+
+### 6.2 Accessor Implementation via Selectable
+
+```scala
+// Read-only access — returns Expr for use in expressions
+class ExprAccessor(prefix: String) extends Selectable:
+  def selectDynamic(name: String): Expr =
+    Expr.raw(if prefix.isEmpty then name else s"$prefix.$name")
+
+// Write access — returns AssignTarget that supports :=
+class AssignAccessor(prefix: String) extends Selectable:
+  def selectDynamic(name: String): AssignTarget =
+    AssignTarget(if prefix.isEmpty then name else s"$prefix.$name")
+
+class AssignTarget(val target: String):
+  inline def :=(value: Expr): Stmt = Stmt.assign(target, value)
+
+// Local variable access — returns LocalRef that supports := and use as Expr
+class LocalAccessor extends Selectable:
+  def selectDynamic(name: String): LocalRef = LocalRef(name)
+
+class LocalRef(val name: String):
+  inline def :=(value: Expr): Stmt = Stmt.let(name, value)
+
+// LocalRef can be used as an expression via implicit conversion
+given Conversion[LocalRef, Expr] = ref => Expr.raw(ref.name)
+```
+
+### 6.3 Uniform Accessor — No Prefix
+
+In the generated WGSL, uniforms are top-level `var<uniform>` declarations (not
+struct members). So `ctx.bindings.rotation` must emit just `rotation`, not
+`bindings.rotation`:
+
+```scala
+val bindings = ExprAccessor("")  // empty prefix → bare names
+```
+
+### 6.4 Context Classes
+
+```scala
+class ShaderCtx(
+  val in: ExprAccessor,
+  val out: AssignAccessor,
+  val bindings: ExprAccessor,
+)
+
+class VertCtx(
+  in: ExprAccessor,
+  out: AssignAccessor,
+  bindings: ExprAccessor,
+  val locals: LocalAccessor,
+) extends ShaderCtx(in, out, bindings)
+```
+
+### 6.5 Type Safety: Current and Future
+
+**Milestone 1**: Accessors return untyped `Expr`. Type errors surface when the
+generated WGSL fails to compile on the GPU — the same failure mode as raw WGSL
+strings, but with operator-level type checking (you can't `+` a `Vec2Expr` and a
+`Mat4Expr`).
+
+**Future milestone**: Use Scala 3 `Selectable` with refined structural types so
+that `ctx.in.position` returns `Vec2Expr` (not generic `Expr`) based on the
+named tuple type parameter. This requires deriving a refinement type from the
+named tuple, which is achievable via `transparent inline` + `summonFrom` but
+adds significant complexity.
+
+---
+
+## 7. Statements and Blocks
+
+### 7.1 Statement Representation
+
+```scala
+opaque type Stmt = String
+
+object Stmt:
+  inline def assign(target: String, value: Expr): Stmt =
+    s"  $target = ${value: String};"
+  inline def let(name: String, value: Expr): Stmt =
+    s"  let $name = ${value: String};"
+  inline def varDecl(name: String, value: Expr): Stmt =
+    s"  var $name = ${value: String};"
+  inline def varDeclTyped(name: String, wgslType: String, value: Expr): Stmt =
+    s"  var $name: $wgslType = ${value: String};"
+  inline def varAssign(name: String, value: Expr): Stmt =
+    s"  $name = ${value: String};"
+  inline def raw(s: String): Stmt = s
+```
+
+### 7.2 Block
+
+A `Block` is a sequence of statements that produces a WGSL code string. To avoid
+pulling in Scala collections via `Seq` (varargs), provide fixed-arity overloads:
+
+```scala
+opaque type Block = String
+
+object Block:
+  inline def apply(s1: Stmt): Block = s1: String
+  inline def apply(s1: Stmt, s2: Stmt): Block = s"$s1\n$s2"
+  inline def apply(s1: Stmt, s2: Stmt, s3: Stmt): Block =
+    s"$s1\n$s2\n$s3"
+  inline def apply(s1: Stmt, s2: Stmt, s3: Stmt, s4: Stmt): Block =
+    s"$s1\n$s2\n$s3\n$s4"
+  // ... up to ~8 statements
+  // For larger blocks, provide an Arr-based variant:
+  def fromArr(stmts: Arr[Stmt]): Block =
+    stmts.asInstanceOf[Arr[String]].join("\n")
+```
+
+### 7.3 Variable Declaration: `let` vs `var`
+
+WGSL distinguishes immutable (`let`) and mutable (`var`) local variables:
+
+- `ctx.locals.rotated := expr` → generates `let rotated = expr;`
+  - The local value cannot be reassigned
+  - Used for named intermediates
+
+For mutable variables (accumulators, loop counters), provide `MutableLocalRef`:
+
+```scala
+class MutableLocalRef(val name: String):
+  inline def init(value: Expr): Stmt = Stmt.varDecl(name, value)
+  inline def :=(value: Expr): Stmt = Stmt.varAssign(name, value)
+
+given Conversion[MutableLocalRef, Expr] = ref => Expr.raw(ref.name)
+```
+
+How to distinguish `let` vs `var` locals in the type parameter:
+
+```scala
+// Marker type for mutable locals
+sealed trait Var[T]
+
+// type Locals = (rotated: Vec2, acc: Var[Vec3])
+//                ^^^^^^^ let    ^^^^^^^^ var
+```
+
+The `LocalAccessor` uses `inline erasedValue` to check if the field type is
+`Var[T]` and returns the appropriate ref type.
+
+### 7.4 Control Flow
+
+```scala
+// If / else
+inline def ifThen(cond: BoolExpr)(body: Block): Stmt =
+  Stmt.raw(s"  if (${cond: String}) {\n$body\n  }")
+
+inline def ifThenElse(cond: BoolExpr)(thenBody: Block)(elseBody: Block): Stmt =
+  Stmt.raw(s"  if (${cond: String}) {\n$thenBody\n  } else {\n$elseBody\n  }")
+
+// While loop
+inline def whileLoop(cond: BoolExpr)(body: Block): Stmt =
+  Stmt.raw(s"  while (${cond: String}) {\n$body\n  }")
+```
+
+Example usage:
+
+```scala
+program.frag[(brightness: Float)]: ctx =>
+  Block(
+    ctx.locals.brightness := ctx.in.color.length,
+    ifThenElse(ctx.locals.brightness > 0.5)(
+      Block(ctx.out.color := vec4(1.0, 1.0, 1.0, 1.0))
+    )(
+      Block(ctx.out.color := vec4(0.0, 0.0, 0.0, 1.0))
+    ),
+  )
+```
+
+Generated WGSL:
+
+```wgsl
+  let brightness = length(in.color);
+  if (brightness > 0.5) {
+    out.color = vec4<f32>(1.0, 1.0, 1.0, 1.0);
+  } else {
+    out.color = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+  }
+```
+
+---
+
+## 8. Hygienic Naming
+
+### 8.1 Name Sources in Generated WGSL
+
+| Source              | Example      | Comes From                  |
+| ------------------- | ------------ | --------------------------- |
+| Struct fields       | `position`   | `Attribs` named tuple       |
+| Uniform variables   | `rotation`   | `Uniforms` named tuple      |
+| Local variables     | `rotated`    | `Locals` type parameter     |
+| Built-in parameters | `in`, `out`  | Generated function skeleton |
+| WGSL keywords       | `let`, `var` | Language reserved           |
+
+### 8.2 Collision Scenarios
+
+1. **Local vs uniform**: `Locals = (color: Vec3)` with
+   `Uniforms = (color: Vec4)` — the `let color = ...;` would shadow the uniform
+   `color`. This is valid WGSL (inner scope shadows outer), but likely a user
+   mistake.
+
+2. **Local is WGSL keyword**: `Locals = (var: Vec3)` — generates
+   `let var = ...;` which is a syntax error.
+
+3. **Local vs struct field**: `Locals = (position: Vec2)` with
+   `Attribs = (position: Vec2)` — safe, because struct fields are qualified as
+   `in.position`.
+
+### 8.3 Strategy
+
+**Compile-time**: Validate local names against WGSL reserved words using
+`inline` + `constValue` + `compiletime.error()`:
+
+```scala
+private inline def checkNotReserved[Names <: Tuple]: Unit =
+  inline erasedValue[Names] match
+    case _: EmptyTuple => ()
+    case _: (name *: rest) =>
+      inline constValue[name].asInstanceOf[String] match
+        case "let" | "var" | "fn" | "struct" | "return" | "if" | "else"
+           | "while" | "for" | "break" | "continue" | "switch" | "case"
+           | "default" | "true" | "false" | "loop" | "continuing"
+           | "discard" | "enable" | "const" | "override" | "type"
+           | "alias" | "diagnostic" | "in" | "out" =>
+          error("Local variable name is a WGSL reserved word")
+        case _ => checkNotReserved[rest]
+```
+
+**Runtime**: Check for local vs uniform name collisions when generating the WGSL
+body. Throw an error if a local name matches a uniform name. This could be moved
+to compile-time in a future milestone with more inline machinery.
+
+**No name mangling**: Local names appear as-is in the generated WGSL. This keeps
+the output readable and debuggable. Collision prevention is done through
+validation, not transformation.
+
+---
+
+## 9. Code Generation & Integration
+
+### 9.1 Generation Flow
+
+```
+User DSL code
+  → Block of Stmts (each Stmt is a String)
+  → Block.toString = newline-joined string
+  → Passed as vertexBody / fragmentBody to ShaderDef
+  → ShaderDef.generateWGSL wraps it in struct declarations + function signatures
+```
+
+The DSL produces only the function body. All surrounding infrastructure
+(structs, uniform declarations, function signatures, `var out`, `return out`) is
+handled by the existing `ShaderDef.generateWGSL`.
+
+### 9.2 Program Builder
+
+```scala
+class Program[A, V, U]:
+  private var vertBody: String = ""
+  private var fragBody: String = ""
+
+  inline def vert[Locals](body: VertCtx => Block): Unit =
+    // TODO: compile-time reserved word check on Locals names
+    val ctx = VertCtx(
+      in = ExprAccessor("in"),
+      out = AssignAccessor("out"),
+      bindings = ExprAccessor(""),
+      locals = LocalAccessor(),
+    )
+    vertBody = body(ctx): String
+
+  inline def vert(body: ShaderCtx => Block): Unit =
+    val ctx = ShaderCtx(
+      in = ExprAccessor("in"),
+      out = AssignAccessor("out"),
+      bindings = ExprAccessor(""),
+    )
+    vertBody = body(ctx): String
+
+  inline def frag[Locals](body: VertCtx => Block): Unit =
+    val ctx = VertCtx(
+      in = ExprAccessor("in"),
+      out = AssignAccessor("out"),
+      bindings = ExprAccessor(""),
+      locals = LocalAccessor(),
+    )
+    fragBody = body(ctx): String
+
+  inline def frag(body: ShaderCtx => Block): Unit =
+    val ctx = ShaderCtx(
+      in = ExprAccessor("in"),
+      out = AssignAccessor("out"),
+      bindings = ExprAccessor(""),
+    )
+    fragBody = body(ctx): String
+```
+
+### 9.3 Painter Integration
+
+Add a new overload of `painter.shade` that accepts a DSL program builder:
+
+```scala
+// In Painter (painter.scala)
+inline def shade[A, V, U](
+  build: Program[A, V, U] => Unit,
+): Shade[U] =
+  val program = Program[A, V, U]()
+  build(program)
+  shade[A, V, U](
+    vertWgsl = program.vertBody,
+    fragWgsl = program.fragBody,
+  )
+```
+
+The existing string-based `shade[A, V, U](vertWgsl, fragWgsl)` remains
+unchanged. Both APIs coexist — the DSL is purely additive.
+
+### 9.4 Standalone Usage (Testing)
+
+```scala
+val program = Program[Attribs, Varyings, Uniforms]()
+program.vert[(rotated: Vec2)]: ctx =>
+  Block(
+    ctx.locals.rotated := ctx.bindings.rotation * ctx.in.position,
+    ctx.out.position := vec4(ctx.locals.rotated + ctx.bindings.translation, 0.0, 1.0),
+  )
+program.frag: ctx =>
+  Block(
+    ctx.out.color := vec4(ctx.bindings.color, 1.0),
+  )
+
+// Inspect generated WGSL body strings
+println(program.vertBody)
+println(program.fragBody)
+```
+
+### 9.5 Full Example: From DSL to Generated WGSL
+
+**DSL Input:**
+
+```scala
+type Attribs = (position: Vec2)
+type Varyings = EmptyTuple
+type Uniforms = (
+  color: FragmentUniform[Vec3],
+  rotation: VertexUniform[Mat2],
+  translation: VertexUniform[Vec2],
+)
+
+val shade = painter.shade[Attribs, Varyings, Uniforms]: program =>
+  program.vert[(rotated: Vec2)]: ctx =>
+    Block(
+      ctx.locals.rotated := ctx.bindings.rotation * ctx.in.position,
+      ctx.out.position := vec4(
+        ctx.locals.rotated + ctx.bindings.translation, 0.0, 1.0,
+      ),
+    )
+  program.frag: ctx =>
+    Block(
+      ctx.out.color := vec4(ctx.bindings.color, 1.0),
+    )
+```
+
+**Generated vertex body string:**
+
+```
+  let rotated = (rotation * in.position);
+  out.position = vec4<f32>((rotated + translation), 0.0, 1.0);
+```
+
+**Generated fragment body string:**
+
+```
+  out.color = vec4<f32>(color, 1.0);
+```
+
+**Full generated WGSL (after ShaderDef wrapping):**
+
+```wgsl
+struct VertexInput {
+  @location(0) position: vec2<f32>,
+}
+
+struct VertexOutput {
+  @builtin(position) position: vec4<f32>,
+}
+
+struct FragmentOutput {
+  @location(0) color: vec4<f32>,
+}
+
+@group(0) @binding(0) var<uniform> color: vec3<f32>;
+@group(0) @binding(1) var<uniform> rotation: mat2x2<f32>;
+@group(0) @binding(2) var<uniform> translation: vec2<f32>;
+
+@vertex
+fn vs_main(in: VertexInput) -> VertexOutput {
+  var out: VertexOutput;
+  let rotated = (rotation * in.position);
+  out.position = vec4<f32>((rotated + translation), 0.0, 1.0);
+  return out;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> FragmentOutput {
+  var out: FragmentOutput;
+  out.color = vec4<f32>(color, 1.0);
+  return out;
+}
+```
+
+---
+
+## 10. Implementation Milestones
+
+### Milestone 1: Expression Types and Operators
+
+**Create**: `src/gpu/shader/dsl/expr.scala`
+
+- Opaque types: `Expr`, `FloatExpr`, `Vec2Expr`, `Vec3Expr`, `Vec4Expr`,
+  `Mat2Expr`, `Mat3Expr`, `Mat4Expr`, `BoolExpr`
+- Arithmetic operators for all types (`+`, `-`, `*`, `/`)
+- Scalar math extensions (sin, cos, sqrt, clamp, etc.)
+- Vector operations (dot, cross, length, normalized)
+- Matrix operations (`*`, transposed, determinant)
+- Component access (`.x`, `.y`, `.z`, `.w`)
+- Implicit conversions from Double/Float literals
+- Unit tests verifying generated WGSL expression strings
+
+### Milestone 2: Constructors, Swizzles, Statements
+
+**Create**: `src/gpu/shader/dsl/constructors.scala`,
+`src/gpu/shader/dsl/stmt.scala`
+
+- `vec2(...)`, `vec3(...)`, `vec4(...)` constructor objects
+- Swizzle methods (`.xy`, `.xyz`, `.rgb`, etc.)
+- `Stmt` opaque type with `assign`, `let`, `varDecl`
+- `Block` with fixed-arity `apply` overloads
+- Free functions: `mix`, `step`, `smoothstep`, `select`, `min`, `max`, `fma`
+- Unit tests
+
+### Milestone 3: Context and Program Builder
+
+**Create**: `src/gpu/shader/dsl/context.scala`,
+`src/gpu/shader/dsl/program.scala`
+
+- `ExprAccessor`, `AssignAccessor`, `LocalAccessor` with `Selectable`
+- `ShaderCtx`, `VertCtx` classes
+- `Program[A, V, U]` builder
+- Reserved word validation
+- Unit tests verifying full body generation
+
+### Milestone 4: Painter Integration and Draft Example
+
+**Modify**: `src/gpu/painter/painter.scala` **Create**: `drafts/painter_dsl/`
+(PainterDsl.scala, index.html, main.js)
+
+- New `shade` overload on `Painter` accepting `Program` builder
+- Port `painter_typed_bindings` draft to use DSL
+- Visual verification: renders identical result
+
+### Milestone 5: Control Flow and Mutable Variables
+
+**Extend**: `src/gpu/shader/dsl/stmt.scala`, `context.scala`
+
+- `ifThen`, `ifThenElse`, `whileLoop`
+- `Var[T]` marker type for mutable locals
+- `MutableLocalRef` with `init` and `:=`
+- Cross-namespace collision detection (local vs uniform)
+
+### Milestone 6: Typed Accessors (Future)
+
+**Extend**: `src/gpu/shader/dsl/context.scala`
+
+- Refined `Selectable` types so `ctx.in.position` returns `Vec2Expr` (not
+  generic `Expr`)
+- Uses `transparent inline` + `summonFrom` to derive refinement from the named
+  tuple type parameter
+- Compile-time type checking of all field access
+
+### Milestone 7: Shared CPU/GPU Functions (Future)
+
+- Implement `NumExt[FloatExpr]` and `NumOps[FloatExpr]` given instances
+- Implement `Vec*Base[FloatExpr, Vec*Expr]` and
+  `Vec*ImmutableOps[FloatExpr, Vec*Expr]` given instances
+- Same function signature works on both `Vec3` (CPU) and `Vec3Expr` (GPU DSL)
+- Validate with a shared lighting function that compiles to both native code and
+  WGSL
+
+---
+
+## 11. File Organization
+
+```
+src/gpu/shader/dsl/
+├── expr.scala          — Opaque expression types + operator extensions
+├── constructors.scala  — vec2/vec3/vec4 constructor objects + swizzles
+├── stmt.scala          — Stmt, Block opaque types + control flow functions
+├── context.scala       — ExprAccessor, AssignAccessor, LocalAccessor,
+│                         ShaderCtx, VertCtx
+├── program.scala       — Program[A, V, U] builder class
+└── package.scala       — Re-exports, implicit conversions, free functions
+
+src/gpu/painter/
+└── painter.scala       — Add new shade overload (Milestone 4)
+
+drafts/painter_dsl/     — Draft example using DSL (Milestone 4)
+├── PainterDsl.scala
+├── index.html
+└── main.js
+```
+
+---
+
+## 12. Open Questions
+
+1. **Varargs vs fixed-arity Block**: Scala varargs compile to `Seq`, which pulls
+   in collection infrastructure. Fixed-arity overloads (up to 8) avoid this but
+   limit block size. Is 8 enough? Most shader function bodies are under 8
+   statements, but complex shaders might need more. Could use `Arr`-based
+   fallback.
+
+2. **Color aliases in WGSL output**: CPU `.r`/`.g`/`.b` map to `.x`/`.y`/`.z` in
+   WGSL. Should the DSL output `.r`/`.g`/`.b` (valid WGSL) or normalize to
+   `.x`/`.y`/`.z`? WGSL accepts both, so outputting `.r`/`.g`/`.b` preserves
+   intent and readability.
+
+3. **Parenthesization**: The current design wraps all binary operations in
+   parentheses: `(a + b)`. This is safe but verbose. Should we track precedence
+   to minimize parentheses? Probably not worth the complexity — readability of
+   generated WGSL is nice-to-have, not critical.
+
+4. **Integer types**: WGSL has `i32` and `u32`. The current DSL includes
+   `IntExpr` and `UIntExpr` but doesn't define operations on them. These are
+   needed for texture coordinates, vertex indices, etc. Add in a later milestone
+   when needed.
+
+---
+
+## 13. Decisions Made
+
+- **Opaque types over String** — not AST nodes. Zero allocation, follows bundle
+  size rules.
+- **Extension method syntax** (`x.sin`, `v.normalized`) — matches CPU math API
+  per `api_and_naming_conventions.md`.
+- **Lowercase constructors** (`vec4(...)`) — avoids collision with `gpu.math`
+  types, matches WGSL syntax.
+- **`Selectable` for context accessors** — enables `ctx.in.position` syntax with
+  runtime-dynamic field lookup.
+- **No name mangling** — local variable names appear as-is in WGSL for
+  readability. Collisions prevented by validation.
+- **`===` / `!==` for equality** — Scala `==`/`!=` are final on `Any`.
+- **DSL is additive** — string-based shader bodies remain supported. Both APIs
+  coexist.
