@@ -28,11 +28,11 @@ def main(): Unit =
     type Uniforms = (tintColor: Vec3)
 
     val shade = painter.shade[Attribs, Varyings, Uniforms](
-      vertBody = """
+      vertWgsl = """
         out.position = vec4<f32>(in.position, 0.0, 1.0);
         out.color = in.color;
         """,
-      fragBody = """
+      fragWgsl = """
         out.color = vec4<f32>(in.color * tintColor, 1.0);
         """,
     )

@@ -33,11 +33,11 @@ def main(): Unit =
     )
 
     val shade = painter.shade[Attribs, Varyings, Uniforms](
-      vertBody = """
+      vertWgsl = """
         let rotated = rotation * in.position;
         out.position = vec4<f32>(rotated + translation, 0.0, 1.0);
         """,
-      fragBody = """
+      fragWgsl = """
         out.color = vec4<f32>(color, 1.0);
         """,
     )

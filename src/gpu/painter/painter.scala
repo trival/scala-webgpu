@@ -29,15 +29,15 @@ class Painter(
   // =========================================================================
 
   inline def shade[A, V, U](
-      vertBody: String,
-      fragBody: String,
+      vertWgsl: String,
+      fragWgsl: String,
   ): Shade[U] =
     val id = nextShadeId
     nextShadeId += 1
 
     inline erasedValue[U] match
       case _: EmptyTuple =>
-        val sd = Shader[A, V, EmptyTuple](vertBody, fragBody)
+        val sd = Shader[A, V, EmptyTuple](vertWgsl, fragWgsl)
         val wgsl = sd.generateWGSL
         val module = device.createShaderModule(Obj.literal(code = wgsl))
         val vbl = sd.vertexBufferLayout
@@ -48,7 +48,7 @@ class Painter(
         Shade[U](id, module, vbl, null, pl, false)
       case _ =>
         type Wrapped = (values: U)
-        val sd = Shader[A, V, Wrapped](vertBody, fragBody)
+        val sd = Shader[A, V, Wrapped](vertWgsl, fragWgsl)
         val wgsl = sd.generateWGSL
         val module = device.createShaderModule(Obj.literal(code = wgsl))
         val vbl = sd.vertexBufferLayout
