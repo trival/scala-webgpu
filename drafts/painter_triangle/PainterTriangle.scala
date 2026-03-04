@@ -40,16 +40,16 @@ def main(): Unit =
     val vertices = allocateAttribs[Attribs](3)
 
     // Vertex 0: top (red)
-    vertices(0)(0) := (0.0, 0.5)
-    vertices(0)(1) := (1.0, 0.0, 0.0)
+    vertices(0).set0(0.0, 0.5)
+    vertices(0).set1(1.0, 0.0, 0.0)
 
     // Vertex 1: bottom-left (green)
-    vertices(1)(0) := (-0.5, -0.5)
-    vertices(1)(1) := (0.0, 1.0, 0.0)
+    vertices(1).set0(-0.5, -0.5)
+    vertices(1).set1(0.0, 1.0, 0.0)
 
     // Vertex 2: bottom-right (blue)
-    vertices(2)(0) := (0.5, -0.5)
-    vertices(2)(1) := (0.0, 0.0, 1.0)
+    vertices(2).set0(0.5, -0.5)
+    vertices(2).set1(0.0, 0.0, 1.0)
 
     val form = painter.form(vertices)
     val tintColor = painter.binding[Vec3]

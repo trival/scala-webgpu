@@ -44,9 +44,9 @@ def main(): Unit =
 
     // Simple triangle centered at origin
     val vertices = allocateAttribs[Attribs](3)
-    vertices(0)(0) := (0.0, 0.3)
-    vertices(1)(0) := (-0.25, -0.15)
-    vertices(2)(0) := (0.25, -0.15)
+    vertices(0).set0(0.0, 0.3)
+    vertices(1).set0(-0.25, -0.15)
+    vertices(2).set0(0.25, -0.15)
 
     val form = painter.form(vertices)
 

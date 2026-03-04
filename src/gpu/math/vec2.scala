@@ -137,10 +137,10 @@ type Vec2Buffer = (F32, F32)
 object Vec2Buffer:
   given Vec2Mutable[Float, StructRef[Vec2Buffer]]:
     extension (v: StructRef[Vec2Buffer])
-      inline def x = v(0)()
-      inline def y = v(1)()
-      inline def x_=(value: Float) = v(0)(value)
-      inline def y_=(value: Float) = v(1)(value)
+      inline def x = v.getAt(0)
+      inline def y = v.getAt(1)
+      inline def x_=(value: Float) = v.setAt(0)(value)
+      inline def y_=(value: Float) = v.setAt(1)(value)
 
   given Vec2MutableOps[Float, StructRef[Vec2Buffer]] =
     new Vec2MutableOps[Float, StructRef[Vec2Buffer]] {}
@@ -178,10 +178,10 @@ type Vec2dBuffer = (F64, F64)
 object Vec2dBuffer:
   given Vec2Mutable[Double, StructRef[Vec2dBuffer]]:
     extension (v: StructRef[Vec2dBuffer])
-      inline def x = v(0)()
-      inline def y = v(1)()
-      inline def x_=(value: Double) = v(0)(value)
-      inline def y_=(value: Double) = v(1)(value)
+      inline def x = v.getAt(0)
+      inline def y = v.getAt(1)
+      inline def x_=(value: Double) = v.setAt(0)(value)
+      inline def y_=(value: Double) = v.setAt(1)(value)
 
   given Vec2MutableOps[Double, StructRef[Vec2dBuffer]] =
     new Vec2MutableOps[Double, StructRef[Vec2dBuffer]] {}

@@ -162,12 +162,12 @@ type Vec3Buffer = (F32, F32, F32)
 object Vec3Buffer:
   given Vec3Mutable[Float, StructRef[Vec3Buffer]]:
     extension (v: StructRef[Vec3Buffer])
-      inline def x = v(0)()
-      inline def y = v(1)()
-      inline def z = v(2)()
-      inline def x_=(value: Float) = v(0)(value)
-      inline def y_=(value: Float) = v(1)(value)
-      inline def z_=(value: Float) = v(2)(value)
+      inline def x = v.getAt(0)
+      inline def y = v.getAt(1)
+      inline def z = v.getAt(2)
+      inline def x_=(value: Float) = v.setAt(0)(value)
+      inline def y_=(value: Float) = v.setAt(1)(value)
+      inline def z_=(value: Float) = v.setAt(2)(value)
 
   given Vec3MutableOps[Float, StructRef[Vec3Buffer]] =
     new Vec3MutableOps[Float, StructRef[Vec3Buffer]] {}
@@ -208,12 +208,12 @@ type Vec3dBuffer = (F64, F64, F64)
 object Vec3dBuffer:
   given Vec3Mutable[Double, StructRef[Vec3dBuffer]]:
     extension (v: StructRef[Vec3dBuffer])
-      inline def x = v(0)()
-      inline def y = v(1)()
-      inline def z = v(2)()
-      inline def x_=(value: Double) = v(0)(value)
-      inline def y_=(value: Double) = v(1)(value)
-      inline def z_=(value: Double) = v(2)(value)
+      inline def x = v.getAt(0)
+      inline def y = v.getAt(1)
+      inline def z = v.getAt(2)
+      inline def x_=(value: Double) = v.setAt(0)(value)
+      inline def y_=(value: Double) = v.setAt(1)(value)
+      inline def z_=(value: Double) = v.setAt(2)(value)
 
   given Vec3MutableOps[Double, StructRef[Vec3dBuffer]] =
     new Vec3MutableOps[Double, StructRef[Vec3dBuffer]] {}

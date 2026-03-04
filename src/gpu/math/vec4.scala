@@ -163,14 +163,14 @@ type Vec4Buffer = (F32, F32, F32, F32)
 object Vec4Buffer:
   given Vec4Mutable[Float, StructRef[Vec4Buffer]]:
     extension (v: StructRef[Vec4Buffer])
-      inline def x: Float = v(0)()
-      inline def y: Float = v(1)()
-      inline def z: Float = v(2)()
-      inline def w: Float = v(3)()
-      inline def x_=(value: Float): Unit = v(0)(value)
-      inline def y_=(value: Float): Unit = v(1)(value)
-      inline def z_=(value: Float): Unit = v(2)(value)
-      inline def w_=(value: Float): Unit = v(3)(value)
+      inline def x: Float = v.getAt(0)
+      inline def y: Float = v.getAt(1)
+      inline def z: Float = v.getAt(2)
+      inline def w: Float = v.getAt(3)
+      inline def x_=(value: Float): Unit = v.setAt(0)(value)
+      inline def y_=(value: Float): Unit = v.setAt(1)(value)
+      inline def z_=(value: Float): Unit = v.setAt(2)(value)
+      inline def w_=(value: Float): Unit = v.setAt(3)(value)
 
   given Vec4MutableOps[Float, StructRef[Vec4Buffer]] =
     new Vec4MutableOps[Float, StructRef[Vec4Buffer]] {}
@@ -219,14 +219,14 @@ type Vec4dBuffer = (F64, F64, F64, F64)
 object Vec4dBuffer:
   given Vec4Mutable[Double, StructRef[Vec4dBuffer]]:
     extension (v: StructRef[Vec4dBuffer])
-      inline def x = v(0)()
-      inline def y = v(1)()
-      inline def z = v(2)()
-      inline def w = v(3)()
-      inline def x_=(value: Double) = v(0)(value)
-      inline def y_=(value: Double) = v(1)(value)
-      inline def z_=(value: Double) = v(2)(value)
-      inline def w_=(value: Double) = v(3)(value)
+      inline def x = v.getAt(0)
+      inline def y = v.getAt(1)
+      inline def z = v.getAt(2)
+      inline def w = v.getAt(3)
+      inline def x_=(value: Double) = v.setAt(0)(value)
+      inline def y_=(value: Double) = v.setAt(1)(value)
+      inline def z_=(value: Double) = v.setAt(2)(value)
+      inline def w_=(value: Double) = v.setAt(3)(value)
 
   given Vec4MutableOps[Double, StructRef[Vec4dBuffer]] =
     new Vec4MutableOps[Double, StructRef[Vec4dBuffer]] {}

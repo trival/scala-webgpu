@@ -173,14 +173,14 @@ type Mat2Buffer = (F32, F32, F32, F32)
 object Mat2Buffer:
   given Mat2Mutable[Float, StructRef[Mat2Buffer]]:
     extension (m: StructRef[Mat2Buffer])
-      inline def m00 = m(0)()
-      inline def m01 = m(1)()
-      inline def m10 = m(2)()
-      inline def m11 = m(3)()
-      inline def m00_=(v: Float) = m(0)(v)
-      inline def m01_=(v: Float) = m(1)(v)
-      inline def m10_=(v: Float) = m(2)(v)
-      inline def m11_=(v: Float) = m(3)(v)
+      inline def m00 = m.getAt(0)
+      inline def m01 = m.getAt(1)
+      inline def m10 = m.getAt(2)
+      inline def m11 = m.getAt(3)
+      inline def m00_=(v: Float) = m.setAt(0)(v)
+      inline def m01_=(v: Float) = m.setAt(1)(v)
+      inline def m10_=(v: Float) = m.setAt(2)(v)
+      inline def m11_=(v: Float) = m.setAt(3)(v)
 
   given Mat2SharedOps[Float, StructRef[Mat2Buffer]] =
     new Mat2SharedOps[Float, StructRef[Mat2Buffer]] {}
