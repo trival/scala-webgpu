@@ -99,7 +99,7 @@ trait Mat4ImmutableOps[Num: NumOps, Mat]:
 
 
   // format: off
-  inline def create(
+  def create(
       m00: Num, m01: Num, m02: Num, m03: Num,
       m10: Num, m11: Num, m12: Num, m13: Num,
       m20: Num, m21: Num, m22: Num, m23: Num,
@@ -188,6 +188,16 @@ trait Mat4ImmutableOps[Num: NumOps, Mat]:
         a01 * b30 + a11 * b31 + a21 * b32 + a31 * b33,
         a02 * b30 + a12 * b31 + a22 * b32 + a32 * b33,
         a03 * b30 + a13 * b31 + a23 * b32 + a33 * b33
+      )
+
+    @scala.annotation.targetName("vecMul")
+    inline def *[Vec](v: Vec)(using Vec4Base[Num, Vec], Vec4ImmutableOps[Num, Vec]): Vec =
+      val vx = v.x; val vy = v.y; val vz = v.z; val vw = v.w
+      summon[Vec4ImmutableOps[Num, Vec]].create(
+        m.m00 * vx + m.m10 * vy + m.m20 * vz + m.m30 * vw,
+        m.m01 * vx + m.m11 * vy + m.m21 * vz + m.m31 * vw,
+        m.m02 * vx + m.m12 * vy + m.m22 * vz + m.m32 * vw,
+        m.m03 * vx + m.m13 * vy + m.m23 * vz + m.m33 * vw,
       )
 
     inline def transposed: Mat = create(

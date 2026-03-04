@@ -3,6 +3,7 @@ package gpu.painter
 import gpu.buffers.*
 import gpu.math.*
 import gpu.shader.*
+import gpu.shader.dsl.Program
 import org.scalajs.dom.HTMLCanvasElement
 import trivalibs.bufferdata.StructArray
 import trivalibs.utils.js.*
@@ -27,6 +28,12 @@ class Painter(
   // =========================================================================
   // Shade factory
   // =========================================================================
+
+  // DSL overload — accepts a Program builder lambda
+  inline def shade[A, V, U](build: Program[A, V, U] => Unit): Shade[U] =
+    val program = new Program[A, V, U]
+    build(program)
+    shade[A, V, U](program.vertBodyStr, program.fragBodyStr)
 
   inline def shade[A, V, U](
       vertWgsl: String,

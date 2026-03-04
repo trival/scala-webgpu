@@ -18,10 +18,10 @@ trait Vec4Base[Num: {NumExt, NumOps}, Vec]:
     inline def b: Num = z
     inline def a: Num = w
 
-    inline def dot(other: Vec): Num =
+    def dot(other: Vec): Num =
       v.x * other.x + v.y * other.y + v.z * other.z + v.w * other.w
-    inline def length_squared: Num = v.dot(v)
-    inline def length: Num = v.length_squared.sqrt
+    def length_squared: Num = v.dot(v)
+    def length: Num = v.length_squared.sqrt
 
 trait Vec4Mutable[Num: {NumExt, NumOps}, Vec] extends Vec4Base[Num, Vec]:
   extension (v: Vec)
@@ -36,7 +36,7 @@ trait Vec4Mutable[Num: {NumExt, NumOps}, Vec] extends Vec4Base[Num, Vec]:
 
 trait Vec4ImmutableOps[Num: {NumExt, NumOps}, Vec]:
 
-  inline def create(x: Num, y: Num, z: Num, w: Num): Vec
+  def create(x: Num, y: Num, z: Num, w: Num): Vec
   inline def from[Num2, Vec2](
       other: Vec2,
   )(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
@@ -67,7 +67,7 @@ trait Vec4ImmutableOps[Num: {NumExt, NumOps}, Vec]:
     @scala.annotation.targetName("divScalar")
     inline def /(scalar: Num): Vec =
       create(v.x / scalar, v.y / scalar, v.z / scalar, v.w / scalar)
-    inline def normalized: Vec =
+    def normalized: Vec =
       v / v.length
 
 trait Vec4MutableOps[Num: {NumExt, NumOps}, Vec]:

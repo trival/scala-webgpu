@@ -52,7 +52,7 @@ trait Mat2SharedOps[Num: NumOps, Mat]:
 
 trait Mat2ImmutableOps[Num: NumOps, Mat]:
 
-  inline def create(m00: Num, m01: Num, m10: Num, m11: Num): Mat
+  def create(m00: Num, m01: Num, m10: Num, m11: Num): Mat
 
   inline def from[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
     create(other.m00, other.m01, other.m10, other.m11)
@@ -91,6 +91,13 @@ trait Mat2ImmutableOps[Num: NumOps, Mat]:
       m.m00 * other.m10 + m.m10 * other.m11,
       m.m01 * other.m10 + m.m11 * other.m11
     )
+
+    @scala.annotation.targetName("vecMul")
+    inline def *[Vec](v: Vec)(using Vec2Base[Num, Vec], Vec2ImmutableOps[Num, Vec]): Vec =
+      summon[Vec2ImmutableOps[Num, Vec]].create(
+        m.m00 * v.x + m.m10 * v.y,
+        m.m01 * v.x + m.m11 * v.y,
+      )
 
     inline def transposed: Mat = create(
       m.m00, m.m10,
