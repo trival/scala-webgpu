@@ -27,14 +27,14 @@ object UniformValue:
   // --- Float ---
   given UniformValue[Float, F32 *: EmptyTuple]:
     inline def write(ref: StructRef[F32 *: EmptyTuple], value: Float): Unit =
-      ref(0).set(value)
-    inline def read(ref: StructRef[F32 *: EmptyTuple]): Float = ref(0).get
+      ref.setAt(0)(value)
+    inline def read(ref: StructRef[F32 *: EmptyTuple]): Float = ref.getAt(0)
 
   // --- Double (maps to f32 in WGSL) ---
   given UniformValue[Double, F32 *: EmptyTuple]:
     inline def write(ref: StructRef[F32 *: EmptyTuple], value: Double): Unit =
-      ref(0).set(value.toFloat)
-    inline def read(ref: StructRef[F32 *: EmptyTuple]): Double = ref(0).get
+      ref.setAt(0)(value.toFloat)
+    inline def read(ref: StructRef[F32 *: EmptyTuple]): Double = ref.getAt(0)
 
   // --- Vec2 ---
   given UniformValue[Vec2, Vec2Buffer]:

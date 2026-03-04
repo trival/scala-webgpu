@@ -37,7 +37,9 @@ trait Vec4Mutable[Num: {NumExt, NumOps}, Vec] extends Vec4Base[Num, Vec]:
 trait Vec4ImmutableOps[Num: {NumExt, NumOps}, Vec]:
 
   inline def create(x: Num, y: Num, z: Num, w: Num): Vec
-  inline def from[Num2, Vec2](other: Vec2)(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
+  inline def from[Num2, Vec2](
+      other: Vec2,
+  )(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
     create(other.x, other.y, other.z, other.w)
 
   extension (v: Vec)(using Vec4Base[Num, Vec])
@@ -71,9 +73,13 @@ trait Vec4ImmutableOps[Num: {NumExt, NumOps}, Vec]:
 trait Vec4MutableOps[Num: {NumExt, NumOps}, Vec]:
 
   extension (v: Vec)(using Vec4Mutable[Num, Vec])
-    inline def set[Num2, Vec2](other: Vec2)(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
+    inline def set[Num2, Vec2](
+        other: Vec2,
+    )(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
       v.x = other.x; v.y = other.y; v.z = other.z; v.w = other.w
-    inline def :=[Num2, Vec2](other: Vec2)(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
+    inline def :=[Num2, Vec2](
+        other: Vec2,
+    )(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
       v.set(other)
 
     inline def add(other: Vec, out: Vec = v): Vec =
@@ -196,7 +202,8 @@ class Vec4f(
 )
 
 object Vec4f extends Vec4ImmutableOps[Float, Vec4f]:
-  inline def create(x: Float, y: Float, z: Float, w: Float) = new Vec4f(x, y, z, w)
+  inline def create(x: Float, y: Float, z: Float, w: Float) =
+    Vec4f(x, y, z, w)
   given Vec4ImmutableOps[Float, Vec4f] = Vec4f
 
   given Vec4Mutable[Float, Vec4f]:
@@ -252,7 +259,8 @@ class Vec4(
 )
 
 object Vec4 extends Vec4ImmutableOps[Double, Vec4]:
-  inline def create(x: Double, y: Double, z: Double, w: Double) = new Vec4(x, y, z, w)
+  inline def create(x: Double, y: Double, z: Double, w: Double) =
+    Vec4(x, y, z, w)
   given Vec4ImmutableOps[Double, Vec4] = Vec4
 
   given Vec4Mutable[Double, Vec4]:

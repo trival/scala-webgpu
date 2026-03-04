@@ -55,9 +55,9 @@ def main(): Unit =
       .shape(form, shade)
       .bind("color" := Vec3(1.0, 0.2, 0.2))
 
-    // Triangle 2: blue, slow rotation, oscillates left/right
     val mat1 = painter.binding(Mat2.identity)
 
+    // Triangle 2: blue, slow rotation, oscillates left/right
     val shape2 = painter
       .shape(form, shade)
       .bind("color" := Vec3(0.2, 0.5, 1.0), "rotation" := mat1)
