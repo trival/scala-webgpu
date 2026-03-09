@@ -46,6 +46,7 @@ class Painter(
       case _: EmptyTuple =>
         val sd = Shader[A, V, EmptyTuple](vertWgsl, fragWgsl)
         val wgsl = sd.generateWGSL
+        log(wgsl)
         val module = device.createShaderModule(Obj.literal(code = wgsl))
         val vbl = sd.vertexBufferLayout
         val pl = layouts.createPipelineLayout(
@@ -57,6 +58,7 @@ class Painter(
         type Wrapped = (values: U)
         val sd = Shader[A, V, Wrapped](vertWgsl, fragWgsl)
         val wgsl = sd.generateWGSL
+        log(wgsl)
         val module = device.createShaderModule(Obj.literal(code = wgsl))
         val vbl = sd.vertexBufferLayout
         val (bgls, pl) = sd.createPipelineLayout(device)

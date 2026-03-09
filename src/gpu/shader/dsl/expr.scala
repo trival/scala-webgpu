@@ -18,6 +18,28 @@ opaque type Mat3Expr  <: Expr = String
 opaque type Mat4Expr  <: Expr = String
 opaque type BoolExpr  <: Expr = String
 
+// ---------------------------------------------------------------------------
+// Local variable opaque types — each <: both its Expr type AND LocalExpr,
+// so all math operations are available natively, plus `:=` for let-binding.
+// ---------------------------------------------------------------------------
+
+opaque type LocalExpr  <: Expr                   = String
+opaque type LocalFloat <: FloatExpr & LocalExpr  = String
+opaque type LocalVec2  <: Vec2Expr & LocalExpr   = String
+opaque type LocalVec3  <: Vec3Expr & LocalExpr   = String
+opaque type LocalVec4  <: Vec4Expr & LocalExpr   = String
+opaque type LocalMat2  <: Mat2Expr & LocalExpr   = String
+opaque type LocalMat3  <: Mat3Expr & LocalExpr   = String
+opaque type LocalMat4  <: Mat4Expr & LocalExpr   = String
+opaque type LocalBool  <: BoolExpr & LocalExpr   = String
+
+object LocalExpr:
+  inline def apply(name: String): LocalExpr = name
+
+  extension (local: LocalExpr)
+    inline def :=(value: Expr): Stmt = Stmt.let(local, value)
+
+
 object Expr:
   inline def raw(s: String): Expr = s
 
@@ -26,12 +48,24 @@ object FloatExpr:
 
 object Vec2Expr:
   inline def apply(s: String): Vec2Expr = s
+  inline def matMul(m: Mat2Expr, v: Vec2Expr): Vec2Expr = s"($m * $v)"
+  inline def binop(a: Vec2Expr, op: String, b: Vec2Expr): Vec2Expr = s"($a $op $b)"
+  inline def scalarOp(v: Vec2Expr, op: String, s: FloatExpr): Vec2Expr =
+    Vec2Expr(s"($v $op $s)")
 
 object Vec3Expr:
   inline def apply(s: String): Vec3Expr = s
+  inline def matMul(m: Mat3Expr, v: Vec3Expr): Vec3Expr = s"($m * $v)"
+  inline def binop(a: Vec3Expr, op: String, b: Vec3Expr): Vec3Expr = s"($a $op $b)"
+  inline def scalarOp(v: Vec3Expr, op: String, s: FloatExpr): Vec3Expr =
+    Vec3Expr(s"($v $op $s)")
 
 object Vec4Expr:
   inline def apply(s: String): Vec4Expr = s
+  inline def matMul(m: Mat4Expr, v: Vec4Expr): Vec4Expr = s"($m * $v)"
+  inline def binop(a: Vec4Expr, op: String, b: Vec4Expr): Vec4Expr = s"($a $op $b)"
+  inline def scalarOp(v: Vec4Expr, op: String, s: FloatExpr): Vec4Expr =
+    Vec4Expr(s"($v $op $s)")
 
 object Mat2Expr:
   inline def apply(s: String): Mat2Expr = s
@@ -147,6 +181,7 @@ given Mat2ImmutableOps[FloatExpr, Mat2Expr] with
   def create(m00: FloatExpr, m01: FloatExpr, m10: FloatExpr, m11: FloatExpr): Mat2Expr =
     Mat2Expr(s"mat2x2<f32>($m00, $m01, $m10, $m11)")
 
+
 // ---------------------------------------------------------------------------
 // Mat3Expr — Mat3Base + Mat3ImmutableOps trait instances
 // ---------------------------------------------------------------------------
@@ -170,6 +205,7 @@ given Mat3ImmutableOps[FloatExpr, Mat3Expr] with
       m20: FloatExpr, m21: FloatExpr, m22: FloatExpr,
   ): Mat3Expr =
     Mat3Expr(s"mat3x3<f32>($m00, $m01, $m02, $m10, $m11, $m12, $m20, $m21, $m22)")
+
 
 // ---------------------------------------------------------------------------
 // Mat4Expr — Mat4Base + Mat4ImmutableOps trait instances
@@ -196,6 +232,7 @@ given Mat4ImmutableOps[FloatExpr, Mat4Expr] with
   ): Mat4Expr =
     Mat4Expr(s"mat4x4<f32>($m00, $m01, $m02, $m03, $m10, $m11, $m12, $m13, $m20, $m21, $m22, $m23, $m30, $m31, $m32, $m33)")
 // format: on
+
 
 // ---------------------------------------------------------------------------
 // Vector constructors (lowercase, matching WGSL syntax)

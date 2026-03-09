@@ -34,19 +34,19 @@ def main(): Unit =
     )
 
     val shade = painter.shade[Attribs, Varyings, Uniforms]: program =>
-      program.vert: ctx =>
-        val rotated = ctx.locals("rotated")
+      program.vert[(rotated: Vec2)]: ctx =>
+        val rotated = ctx.locals.rotated
         Block(
-          rotated := ctx.bindings.mat2("rotation") * ctx.in.vec2("position"),
-          ctx.out("position") := vec4(
-            rotated.vec2 + ctx.bindings.vec2("translation"),
+          rotated := ctx.bindings.rotation * ctx.in.position,
+          ctx.out.position := vec4(
+            rotated + ctx.bindings.translation,
             0.0,
             1.0,
           ),
         )
-      program.frag: ctx =>
+      program.frag[EmptyTuple]: ctx =>
         Block(
-          ctx.out("color") := vec4(ctx.bindings.vec3("color"), 1.0),
+          ctx.out.color := vec4(ctx.bindings.color, 1.0),
         )
 
     // Simple triangle centered at origin
