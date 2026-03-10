@@ -48,23 +48,23 @@ object FloatExpr:
 
 object Vec2Expr:
   inline def apply(s: String): Vec2Expr = s
-  inline def matMul(m: Mat2Expr, v: Vec2Expr): Vec2Expr = s"($m * $v)"
-  inline def binop(a: Vec2Expr, op: String, b: Vec2Expr): Vec2Expr = s"($a $op $b)"
-  inline def scalarOp(v: Vec2Expr, op: String, s: FloatExpr): Vec2Expr =
+  def matMul(m: Mat2Expr, v: Vec2Expr): Vec2Expr = s"($m * $v)"
+  def binop(a: Vec2Expr, op: String, b: Vec2Expr): Vec2Expr = s"($a $op $b)"
+  def scalarOp(v: Vec2Expr, op: String, s: FloatExpr): Vec2Expr =
     Vec2Expr(s"($v $op $s)")
 
 object Vec3Expr:
   inline def apply(s: String): Vec3Expr = s
-  inline def matMul(m: Mat3Expr, v: Vec3Expr): Vec3Expr = s"($m * $v)"
-  inline def binop(a: Vec3Expr, op: String, b: Vec3Expr): Vec3Expr = s"($a $op $b)"
-  inline def scalarOp(v: Vec3Expr, op: String, s: FloatExpr): Vec3Expr =
+  def matMul(m: Mat3Expr, v: Vec3Expr): Vec3Expr = s"($m * $v)"
+  def binop(a: Vec3Expr, op: String, b: Vec3Expr): Vec3Expr = s"($a $op $b)"
+  def scalarOp(v: Vec3Expr, op: String, s: FloatExpr): Vec3Expr =
     Vec3Expr(s"($v $op $s)")
 
 object Vec4Expr:
   inline def apply(s: String): Vec4Expr = s
-  inline def matMul(m: Mat4Expr, v: Vec4Expr): Vec4Expr = s"($m * $v)"
-  inline def binop(a: Vec4Expr, op: String, b: Vec4Expr): Vec4Expr = s"($a $op $b)"
-  inline def scalarOp(v: Vec4Expr, op: String, s: FloatExpr): Vec4Expr =
+  def matMul(m: Mat4Expr, v: Vec4Expr): Vec4Expr = s"($m * $v)"
+  def binop(a: Vec4Expr, op: String, b: Vec4Expr): Vec4Expr = s"($a $op $b)"
+  def scalarOp(v: Vec4Expr, op: String, s: FloatExpr): Vec4Expr =
     Vec4Expr(s"($v $op $s)")
 
 object Mat2Expr:
@@ -83,8 +83,13 @@ object BoolExpr:
 // Implicit conversions from numeric literals
 // ---------------------------------------------------------------------------
 
-given Conversion[Double, FloatExpr] = v => FloatExpr(v.toString)
-given Conversion[Float, FloatExpr]  = v => FloatExpr(v.toString)
+private def floatToWgsl(v: Double): String =
+  val s = v.toString
+  if s.contains('.') || s.contains('E') || s.contains('e') then s
+  else s + ".0"
+
+given Conversion[Double, FloatExpr] = v => FloatExpr(floatToWgsl(v))
+given Conversion[Float, FloatExpr]  = v => FloatExpr(floatToWgsl(v.toDouble))
 given Conversion[Int, FloatExpr]    = v => FloatExpr(s"f32($v)")
 
 // ---------------------------------------------------------------------------

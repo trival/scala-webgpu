@@ -1148,3 +1148,164 @@ drafts/painter_dsl/     — Draft example using DSL (Step 1c)
   pattern.
 - **Mutable variables early** — `Var[T]` marker type and `MutableLocalRef` are
   part of Milestone 1, needed for non-trivial shaders.
+
+---
+
+## 14. Implementation Status
+
+This section tracks what has been implemented, what deviates from the original
+plan, and what remains to be done.
+
+### Completed Steps
+
+#### Step 1a: CPU Math Gaps — Matrix Multiply ✅
+
+Matrix multiplication was already present in the math library (`Mat2ImmutableOps`,
+`Mat3ImmutableOps`, `Mat4ImmutableOps`) before this work began. No changes needed.
+
+#### Step 1b: Expression Types + Trait Instances ✅
+
+**File**: `src/gpu/shader/dsl/expr.scala`
+
+Implemented as planned:
+- All opaque types: `Expr`, `FloatExpr`, `Vec2Expr`–`Vec4Expr`,
+  `Mat2Expr`–`Mat4Expr`, `BoolExpr`
+- `given NumOps[FloatExpr]`, `given NumExt[FloatExpr]`
+- `given Vec*Base[FloatExpr, Vec*Expr]` and `given Vec*ImmutableOps[FloatExpr, Vec*Expr]`
+- `given Mat*Base[FloatExpr, Mat*Expr]` and `given Mat*ImmutableOps[FloatExpr, Mat*Expr]`
+- Implicit conversions: `Double → FloatExpr`, `Float → FloatExpr`, `Int → FloatExpr`
+- `vec2(...)`, `vec3(...)`, `vec4(...)` constructors
+- `Stmt` and `Block` opaque types
+
+**Deviation from plan**: `IntExpr` and `UIntExpr` not yet implemented (not
+needed for current shaders). Constructors and statements live in `expr.scala`
+rather than separate `constructors.scala` and `stmt.scala` files — simpler for
+the current code size.
+
+#### Step 1c: Program Builder + Painter Integration ✅
+
+**Files**: `src/gpu/shader/dsl/context.scala`, `src/gpu/shader/dsl/program.scala`,
+`src/gpu/painter/painter.scala`, `drafts/painter_dsl/`
+
+Implemented as planned. The `painter_dsl` draft renders two animated rotating
+triangles using the DSL, visually identical to the string-based
+`painter_typed_bindings` draft.
+
+#### Step 1d: Typed Accessors ✅
+
+**Files**: `src/gpu/shader/dsl/context.scala`, `src/gpu/shader/dsl/expr.scala`,
+`src/gpu/shader/dsl/types.scala`, `src/gpu/shader/dsl/local_ops.scala`
+
+Implemented with significant deviations from the original plan due to Scala 3
+type system constraints. All `ctx.in`, `ctx.out`, `ctx.bindings`, and
+`ctx.locals` are fully typed Selectables.
+
+**Major deviations from plan:**
+
+1. **Separate context types instead of single `ShaderCtx`**: The plan called for
+   a single `ShaderCtx` class. Implementation uses `VertexCtx[A, V, U, L]` and
+   `FragmentCtx[V, U, L]` — separate types are needed because vertex and
+   fragment stages have different input types (attributes vs varyings) and
+   different fixed outputs (`position: Vec4` vs `color: Vec4`).
+
+2. **Three accessor classes instead of two**: The plan described `ExprAccessor`
+   and `AssignAccessor` plus `LocalAccessor` using `LocalRef` with implicit
+   conversion. Implementation uses `TypedExprAccessor[F]`,
+   `TypedAssignAccessor[F]`, and `TypedLocalAccessor[F]` — all parameterized
+   with a `Fields` named tuple type for compile-time field checking.
+
+3. **Local* opaque types instead of `LocalRef` + conversion**: The plan used
+   `class LocalRef(name: String)` with `given Conversion[LocalRef, Expr]` for
+   math operations. This doesn't work because `given Conversion` does NOT
+   trigger extension method resolution from type class instances in Scala 3.
+   Instead, individual opaque types are used:
+   ```scala
+   opaque type LocalExpr  <: Expr                   = String
+   opaque type LocalFloat <: FloatExpr & LocalExpr  = String
+   opaque type LocalVec2  <: Vec2Expr & LocalExpr   = String
+   // ... etc for Vec3, Vec4, Mat2–Mat4, Bool
+   ```
+   The `:=` operator is an extension on `LocalExpr` (inherited by all subtypes).
+   Match types `ToLocal[T]` and `ToExpr[T]` in `types.scala` map GPU math types
+   to their corresponding Local/Expr types.
+
+4. **Separate `local_ops.scala` file for WGSL-native operations**: Opaque type
+   transparency is per-file in Scala 3. Inside `expr.scala` where the opaques
+   are defined, all `*Expr` types are `String`, so `+` resolves to `String.+`
+   (concatenation) instead of the intended `Vec2ImmutableOps` extension. The
+   file `local_ops.scala` defines vector arithmetic extensions (`+`, `-`, `*`,
+   `/`) in a separate file where the opaque boundary is intact. These shadow the
+   trait-based extensions and generate compact WGSL (`(a + b)`) instead of
+   component-wise expansion (`vec2<f32>(a.x + b.x, a.y + b.y)`).
+
+5. **Native WGSL matrix-vector multiplication**: The plan assumed `m * v` from
+   `Mat2ImmutableOps` would generate correct WGSL. In practice, the trait's
+   `inline def *` expands component-wise (correct for CPU but verbose for WGSL).
+   Direct extensions in `local_ops.scala` override this with native
+   `(m * v)` syntax via `Vec*Expr.matMul` helpers defined in `expr.scala`.
+
+6. **`& AnyNamedTuple` intersections instead of bounds**: The plan used
+   `Program[A <: AnyNamedTuple, V <: Tuple, U <: AnyNamedTuple]`. This breaks
+   because `EmptyTuple` is NOT `<: AnyNamedTuple` and `painter.scala`'s
+   `shade[A, V, U]` has unconstrained type params. The fix: remove all bounds
+   from `Program`, `VertexCtx`, `FragmentCtx`, and use `& AnyNamedTuple`
+   intersections at `NamedTuple.Map` call sites only.
+
+7. **`program.frag[EmptyTuple]` instead of `program.frag`**: The plan had both
+   `frag(body: ...)` and `frag[Locals](body: ...)` overloads. These caused
+   ambiguous overload errors. Only the parameterized version exists; callers use
+   `EmptyTuple` for no-locals stages.
+
+**Key Scala 3 learnings:**
+
+- Named tuple aliases don't reduce in match types (documented in CLAUDE.md).
+  Using `NamedTuple.Map` directly works; `MapTuple` match type wrapper does not.
+- Opaque type `<:` bounds (e.g., `LocalVec2 <: Vec2Expr & LocalExpr`) are
+  visible outside the defining file, but extension methods from given instances
+  (e.g., `Vec2ImmutableOps[FloatExpr, Vec2Expr]`) are NOT found on subtypes
+  because the type parameter inference infers the subtype, not the supertype.
+- Inside the opaque type defining file, `String.+` takes priority over any
+  extension `+` because all `*Expr` types are transparent `= String` there.
+  This is why `local_ops.scala` must be a separate file.
+
+### Remaining Steps
+
+#### Step 1e: Mutable Variables — Not Started
+
+The `Var[T]` marker type, `MutableLocalRef`, cross-namespace collision
+detection, and reserved word validation have not been implemented. Currently all
+locals are immutable (`let`).
+
+#### Additional Math Operations — Not Started
+
+Only the arithmetic operators used by the current `painter_dsl` draft are
+implemented. Missing from the plan: comparison operators (`<`, `>`, `===`),
+boolean operators (`&&`, `||`, `!`), WGSL built-ins (`sign`, `round`, `fract`,
+`mix`, `smoothstep`, etc.), swizzles, `dot`, `cross`, `length`, `normalized`,
+color aliases (`.r`, `.g`, `.b`). These will be added incrementally as needed.
+
+#### Control Flow — Not Started
+
+`ifThen`, `ifThenElse`, `whileLoop` are not implemented. Add when needed.
+
+#### Hygienic Naming — Not Started
+
+No compile-time reserved word validation or local-vs-uniform collision detection.
+
+### Current File Layout
+
+```
+src/gpu/shader/dsl/
+├── expr.scala       — Opaque expression types, trait instances, constructors,
+│                      Stmt/Block, Local* opaque types, Vec*Expr.matMul/binop helpers
+├── types.scala      — Match types: ToExpr, UniformToExpr, ToLocal, ToAssignTarget
+├── context.scala    — TypedExprAccessor, TypedAssignAccessor, TypedLocalAccessor,
+│                      AssignTarget, VertexCtx, FragmentCtx
+├── program.scala    — Program[A, V, U] builder class
+└── local_ops.scala  — WGSL-native arithmetic extensions for Vec*Expr and Local*
+                       types (must be separate file for opaque type boundary)
+```
+
+Compared to plan: no separate `constructors.scala`, `stmt.scala`, or
+`package.scala`. Everything fits in fewer files. `local_ops.scala` and
+`types.scala` are additions not in the original plan.
