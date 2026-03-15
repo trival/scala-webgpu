@@ -2,10 +2,10 @@
 	"name": "scala-webgpu",
 	"type": "module",
 	"scripts": {
-		"build": "scala-cli --power package . --js -o drafts/out -f",
-		"watch": "scala-cli --power package . --js -o drafts/out -f -w",
+		"build": "scala --power package . --js -o drafts/out -f",
+		"watch": "scala --power package . --js -o drafts/out -f -w",
 		"dev": "bun --bun serve.ts",
-		"test": "scala-cli test ."
+		"test": "scala test test/"
 	},
 	"devDependencies": {
 		"@types/bun": "latest"

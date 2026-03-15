@@ -8,7 +8,6 @@
 //> using jsModuleSplitStyleStr fewestmodules // smallestmodules
 
 //> using exclude trivalibs/test/**
+//> using exclude test/**
 
 //> using dep org.scala-js::scalajs-dom::2.8.1
-
-//> using test.dep org.scalameta::munit::1.2.4

@@ -9,11 +9,40 @@ code in this repository.
 bun run build          # Compile Scala.js → drafts/out/ (never use sbt)
 bun run watch          # Incremental build with file watching
 bun run dev            # Start Bun dev server on :3000
-bun run test           # Run all tests (scala-cli test .)
+bun run test           # Run all tests (scala-cli test test/)
 ```
 
 Build uses `scala-cli --power package . --js` targeting ES modules. Scala 3.8.2,
 Scala.js 1.20.2.
+
+## Tests
+
+Tests live in `test/` with their own scala-cli config (`test/test-setup.scala`),
+separate from the main build. This is necessary because the main build uses ES
+module split style (`jsModuleSplitStyleStr fewestmodules`) which breaks MUnit's
+test runner on Node.js.
+
+**Test config** (`test/test-setup.scala`): plain `platform js` with no module
+split settings.
+
+**Adding a new test file**: create `test/<area>/<Name>.test.scala` (the
+`.test.scala` suffix is required — scala-cli uses it to detect test sources).
+Extend `munit.FunSuite`. No additional config needed; the file is picked up
+automatically.
+
+```scala
+// test/shader/MyFeature.test.scala
+package gpu.shader.dsl
+
+import munit.FunSuite
+
+class MyFeatureTest extends FunSuite:
+  test("description"):
+    assertEquals(...)
+```
+
+If the new test needs sources from a directory not yet listed in
+`test/test-setup.scala`, add a `//> using file ../src/...` line there.
 
 ## Project Overview
 
@@ -80,19 +109,19 @@ Zero Scala stdlib at runtime — only use the type system and compile-time
 features. Every runtime construct must compile to minimal JS:
 
 - **No `enum`**: Use `opaque type Foo = String` with `val` constants in the
-  companion. Add `extension (x: Foo) inline def toJs: js.Any` if the opaque
-  type must be passed to `js.Dynamic.literal`. Note: `inline val` is not
-  allowed on opaque types — use plain `val`.
+  companion. Add `extension (x: Foo) inline def toJs: js.Any` if the opaque type
+  must be passed to `js.Dynamic.literal`. Note: `inline val` is not allowed on
+  opaque types — use plain `val`.
 - **No `scala.collection.*`**: Use `Arr` (`js.Array`), `js.Dictionary`, or
   manual loops. `js.Dictionary[V]` works as a string-keyed cache (plain JS
   object). For integer-indexed sparse data, use `Arr[T | Null]`.
-- **No `Option`**: Use `Opt[T]` (`js.UndefOr[T]`) from trivalibs with
-  `Opt.Null` as the empty value. Check with `.isEmpty` / `.safe` / `.getOr`.
+- **No `Option`**: Use `Opt[T]` (`js.UndefOr[T]`) from trivalibs with `Opt.Null`
+  as the empty value. Check with `.isEmpty` / `.safe` / `.getOr`.
 - **No `case class` for keys**: Build string keys manually with `s"..."` for
   cache lookups in `js.Dictionary`.
-- **`.map/.filter/.sortBy` must delegate to JS**: Use `inline` extension
-  methods on `Arr` (in trivalibs) that compile to raw `js.Array` methods —
-  never Scala collection traits. Add new helpers in trivalibs as needed.
+- **`.map/.filter/.sortBy` must delegate to JS**: Use `inline` extension methods
+  on `Arr` (in trivalibs) that compile to raw `js.Array` methods — never Scala
+  collection traits. Add new helpers in trivalibs as needed.
 - **JS-native classes for structured data**: `class Foo(...) extends js.Object`
   preserves field names in JS output with zero overhead.
 - **`js.Dynamic` / `Obj.literal`** fine internally; user-facing API typed.
