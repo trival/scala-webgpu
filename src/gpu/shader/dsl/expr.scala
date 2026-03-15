@@ -397,6 +397,8 @@ object Stmt:
     s"  $name = ${value.wgsl};"
   inline def raw(s: String): Stmt = s
 
+given Conversion[Stmt, Block] = s => s
+
 object Block:
   def apply(stmts: Stmt*): Block = stmts.mkString("\n")
   def empty: Block = ""

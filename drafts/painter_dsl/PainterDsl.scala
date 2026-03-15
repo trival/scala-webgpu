@@ -52,9 +52,7 @@ def main(): Unit =
           ctx.out.position := vec4(t.x, t.y, 0.0, 1.0),
         )
       program.frag[EmptyTuple]: ctx =>
-        Block(
-          ctx.out.color := vec4(ctx.bindings.color, 1.0),
-        )
+        ctx.out.color := vec4(ctx.bindings.color, 1.0)
 
     // Simple triangle centered at origin
     val vertices = allocateAttribs[Attribs](3)
