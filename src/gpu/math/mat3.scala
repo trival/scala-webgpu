@@ -181,7 +181,9 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
       )
 
     @scala.annotation.targetName("vecMul")
-    inline def *[Vec](v: Vec)(using Vec3Base[Num, Vec], Vec3ImmutableOps[Num, Vec]): Vec =
+    inline def *[Vec](
+        v: Vec,
+    )(using Vec3Base[Num, Vec], Vec3ImmutableOps[Num, Vec]): Vec =
       summon[Vec3ImmutableOps[Num, Vec]].create(
         m.m00 * v.x + m.m10 * v.y + m.m20 * v.z,
         m.m01 * v.x + m.m11 * v.y + m.m21 * v.z,
@@ -277,7 +279,6 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
       )
 
 trait Mat3MutableOps[Num: NumOps, Mat]:
-
 
   extension (m: Mat)(using mb: Mat3Mutable[Num, Mat])
     inline def set[Num2, Mat2_](
