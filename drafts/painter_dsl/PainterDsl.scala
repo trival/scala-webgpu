@@ -41,17 +41,15 @@ def main(): Unit =
     val shade = painter.shade[Attribs, Varyings, Uniforms]: program =>
       program.fn(applyTransform)
 
-      program.vert[EmptyTuple]: ctx =>
+      program.vert[(t: Vec2)]: ctx =>
+        val t = ctx.locals.t
         Block(
-          ctx.out.position := vec4(
-            applyTransform(
-              ctx.in.position,
-              ctx.bindings.rotation,
-              ctx.bindings.translation,
-            ),
-            0.0,
-            1.0,
+          t := applyTransform(
+            ctx.in.position,
+            ctx.bindings.rotation,
+            ctx.bindings.translation,
           ),
+          ctx.out.position := vec4(t.x, t.y, 0.0, 1.0),
         )
       program.frag[EmptyTuple]: ctx =>
         Block(

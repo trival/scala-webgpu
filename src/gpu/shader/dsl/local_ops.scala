@@ -1,105 +1,85 @@
 package gpu.shader.dsl
 
 // ---------------------------------------------------------------------------
-// WGSL-native operations for *Expr types.
+// WGSL-native arithmetic for *Expr types.
 //
-// MUST live in a separate file from expr.scala so that the opaque types remain
-// opaque.  Inside expr.scala every *Expr = String, so `+` resolves to
-// String concatenation and `inline def *` on traits expand component-wise.
-// Here the opaque boundary is intact and we generate compact WGSL operators.
+// These extensions shadow the Vec*ImmutableOps trait defaults (which expand
+// component-wise) and emit compact native WGSL operators instead.
 //
-// NOTE: These must NOT be `inline` — inlining would expose the opaque types
-// as String at the call site, breaking type safety across the opaque boundary.
+// Local* arithmetic is handled by implicit conversions to *Expr in expr.scala,
+// so only *Expr extensions are needed here.
 // ---------------------------------------------------------------------------
 
-// --- Matrix-vector multiplication (native WGSL `*`) -----------------------
+// --- Matrix-vector multiplication -----------------------------------------
 
 extension (m: Mat2Expr)
   @scala.annotation.targetName("mat2MulVec2")
-  def *(v: Vec2Expr): Vec2Expr = Vec2Expr.matMul(m, v)
+  def *(v: Vec2Expr): Vec2Expr = Vec2Expr(s"(${m.wgsl} * ${v.wgsl})")
 
 extension (m: Mat3Expr)
   @scala.annotation.targetName("mat3MulVec3")
-  def *(v: Vec3Expr): Vec3Expr = Vec3Expr.matMul(m, v)
+  def *(v: Vec3Expr): Vec3Expr = Vec3Expr(s"(${m.wgsl} * ${v.wgsl})")
 
 extension (m: Mat4Expr)
   @scala.annotation.targetName("mat4MulVec4")
-  def *(v: Vec4Expr): Vec4Expr = Vec4Expr.matMul(m, v)
+  def *(v: Vec4Expr): Vec4Expr = Vec4Expr(s"(${m.wgsl} * ${v.wgsl})")
 
-// --- Vec2Expr native arithmetic -------------------------------------------
-// These shadow the Vec2ImmutableOps trait extensions, generating compact WGSL
-// like `(a + b)` instead of component-wise `vec2<f32>(a.x + b.x, a.y + b.y)`.
-// LocalVec2 <: Vec2Expr so these apply to locals too.
+// --- Vec2Expr arithmetic ---------------------------------------------------
 
 extension (v: Vec2Expr)
-  @scala.annotation.targetName("vec2AddVec")
-  def +(other: Vec2Expr): Vec2Expr = Vec2Expr.binop(v, "+", other)
-  @scala.annotation.targetName("vec2SubVec")
-  def -(other: Vec2Expr): Vec2Expr = Vec2Expr.binop(v, "-", other)
-  @scala.annotation.targetName("vec2MulVec")
-  def *(other: Vec2Expr): Vec2Expr = Vec2Expr.binop(v, "*", other)
-  @scala.annotation.targetName("vec2DivVec")
-  def /(other: Vec2Expr): Vec2Expr = Vec2Expr.binop(v, "/", other)
+  @scala.annotation.targetName("vec2AddVec2")
+  def +(other: Vec2Expr): Vec2Expr = Vec2Expr(s"(${v.wgsl} + ${other.wgsl})")
+  @scala.annotation.targetName("vec2SubVec2")
+  def -(other: Vec2Expr): Vec2Expr = Vec2Expr(s"(${v.wgsl} - ${other.wgsl})")
+  @scala.annotation.targetName("vec2MulVec2")
+  def *(other: Vec2Expr): Vec2Expr = Vec2Expr(s"(${v.wgsl} * ${other.wgsl})")
+  @scala.annotation.targetName("vec2DivVec2")
+  def /(other: Vec2Expr): Vec2Expr = Vec2Expr(s"(${v.wgsl} / ${other.wgsl})")
   @scala.annotation.targetName("vec2AddScalar")
-  def +(scalar: FloatExpr): Vec2Expr = Vec2Expr.scalarOp(v, "+", scalar)
+  def +(s: FloatExpr): Vec2Expr = Vec2Expr(s"(${v.wgsl} + ${s.wgsl})")
   @scala.annotation.targetName("vec2SubScalar")
-  def -(scalar: FloatExpr): Vec2Expr = Vec2Expr.scalarOp(v, "-", scalar)
+  def -(s: FloatExpr): Vec2Expr = Vec2Expr(s"(${v.wgsl} - ${s.wgsl})")
   @scala.annotation.targetName("vec2MulScalar")
-  def *(scalar: FloatExpr): Vec2Expr = Vec2Expr.scalarOp(v, "*", scalar)
+  def *(s: FloatExpr): Vec2Expr = Vec2Expr(s"(${v.wgsl} * ${s.wgsl})")
   @scala.annotation.targetName("vec2DivScalar")
-  def /(scalar: FloatExpr): Vec2Expr = Vec2Expr.scalarOp(v, "/", scalar)
+  def /(s: FloatExpr): Vec2Expr = Vec2Expr(s"(${v.wgsl} / ${s.wgsl})")
 
-// --- Vec3Expr native arithmetic -------------------------------------------
+// --- Vec3Expr arithmetic ---------------------------------------------------
 
 extension (v: Vec3Expr)
-  @scala.annotation.targetName("vec3AddVec")
-  def +(other: Vec3Expr): Vec3Expr = Vec3Expr.binop(v, "+", other)
-  @scala.annotation.targetName("vec3SubVec")
-  def -(other: Vec3Expr): Vec3Expr = Vec3Expr.binop(v, "-", other)
-  @scala.annotation.targetName("vec3MulVec")
-  def *(other: Vec3Expr): Vec3Expr = Vec3Expr.binop(v, "*", other)
-  @scala.annotation.targetName("vec3DivVec")
-  def /(other: Vec3Expr): Vec3Expr = Vec3Expr.binop(v, "/", other)
+  @scala.annotation.targetName("vec3AddVec3")
+  def +(other: Vec3Expr): Vec3Expr = Vec3Expr(s"(${v.wgsl} + ${other.wgsl})")
+  @scala.annotation.targetName("vec3SubVec3")
+  def -(other: Vec3Expr): Vec3Expr = Vec3Expr(s"(${v.wgsl} - ${other.wgsl})")
+  @scala.annotation.targetName("vec3MulVec3")
+  def *(other: Vec3Expr): Vec3Expr = Vec3Expr(s"(${v.wgsl} * ${other.wgsl})")
+  @scala.annotation.targetName("vec3DivVec3")
+  def /(other: Vec3Expr): Vec3Expr = Vec3Expr(s"(${v.wgsl} / ${other.wgsl})")
   @scala.annotation.targetName("vec3AddScalar")
-  def +(scalar: FloatExpr): Vec3Expr = Vec3Expr.scalarOp(v, "+", scalar)
+  def +(s: FloatExpr): Vec3Expr = Vec3Expr(s"(${v.wgsl} + ${s.wgsl})")
   @scala.annotation.targetName("vec3SubScalar")
-  def -(scalar: FloatExpr): Vec3Expr = Vec3Expr.scalarOp(v, "-", scalar)
+  def -(s: FloatExpr): Vec3Expr = Vec3Expr(s"(${v.wgsl} - ${s.wgsl})")
   @scala.annotation.targetName("vec3MulScalar")
-  def *(scalar: FloatExpr): Vec3Expr = Vec3Expr.scalarOp(v, "*", scalar)
+  def *(s: FloatExpr): Vec3Expr = Vec3Expr(s"(${v.wgsl} * ${s.wgsl})")
   @scala.annotation.targetName("vec3DivScalar")
-  def /(scalar: FloatExpr): Vec3Expr = Vec3Expr.scalarOp(v, "/", scalar)
+  def /(s: FloatExpr): Vec3Expr = Vec3Expr(s"(${v.wgsl} / ${s.wgsl})")
 
-// --- Vec4Expr native arithmetic -------------------------------------------
+// --- Vec4Expr arithmetic ---------------------------------------------------
 
 extension (v: Vec4Expr)
-  @scala.annotation.targetName("vec4AddVec")
-  def +(other: Vec4Expr): Vec4Expr = Vec4Expr.binop(v, "+", other)
-  @scala.annotation.targetName("vec4SubVec")
-  def -(other: Vec4Expr): Vec4Expr = Vec4Expr.binop(v, "-", other)
-  @scala.annotation.targetName("vec4MulVec")
-  def *(other: Vec4Expr): Vec4Expr = Vec4Expr.binop(v, "*", other)
-  @scala.annotation.targetName("vec4DivVec")
-  def /(other: Vec4Expr): Vec4Expr = Vec4Expr.binop(v, "/", other)
+  @scala.annotation.targetName("vec4AddVec4")
+  def +(other: Vec4Expr): Vec4Expr = Vec4Expr(s"(${v.wgsl} + ${other.wgsl})")
+  @scala.annotation.targetName("vec4SubVec4")
+  def -(other: Vec4Expr): Vec4Expr = Vec4Expr(s"(${v.wgsl} - ${other.wgsl})")
+  @scala.annotation.targetName("vec4MulVec4")
+  def *(other: Vec4Expr): Vec4Expr = Vec4Expr(s"(${v.wgsl} * ${other.wgsl})")
+  @scala.annotation.targetName("vec4DivVec4")
+  def /(other: Vec4Expr): Vec4Expr = Vec4Expr(s"(${v.wgsl} / ${other.wgsl})")
   @scala.annotation.targetName("vec4AddScalar")
-  def +(scalar: FloatExpr): Vec4Expr = Vec4Expr.scalarOp(v, "+", scalar)
+  def +(s: FloatExpr): Vec4Expr = Vec4Expr(s"(${v.wgsl} + ${s.wgsl})")
   @scala.annotation.targetName("vec4SubScalar")
-  def -(scalar: FloatExpr): Vec4Expr = Vec4Expr.scalarOp(v, "-", scalar)
+  def -(s: FloatExpr): Vec4Expr = Vec4Expr(s"(${v.wgsl} - ${s.wgsl})")
   @scala.annotation.targetName("vec4MulScalar")
-  def *(scalar: FloatExpr): Vec4Expr = Vec4Expr.scalarOp(v, "*", scalar)
+  def *(s: FloatExpr): Vec4Expr = Vec4Expr(s"(${v.wgsl} * ${s.wgsl})")
   @scala.annotation.targetName("vec4DivScalar")
-  def /(scalar: FloatExpr): Vec4Expr = Vec4Expr.scalarOp(v, "/", scalar)
-
-// --- LocalFloat forwarding ------------------------------------------------
-// FloatExpr arithmetic is defined via NumOps[FloatExpr] given in expr.scala.
-// LocalFloat <: FloatExpr, but the NumOps extension uses a type parameter
-// (`extension (a: A)` where A = FloatExpr), so LocalFloat doesn't match directly.
-
-extension (v: LocalFloat)
-  @scala.annotation.targetName("localFloatAdd")
-  def +(other: FloatExpr): FloatExpr = (v: FloatExpr) + other
-  @scala.annotation.targetName("localFloatSub")
-  def -(other: FloatExpr): FloatExpr = (v: FloatExpr) - other
-  @scala.annotation.targetName("localFloatMul")
-  def *(other: FloatExpr): FloatExpr = (v: FloatExpr) * other
-  @scala.annotation.targetName("localFloatDiv")
-  def /(other: FloatExpr): FloatExpr = (v: FloatExpr) / other
+  def /(s: FloatExpr): Vec4Expr = Vec4Expr(s"(${v.wgsl} / ${s.wgsl})")

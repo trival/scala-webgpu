@@ -35,9 +35,9 @@ class AssignTarget(val target: String):
 
 /** Typed read+write accessor for local variables.
   *
-  * Fields maps to Local* opaque types (e.g., LocalVec2, LocalMat2). Each is
-  * `<: Vec2Expr & LocalExpr` etc., so all math operations are available
-  * natively, plus `:=` for let-binding via the LocalExpr extension.
+  * Fields maps to Local* types (e.g., LocalVec2, LocalMat2). Each extends
+  * its Expr class (Vec2Expr, etc.) and the LocalExpr trait, so all math
+  * operations and `:=` for let-binding are available.
   */
 class TypedLocalAccessor[F <: AnyNamedTuple] extends Selectable:
   type Fields = F

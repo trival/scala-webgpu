@@ -1,83 +1,122 @@
 package gpu.shader.dsl
 
 import gpu.math.*
-import trivalibs.utils.numbers.{NumExt, NumOps}
+import trivalibs.utils.numbers.NumExt
+import trivalibs.utils.numbers.NumOps
 
 // ---------------------------------------------------------------------------
-// Opaque expression types — each wraps a WGSL expression string at runtime,
-// providing compile-time type safety at zero cost.
+// Expression base class — wraps a WGSL string, toString = wgsl so string
+// interpolation works naturally.
 // ---------------------------------------------------------------------------
 
-opaque type Expr      = String
-opaque type FloatExpr <: Expr = String
-opaque type Vec2Expr  <: Expr = String
-opaque type Vec3Expr  <: Expr = String
-opaque type Vec4Expr  <: Expr = String
-opaque type Mat2Expr  <: Expr = String
-opaque type Mat3Expr  <: Expr = String
-opaque type Mat4Expr  <: Expr = String
-opaque type BoolExpr  <: Expr = String
+class Expr(val wgsl: String):
+  override def toString: String = wgsl
 
 // ---------------------------------------------------------------------------
-// Local variable opaque types — each <: both its Expr type AND LocalExpr,
-// so all math operations are available natively, plus `:=` for let-binding.
+// Typed expression opaque types — each is Expr at runtime (so Selectable
+// asInstanceOf casts are safe), but distinct at compile time (FloatExpr ≠
+// Vec2Expr etc.) for type-safe Vec*Base / Mat*Base type class dispatch.
 // ---------------------------------------------------------------------------
-
-opaque type LocalExpr  <: Expr                   = String
-opaque type LocalFloat <: FloatExpr & LocalExpr  = String
-opaque type LocalVec2  <: Vec2Expr & LocalExpr   = String
-opaque type LocalVec3  <: Vec3Expr & LocalExpr   = String
-opaque type LocalVec4  <: Vec4Expr & LocalExpr   = String
-opaque type LocalMat2  <: Mat2Expr & LocalExpr   = String
-opaque type LocalMat3  <: Mat3Expr & LocalExpr   = String
-opaque type LocalMat4  <: Mat4Expr & LocalExpr   = String
-opaque type LocalBool  <: BoolExpr & LocalExpr   = String
-
-object LocalExpr:
-  inline def apply(name: String): LocalExpr = name
-
-  extension (local: LocalExpr)
-    inline def :=(value: Expr): Stmt = Stmt.let(local, value)
-
 
 object Expr:
-  inline def raw(s: String): Expr = s
+  def raw(s: String): Expr = new Expr(s)
+  def apply(s: String): Expr = new Expr(s)
 
-object FloatExpr:
-  inline def apply(s: String): FloatExpr = s
+  opaque type FloatExpr <: Expr = Expr
+  object FloatExpr { def apply(s: String): FloatExpr = new Expr(s) }
 
-object Vec2Expr:
-  inline def apply(s: String): Vec2Expr = s
-  def matMul(m: Mat2Expr, v: Vec2Expr): Vec2Expr = s"($m * $v)"
-  def binop(a: Vec2Expr, op: String, b: Vec2Expr): Vec2Expr = s"($a $op $b)"
-  def scalarOp(v: Vec2Expr, op: String, s: FloatExpr): Vec2Expr =
-    Vec2Expr(s"($v $op $s)")
+  opaque type Vec2Expr <: Expr = Expr
+  object Vec2Expr { def apply(s: String): Vec2Expr = new Expr(s) }
 
-object Vec3Expr:
-  inline def apply(s: String): Vec3Expr = s
-  def matMul(m: Mat3Expr, v: Vec3Expr): Vec3Expr = s"($m * $v)"
-  def binop(a: Vec3Expr, op: String, b: Vec3Expr): Vec3Expr = s"($a $op $b)"
-  def scalarOp(v: Vec3Expr, op: String, s: FloatExpr): Vec3Expr =
-    Vec3Expr(s"($v $op $s)")
+  opaque type Vec3Expr <: Expr = Expr
+  object Vec3Expr { def apply(s: String): Vec3Expr = new Expr(s) }
 
-object Vec4Expr:
-  inline def apply(s: String): Vec4Expr = s
-  def matMul(m: Mat4Expr, v: Vec4Expr): Vec4Expr = s"($m * $v)"
-  def binop(a: Vec4Expr, op: String, b: Vec4Expr): Vec4Expr = s"($a $op $b)"
-  def scalarOp(v: Vec4Expr, op: String, s: FloatExpr): Vec4Expr =
-    Vec4Expr(s"($v $op $s)")
+  opaque type Vec4Expr <: Expr = Expr
+  object Vec4Expr { def apply(s: String): Vec4Expr = new Expr(s) }
 
-object Mat2Expr:
-  inline def apply(s: String): Mat2Expr = s
+  opaque type Mat2Expr <: Expr = Expr
+  object Mat2Expr { def apply(s: String): Mat2Expr = new Expr(s) }
 
-object Mat3Expr:
-  inline def apply(s: String): Mat3Expr = s
+  opaque type Mat3Expr <: Expr = Expr
+  object Mat3Expr { def apply(s: String): Mat3Expr = new Expr(s) }
 
-object Mat4Expr:
-  inline def apply(s: String): Mat4Expr = s
+  opaque type Mat4Expr <: Expr = Expr
+  object Mat4Expr { def apply(s: String): Mat4Expr = new Expr(s) }
 
-object BoolExpr:
-  inline def apply(s: String): BoolExpr = s
+  opaque type BoolExpr <: Expr = Expr
+  object BoolExpr { def apply(s: String): BoolExpr = new Expr(s) }
+
+export Expr.{
+  FloatExpr,
+  Vec2Expr,
+  Vec3Expr,
+  Vec4Expr,
+  Mat2Expr,
+  Mat3Expr,
+  Mat4Expr,
+  BoolExpr,
+}
+
+// ---------------------------------------------------------------------------
+// Local variable types — opaque wrappers around LocalExpr, so
+// TypedLocalAccessor.selectDynamic returning LocalExpr(name) safely casts
+// to any Local* type at runtime.
+// ---------------------------------------------------------------------------
+
+class LocalExpr(val name: String) extends Expr(name):
+  def :=(value: Expr): Stmt = Stmt.let(name, value)
+
+object LocalExpr:
+  def apply(name: String): LocalExpr = new LocalExpr(name)
+
+  opaque type LocalFloat <: LocalExpr = LocalExpr
+  object LocalFloat { def apply(s: String): LocalFloat = new LocalExpr(s) }
+
+  opaque type LocalVec2 <: LocalExpr = LocalExpr
+  object LocalVec2 { def apply(s: String): LocalVec2 = new LocalExpr(s) }
+
+  opaque type LocalVec3 <: LocalExpr = LocalExpr
+  object LocalVec3 { def apply(s: String): LocalVec3 = new LocalExpr(s) }
+
+  opaque type LocalVec4 <: LocalExpr = LocalExpr
+  object LocalVec4 { def apply(s: String): LocalVec4 = new LocalExpr(s) }
+
+  opaque type LocalMat2 <: LocalExpr = LocalExpr
+  object LocalMat2 { def apply(s: String): LocalMat2 = new LocalExpr(s) }
+
+  opaque type LocalMat3 <: LocalExpr = LocalExpr
+  object LocalMat3 { def apply(s: String): LocalMat3 = new LocalExpr(s) }
+
+  opaque type LocalMat4 <: LocalExpr = LocalExpr
+  object LocalMat4 { def apply(s: String): LocalMat4 = new LocalExpr(s) }
+
+  opaque type LocalBool <: LocalExpr = LocalExpr
+  object LocalBool { def apply(s: String): LocalBool = new LocalExpr(s) }
+
+export LocalExpr.{
+  LocalFloat,
+  LocalVec2,
+  LocalVec3,
+  LocalVec4,
+  LocalMat2,
+  LocalMat3,
+  LocalMat4,
+  LocalBool,
+}
+
+// ---------------------------------------------------------------------------
+// Implicit conversions from Local* to *Expr — locals are usable anywhere
+// their corresponding expression type is expected.
+// ---------------------------------------------------------------------------
+
+given Conversion[LocalFloat, FloatExpr] = l => FloatExpr(l.wgsl)
+given Conversion[LocalVec2, Vec2Expr] = l => Vec2Expr(l.wgsl)
+given Conversion[LocalVec3, Vec3Expr] = l => Vec3Expr(l.wgsl)
+given Conversion[LocalVec4, Vec4Expr] = l => Vec4Expr(l.wgsl)
+given Conversion[LocalMat2, Mat2Expr] = l => Mat2Expr(l.wgsl)
+given Conversion[LocalMat3, Mat3Expr] = l => Mat3Expr(l.wgsl)
+given Conversion[LocalMat4, Mat4Expr] = l => Mat4Expr(l.wgsl)
+given Conversion[LocalBool, BoolExpr] = l => BoolExpr(l.wgsl)
 
 // ---------------------------------------------------------------------------
 // Implicit conversions from numeric literals
@@ -89,197 +128,276 @@ private def floatToWgsl(v: Double): String =
   else s + ".0"
 
 given Conversion[Double, FloatExpr] = v => FloatExpr(floatToWgsl(v))
-given Conversion[Float, FloatExpr]  = v => FloatExpr(floatToWgsl(v.toDouble))
-given Conversion[Int, FloatExpr]    = v => FloatExpr(s"f32($v)")
+given Conversion[Float, FloatExpr] = v => FloatExpr(floatToWgsl(v.toDouble))
+given Conversion[Int, FloatExpr] = v => FloatExpr(s"f32($v)")
 
 // ---------------------------------------------------------------------------
-// NumOps[FloatExpr] — arithmetic and zero/one
+// NumOps / NumExt for FloatExpr and LocalFloat
 // ---------------------------------------------------------------------------
 
-given NumOps[FloatExpr] with
+given NumOps[FloatExpr]:
   extension (a: FloatExpr)
-    def +(b: FloatExpr): FloatExpr = s"($a + $b)"
-    def -(b: FloatExpr): FloatExpr = s"($a - $b)"
-    def *(b: FloatExpr): FloatExpr = s"($a * $b)"
-    def /(b: FloatExpr): FloatExpr = s"($a / $b)"
-    def unary_- : FloatExpr        = s"(-$a)"
-  def zero: FloatExpr = "0.0"
-  def one: FloatExpr  = "1.0"
+    def +(b: FloatExpr): FloatExpr = FloatExpr(s"(${a.wgsl} + ${b.wgsl})")
+    def -(b: FloatExpr): FloatExpr = FloatExpr(s"(${a.wgsl} - ${b.wgsl})")
+    def *(b: FloatExpr): FloatExpr = FloatExpr(s"(${a.wgsl} * ${b.wgsl})")
+    def /(b: FloatExpr): FloatExpr = FloatExpr(s"(${a.wgsl} / ${b.wgsl})")
+    def unary_- : FloatExpr = FloatExpr(s"(-${a.wgsl})")
+  def zero: FloatExpr = FloatExpr("0.0")
+  def one: FloatExpr = FloatExpr("1.0")
 
-// ---------------------------------------------------------------------------
-// NumExt[FloatExpr] — scalar math built-ins
-// ---------------------------------------------------------------------------
+given NumOps[LocalFloat]:
+  extension (a: LocalFloat)
+    def +(b: LocalFloat): LocalFloat = LocalFloat(s"(${a.wgsl} + ${b.wgsl})")
+    def -(b: LocalFloat): LocalFloat = LocalFloat(s"(${a.wgsl} - ${b.wgsl})")
+    def *(b: LocalFloat): LocalFloat = LocalFloat(s"(${a.wgsl} * ${b.wgsl})")
+    def /(b: LocalFloat): LocalFloat = LocalFloat(s"(${a.wgsl} / ${b.wgsl})")
+    def unary_- : LocalFloat = LocalFloat(s"(-${a.wgsl})")
+  def zero: LocalFloat = LocalFloat("0.0")
+  def one: LocalFloat = LocalFloat("1.0")
 
-given NumExt[FloatExpr] with
+given NumExt[FloatExpr]:
   extension (a: FloatExpr)
-    def sqrt: FloatExpr                                = s"sqrt($a)"
-    def pow(e: FloatExpr): FloatExpr                   = s"pow($a, $e)"
-    def abs: FloatExpr                                 = s"abs($a)"
-    def floor: FloatExpr                               = s"floor($a)"
-    def ceil: FloatExpr                                = s"ceil($a)"
-    def sin: FloatExpr                                 = s"sin($a)"
-    def cos: FloatExpr                                 = s"cos($a)"
-    def tan: FloatExpr                                 = s"tan($a)"
-    def asin: FloatExpr                                = s"asin($a)"
-    def acos: FloatExpr                                = s"acos($a)"
-    def atan: FloatExpr                                = s"atan($a)"
-    def atan2(b: FloatExpr): FloatExpr                 = s"atan2($a, $b)"
-    def clamp(lo: FloatExpr, hi: FloatExpr): FloatExpr = s"clamp($a, $lo, $hi)"
-    def clamp01: FloatExpr                             = s"saturate($a)"
-    def fit0111: FloatExpr                             = s"($a * 2.0 - 1.0)"
-    def fit1101: FloatExpr                             = s"($a * 0.5 + 0.5)"
+    def sqrt: FloatExpr = FloatExpr(s"sqrt(${a.wgsl})")
+    def pow(exp: FloatExpr): FloatExpr = FloatExpr(
+      s"pow(${a.wgsl}, ${exp.wgsl})",
+    )
+    def abs: FloatExpr = FloatExpr(s"abs(${a.wgsl})")
+    def floor: FloatExpr = FloatExpr(s"floor(${a.wgsl})")
+    def ceil: FloatExpr = FloatExpr(s"ceil(${a.wgsl})")
+    def sin: FloatExpr = FloatExpr(s"sin(${a.wgsl})")
+    def cos: FloatExpr = FloatExpr(s"cos(${a.wgsl})")
+    def tan: FloatExpr = FloatExpr(s"tan(${a.wgsl})")
+    def asin: FloatExpr = FloatExpr(s"asin(${a.wgsl})")
+    def acos: FloatExpr = FloatExpr(s"acos(${a.wgsl})")
+    def atan: FloatExpr = FloatExpr(s"atan(${a.wgsl})")
+    def atan2(other: FloatExpr): FloatExpr = FloatExpr(
+      s"atan2(${a.wgsl}, ${other.wgsl})",
+    )
+    def clamp(min: FloatExpr, max: FloatExpr): FloatExpr = FloatExpr(
+      s"clamp(${a.wgsl}, ${min.wgsl}, ${max.wgsl})",
+    )
+    def clamp01: FloatExpr = FloatExpr(s"saturate(${a.wgsl})")
+    def fit0111: FloatExpr = FloatExpr(s"(${a.wgsl} * 2.0 - 1.0)")
+    def fit1101: FloatExpr = FloatExpr(s"(${a.wgsl} * 0.5 + 0.5)")
+
+given NumExt[LocalFloat]:
+  extension (a: LocalFloat)
+    def sqrt: LocalFloat = LocalFloat(s"sqrt(${a.wgsl})")
+    def pow(exp: LocalFloat): LocalFloat = LocalFloat(
+      s"pow(${a.wgsl}, ${exp.wgsl})",
+    )
+    def abs: LocalFloat = LocalFloat(s"abs(${a.wgsl})")
+    def floor: LocalFloat = LocalFloat(s"floor(${a.wgsl})")
+    def ceil: LocalFloat = LocalFloat(s"ceil(${a.wgsl})")
+    def sin: LocalFloat = LocalFloat(s"sin(${a.wgsl})")
+    def cos: LocalFloat = LocalFloat(s"cos(${a.wgsl})")
+    def tan: LocalFloat = LocalFloat(s"tan(${a.wgsl})")
+    def asin: LocalFloat = LocalFloat(s"asin(${a.wgsl})")
+    def acos: LocalFloat = LocalFloat(s"acos(${a.wgsl})")
+    def atan: LocalFloat = LocalFloat(s"atan(${a.wgsl})")
+    def atan2(other: LocalFloat): LocalFloat = LocalFloat(
+      s"atan2(${a.wgsl}, ${other.wgsl})",
+    )
+    def clamp(min: LocalFloat, max: LocalFloat): LocalFloat = LocalFloat(
+      s"clamp(${a.wgsl}, ${min.wgsl}, ${max.wgsl})",
+    )
+    def clamp01: LocalFloat = LocalFloat(s"saturate(${a.wgsl})")
+    def fit0111: LocalFloat = LocalFloat(s"(${a.wgsl} * 2.0 - 1.0)")
+    def fit1101: LocalFloat = LocalFloat(s"(${a.wgsl} * 0.5 + 0.5)")
 
 // ---------------------------------------------------------------------------
-// Vec2Expr — Vec2Base + Vec2ImmutableOps trait instances
-// Only abstract members are implemented; trait inline defaults do the rest.
+// Vec2Base — for Vec2Expr and LocalVec2 (mirrors CPU: Vec2, StructRef[Vec2Buffer])
 // ---------------------------------------------------------------------------
 
-given Vec2Base[FloatExpr, Vec2Expr] with
-  extension (v: Vec2Expr)
-    def x: FloatExpr = s"$v.x"
-    def y: FloatExpr = s"$v.y"
+private def vec2BaseInstance[V <: Expr]: Vec2Base[FloatExpr, V] =
+  new Vec2Base[FloatExpr, V]:
+    extension (v: V)
+      def x: FloatExpr = FloatExpr(s"${v.wgsl}.x")
+      def y: FloatExpr = FloatExpr(s"${v.wgsl}.y")
 
-given Vec2ImmutableOps[FloatExpr, Vec2Expr] with
-  def create(x: FloatExpr, y: FloatExpr): Vec2Expr = Vec2Expr(s"vec2<f32>($x, $y)")
+given Vec2Base[FloatExpr, Vec2Expr] = vec2BaseInstance[Vec2Expr]
+given Vec2Base[FloatExpr, LocalVec2] = vec2BaseInstance[LocalVec2]
+
+given Vec2ImmutableOps[FloatExpr, Vec2Expr]:
+  def create(x: FloatExpr, y: FloatExpr): Vec2Expr =
+    Vec2Expr(s"vec2<f32>(${x.wgsl}, ${y.wgsl})")
 
 // ---------------------------------------------------------------------------
-// Vec3Expr — Vec3Base + Vec3ImmutableOps trait instances
+// Vec3Base — for Vec3Expr and LocalVec3
 // ---------------------------------------------------------------------------
 
-given Vec3Base[FloatExpr, Vec3Expr] with
-  extension (v: Vec3Expr)
-    def x: FloatExpr = s"$v.x"
-    def y: FloatExpr = s"$v.y"
-    def z: FloatExpr = s"$v.z"
+private def vec3BaseInstance[V <: Expr]: Vec3Base[FloatExpr, V] =
+  new Vec3Base[FloatExpr, V]:
+    extension (v: V)
+      def x: FloatExpr = FloatExpr(s"${v.wgsl}.x")
+      def y: FloatExpr = FloatExpr(s"${v.wgsl}.y")
+      def z: FloatExpr = FloatExpr(s"${v.wgsl}.z")
 
-given Vec3ImmutableOps[FloatExpr, Vec3Expr] with
+given Vec3Base[FloatExpr, Vec3Expr] = vec3BaseInstance[Vec3Expr]
+given Vec3Base[FloatExpr, LocalVec3] = vec3BaseInstance[LocalVec3]
+
+given Vec3ImmutableOps[FloatExpr, Vec3Expr]:
   def create(x: FloatExpr, y: FloatExpr, z: FloatExpr): Vec3Expr =
-    Vec3Expr(s"vec3<f32>($x, $y, $z)")
+    Vec3Expr(s"vec3<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl})")
 
 // ---------------------------------------------------------------------------
-// Vec4Expr — Vec4Base + Vec4ImmutableOps trait instances
+// Vec4Base — for Vec4Expr and LocalVec4
 // ---------------------------------------------------------------------------
 
-given Vec4Base[FloatExpr, Vec4Expr] with
-  extension (v: Vec4Expr)
-    def x: FloatExpr = s"$v.x"
-    def y: FloatExpr = s"$v.y"
-    def z: FloatExpr = s"$v.z"
-    def w: FloatExpr = s"$v.w"
+private def vec4BaseInstance[V <: Expr]: Vec4Base[FloatExpr, V] =
+  new Vec4Base[FloatExpr, V]:
+    extension (v: V)
+      def x: FloatExpr = FloatExpr(s"${v.wgsl}.x")
+      def y: FloatExpr = FloatExpr(s"${v.wgsl}.y")
+      def z: FloatExpr = FloatExpr(s"${v.wgsl}.z")
+      def w: FloatExpr = FloatExpr(s"${v.wgsl}.w")
 
-given Vec4ImmutableOps[FloatExpr, Vec4Expr] with
+given Vec4Base[FloatExpr, Vec4Expr] = vec4BaseInstance[Vec4Expr]
+given Vec4Base[FloatExpr, LocalVec4] = vec4BaseInstance[LocalVec4]
+
+given Vec4ImmutableOps[FloatExpr, Vec4Expr]:
   def create(x: FloatExpr, y: FloatExpr, z: FloatExpr, w: FloatExpr): Vec4Expr =
-    Vec4Expr(s"vec4<f32>($x, $y, $z, $w)")
+    Vec4Expr(s"vec4<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl}, ${w.wgsl})")
 
 // ---------------------------------------------------------------------------
-// Mat2Expr — Mat2Base + Mat2ImmutableOps trait instances
+// Mat2Base — for Mat2Expr and LocalMat2
 // ---------------------------------------------------------------------------
 
-given Mat2Base[FloatExpr, Mat2Expr] with
-  extension (m: Mat2Expr)
-    def m00: FloatExpr = s"$m[0][0]"
-    def m01: FloatExpr = s"$m[0][1]"
-    def m10: FloatExpr = s"$m[1][0]"
-    def m11: FloatExpr = s"$m[1][1]"
+private def mat2BaseInstance[M <: Expr]: Mat2Base[FloatExpr, M] =
+  new Mat2Base[FloatExpr, M]:
+    extension (m: M)
+      def m00: FloatExpr = FloatExpr(s"${m.wgsl}[0][0]")
+      def m01: FloatExpr = FloatExpr(s"${m.wgsl}[0][1]")
+      def m10: FloatExpr = FloatExpr(s"${m.wgsl}[1][0]")
+      def m11: FloatExpr = FloatExpr(s"${m.wgsl}[1][1]")
 
-given Mat2ImmutableOps[FloatExpr, Mat2Expr] with
-  def create(m00: FloatExpr, m01: FloatExpr, m10: FloatExpr, m11: FloatExpr): Mat2Expr =
-    Mat2Expr(s"mat2x2<f32>($m00, $m01, $m10, $m11)")
+given Mat2Base[FloatExpr, Mat2Expr] = mat2BaseInstance[Mat2Expr]
+given Mat2Base[FloatExpr, LocalMat2] = mat2BaseInstance[LocalMat2]
 
-
-// ---------------------------------------------------------------------------
-// Mat3Expr — Mat3Base + Mat3ImmutableOps trait instances
-// ---------------------------------------------------------------------------
-
-given Mat3Base[FloatExpr, Mat3Expr] with
-  extension (m: Mat3Expr)
-    def m00: FloatExpr = s"$m[0][0]"
-    def m01: FloatExpr = s"$m[0][1]"
-    def m02: FloatExpr = s"$m[0][2]"
-    def m10: FloatExpr = s"$m[1][0]"
-    def m11: FloatExpr = s"$m[1][1]"
-    def m12: FloatExpr = s"$m[1][2]"
-    def m20: FloatExpr = s"$m[2][0]"
-    def m21: FloatExpr = s"$m[2][1]"
-    def m22: FloatExpr = s"$m[2][2]"
-
-given Mat3ImmutableOps[FloatExpr, Mat3Expr] with
+given Mat2ImmutableOps[FloatExpr, Mat2Expr]:
   def create(
-      m00: FloatExpr, m01: FloatExpr, m02: FloatExpr,
-      m10: FloatExpr, m11: FloatExpr, m12: FloatExpr,
-      m20: FloatExpr, m21: FloatExpr, m22: FloatExpr,
+      m00: FloatExpr,
+      m01: FloatExpr,
+      m10: FloatExpr,
+      m11: FloatExpr,
+  ): Mat2Expr =
+    Mat2Expr(s"mat2x2<f32>(${m00.wgsl}, ${m01.wgsl}, ${m10.wgsl}, ${m11.wgsl})")
+
+// ---------------------------------------------------------------------------
+// Mat3Base — for Mat3Expr and LocalMat3
+// ---------------------------------------------------------------------------
+
+private def mat3BaseInstance[M <: Expr]: Mat3Base[FloatExpr, M] =
+  new Mat3Base[FloatExpr, M]:
+    extension (m: M)
+      def m00: FloatExpr = FloatExpr(s"${m.wgsl}[0][0]")
+      def m01: FloatExpr = FloatExpr(s"${m.wgsl}[0][1]")
+      def m02: FloatExpr = FloatExpr(s"${m.wgsl}[0][2]")
+      def m10: FloatExpr = FloatExpr(s"${m.wgsl}[1][0]")
+      def m11: FloatExpr = FloatExpr(s"${m.wgsl}[1][1]")
+      def m12: FloatExpr = FloatExpr(s"${m.wgsl}[1][2]")
+      def m20: FloatExpr = FloatExpr(s"${m.wgsl}[2][0]")
+      def m21: FloatExpr = FloatExpr(s"${m.wgsl}[2][1]")
+      def m22: FloatExpr = FloatExpr(s"${m.wgsl}[2][2]")
+
+given Mat3Base[FloatExpr, Mat3Expr] = mat3BaseInstance[Mat3Expr]
+given Mat3Base[FloatExpr, LocalMat3] = mat3BaseInstance[LocalMat3]
+
+given Mat3ImmutableOps[FloatExpr, Mat3Expr]:
+  def create(
+      m00: FloatExpr,
+      m01: FloatExpr,
+      m02: FloatExpr,
+      m10: FloatExpr,
+      m11: FloatExpr,
+      m12: FloatExpr,
+      m20: FloatExpr,
+      m21: FloatExpr,
+      m22: FloatExpr,
   ): Mat3Expr =
-    Mat3Expr(s"mat3x3<f32>($m00, $m01, $m02, $m10, $m11, $m12, $m20, $m21, $m22)")
-
+    Mat3Expr(
+      s"mat3x3<f32>(${m00.wgsl}, ${m01.wgsl}, ${m02.wgsl}, ${m10.wgsl}, ${m11.wgsl}, ${m12.wgsl}, ${m20.wgsl}, ${m21.wgsl}, ${m22.wgsl})",
+    )
 
 // ---------------------------------------------------------------------------
-// Mat4Expr — Mat4Base + Mat4ImmutableOps trait instances
+// Mat4Base — for Mat4Expr and LocalMat4
 // ---------------------------------------------------------------------------
 
-given Mat4Base[FloatExpr, Mat4Expr] with
-  extension (m: Mat4Expr)
-    def m00: FloatExpr = s"$m[0][0]"; def m01: FloatExpr = s"$m[0][1]"
-    def m02: FloatExpr = s"$m[0][2]"; def m03: FloatExpr = s"$m[0][3]"
-    def m10: FloatExpr = s"$m[1][0]"; def m11: FloatExpr = s"$m[1][1]"
-    def m12: FloatExpr = s"$m[1][2]"; def m13: FloatExpr = s"$m[1][3]"
-    def m20: FloatExpr = s"$m[2][0]"; def m21: FloatExpr = s"$m[2][1]"
-    def m22: FloatExpr = s"$m[2][2]"; def m23: FloatExpr = s"$m[2][3]"
-    def m30: FloatExpr = s"$m[3][0]"; def m31: FloatExpr = s"$m[3][1]"
-    def m32: FloatExpr = s"$m[3][2]"; def m33: FloatExpr = s"$m[3][3]"
+private def mat4BaseInstance[M <: Expr]: Mat4Base[FloatExpr, M] =
+  new Mat4Base[FloatExpr, M]:
+    extension (m: M)
+      def m00: FloatExpr = FloatExpr(s"${m.wgsl}[0][0]");
+      def m01: FloatExpr = FloatExpr(s"${m.wgsl}[0][1]")
+      def m02: FloatExpr = FloatExpr(s"${m.wgsl}[0][2]");
+      def m03: FloatExpr = FloatExpr(s"${m.wgsl}[0][3]")
+      def m10: FloatExpr = FloatExpr(s"${m.wgsl}[1][0]");
+      def m11: FloatExpr = FloatExpr(s"${m.wgsl}[1][1]")
+      def m12: FloatExpr = FloatExpr(s"${m.wgsl}[1][2]");
+      def m13: FloatExpr = FloatExpr(s"${m.wgsl}[1][3]")
+      def m20: FloatExpr = FloatExpr(s"${m.wgsl}[2][0]");
+      def m21: FloatExpr = FloatExpr(s"${m.wgsl}[2][1]")
+      def m22: FloatExpr = FloatExpr(s"${m.wgsl}[2][2]");
+      def m23: FloatExpr = FloatExpr(s"${m.wgsl}[2][3]")
+      def m30: FloatExpr = FloatExpr(s"${m.wgsl}[3][0]");
+      def m31: FloatExpr = FloatExpr(s"${m.wgsl}[3][1]")
+      def m32: FloatExpr = FloatExpr(s"${m.wgsl}[3][2]");
+      def m33: FloatExpr = FloatExpr(s"${m.wgsl}[3][3]")
+
+given Mat4Base[FloatExpr, Mat4Expr] = mat4BaseInstance[Mat4Expr]
+given Mat4Base[FloatExpr, LocalMat4] = mat4BaseInstance[LocalMat4]
 
 // format: off
-given Mat4ImmutableOps[FloatExpr, Mat4Expr] with
+given Mat4ImmutableOps[FloatExpr, Mat4Expr]:
   def create(
       m00: FloatExpr, m01: FloatExpr, m02: FloatExpr, m03: FloatExpr,
       m10: FloatExpr, m11: FloatExpr, m12: FloatExpr, m13: FloatExpr,
       m20: FloatExpr, m21: FloatExpr, m22: FloatExpr, m23: FloatExpr,
       m30: FloatExpr, m31: FloatExpr, m32: FloatExpr, m33: FloatExpr,
   ): Mat4Expr =
-    Mat4Expr(s"mat4x4<f32>($m00, $m01, $m02, $m03, $m10, $m11, $m12, $m13, $m20, $m21, $m22, $m23, $m30, $m31, $m32, $m33)")
+    Mat4Expr(s"mat4x4<f32>(${m00.wgsl}, ${m01.wgsl}, ${m02.wgsl}, ${m03.wgsl}, ${m10.wgsl}, ${m11.wgsl}, ${m12.wgsl}, ${m13.wgsl}, ${m20.wgsl}, ${m21.wgsl}, ${m22.wgsl}, ${m23.wgsl}, ${m30.wgsl}, ${m31.wgsl}, ${m32.wgsl}, ${m33.wgsl})")
 // format: on
-
 
 // ---------------------------------------------------------------------------
 // Vector constructors (lowercase, matching WGSL syntax)
 // ---------------------------------------------------------------------------
 
 object vec2:
-  inline def apply(x: FloatExpr, y: FloatExpr): Vec2Expr =
-    Vec2Expr(s"vec2<f32>($x, $y)")
+  def apply(x: FloatExpr, y: FloatExpr): Vec2Expr =
+    Vec2Expr(s"vec2<f32>(${x.wgsl}, ${y.wgsl})")
 
 object vec3:
-  inline def apply(x: FloatExpr, y: FloatExpr, z: FloatExpr): Vec3Expr =
-    Vec3Expr(s"vec3<f32>($x, $y, $z)")
+  def apply(x: FloatExpr, y: FloatExpr, z: FloatExpr): Vec3Expr =
+    Vec3Expr(s"vec3<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl})")
 
 object vec4:
-  inline def apply(x: FloatExpr, y: FloatExpr, z: FloatExpr, w: FloatExpr): Vec4Expr =
-    Vec4Expr(s"vec4<f32>($x, $y, $z, $w)")
-  inline def apply(xyz: Vec3Expr, w: FloatExpr): Vec4Expr =
-    Vec4Expr(s"vec4<f32>($xyz, $w)")
-  inline def apply(xy: Vec2Expr, z: FloatExpr, w: FloatExpr): Vec4Expr =
-    Vec4Expr(s"vec4<f32>($xy, $z, $w)")
+  def apply(x: FloatExpr, y: FloatExpr, z: FloatExpr, w: FloatExpr): Vec4Expr =
+    Vec4Expr(s"vec4<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl}, ${w.wgsl})")
+  def apply(xyz: Vec3Expr, w: FloatExpr): Vec4Expr =
+    Vec4Expr(s"vec4<f32>(${xyz.wgsl}, ${w.wgsl})")
+  def apply(xy: Vec2Expr, z: FloatExpr, w: FloatExpr): Vec4Expr =
+    Vec4Expr(s"vec4<f32>(${xy.wgsl}, ${z.wgsl}, ${w.wgsl})")
 
 // ---------------------------------------------------------------------------
 // Stmt and Block opaque types
 // ---------------------------------------------------------------------------
 
-opaque type Stmt  = String
+opaque type Stmt = String
 opaque type Block = String
 
 object Stmt:
   inline def assign(target: String, value: Expr): Stmt =
-    s"  $target = ${value: String};"
+    s"  $target = ${value.wgsl};"
   inline def let(name: String, value: Expr): Stmt =
-    s"  let $name = ${value: String};"
+    s"  let $name = ${value.wgsl};"
   inline def varDecl(name: String, value: Expr): Stmt =
-    s"  var $name = ${value: String};"
+    s"  var $name = ${value.wgsl};"
   inline def varDeclTyped(name: String, wgslType: String, value: Expr): Stmt =
-    s"  var $name: $wgslType = ${value: String};"
+    s"  var $name: $wgslType = ${value.wgsl};"
   inline def varAssign(name: String, value: Expr): Stmt =
-    s"  $name = ${value: String};"
+    s"  $name = ${value.wgsl};"
   inline def raw(s: String): Stmt = s
 
 object Block:
   def apply(stmts: Stmt*): Block = stmts.mkString("\n")
-  def empty: Block               = ""
-  def unwrap(b: Block): String   = b.asInstanceOf[String]
+  def empty: Block = ""
+  def unwrap(b: Block): String = b.asInstanceOf[String]

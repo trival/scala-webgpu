@@ -102,10 +102,6 @@ object WgslFn:
       case _: Unit => "void"
       case _       => summonInline[WGSLType[R]].wgslName
 
-  // -------------------------------------------------------------------------
-  // Internal: cast String to the correct *Expr opaque type
-  // -------------------------------------------------------------------------
-
   inline def callExpr[R](s: String): ToExpr[R] =
     inline erasedValue[R] match
       case _: Float   => FloatExpr(s).asInstanceOf[ToExpr[R]]
@@ -128,11 +124,8 @@ object WgslFn:
 // ---------------------------------------------------------------------------
 
 class ReturnEmitter[R]:
-  // Opaque subtype relationships (FloatExpr <: Expr) collapse under constraint
-  // solving — the compiler sees both as String and the subtyping fails. Accept
-  // Any to sidestep this; all *Expr values are String at runtime.
-  def apply(v: Any): Block =
-    Block(Stmt.raw(s"  return ${v.asInstanceOf[String]};"))
+  def apply(v: Expr): Block =
+    Block(Stmt.raw(s"  return ${v.wgsl};"))
 
 // ---------------------------------------------------------------------------
 // apply extensions — per-arity, enabling myFn(arg1, arg2) call syntax
