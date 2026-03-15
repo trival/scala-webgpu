@@ -22,7 +22,8 @@ case class ShaderDef[
     FragmentOut // Custom outputs (default: FragOut)
 ](
     vertexBody: String,
-    fragmentBody: String
+    fragmentBody: String,
+    helperFns: String = "",
 ):
 
   /** Derive WebGPU vertex buffer layout descriptor from the Attribs type */
@@ -74,6 +75,7 @@ case class ShaderDef[
       vertexOutputStruct,
       fragmentOutputStruct,
       uniformDecls,
+      helperFns,
       buildVertexMain(vertexBody),
       buildFragmentMain(fragmentBody)
     ).filter(_.nonEmpty)
@@ -108,16 +110,19 @@ object Shader:
     */
   def apply[A, V, U](
       vertexBody: String,
-      fragmentBody: String
+      fragmentBody: String,
+      helperFns: String = "",
   ): ShaderDef[A, V, U, None, VertOut, None, FragOut] =
     new ShaderDef[A, V, U, None, VertOut, None, FragOut](
       vertexBody,
-      fragmentBody
+      fragmentBody,
+      helperFns,
     )
 
   /** Full API for custom builtins or fragment outputs */
   def full[A, V, U, VBI, VBO, FBI, FO](
       vertexBody: String,
-      fragmentBody: String
+      fragmentBody: String,
+      helperFns: String = "",
   ): ShaderDef[A, V, U, VBI, VBO, FBI, FO] =
-    new ShaderDef[A, V, U, VBI, VBO, FBI, FO](vertexBody, fragmentBody)
+    new ShaderDef[A, V, U, VBI, VBO, FBI, FO](vertexBody, fragmentBody, helperFns)

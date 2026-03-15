@@ -1268,9 +1268,68 @@ type system constraints. All `ctx.in`, `ctx.out`, `ctx.bindings`, and
   extension `+` because all `*Expr` types are transparent `= String` there.
   This is why `local_ops.scala` must be a separate file.
 
+#### Step 1e: External Reusable Functions (`WgslFn`) ✅
+
+**Files**: `src/gpu/shader/dsl/fn.scala`, `src/gpu/shader/dsl/program.scala`,
+`src/gpu/shader/shader.scala`, `src/gpu/painter/painter.scala`,
+`src/test/WgslFnTest.scala`, `drafts/painter_dsl/PainterDsl.scala`
+
+Implemented the `WgslFn[P, R]` typed WGSL helper function feature. Key API:
+
+```scala
+// Define with raw WGSL body
+val applyTransform: WgslFn[(pos: Vec2, mat: Mat2, offset: Vec2), Vec2] =
+  WgslFn.raw("apply_transform"):
+    "  return mat * pos + offset;"
+
+// Define with Scala DSL body
+val add: WgslFn[(a: Float, b: Float), Float] =
+  WgslFn.dsl("add"): (p, ret) =>
+    ret(p.a + p.b)
+
+// Register + call in a shader program
+program.fn(applyTransform)   // idempotent
+applyTransform(ctx.in.position, ctx.bindings.rotation, ctx.bindings.translation)
+// → Vec2Expr("apply_transform(in.position, rotation, translation)")
+```
+
+Generated WGSL inserts helper functions between uniform declarations and
+`vs_main`/`fs_main`. Verified via `painter_dsl` draft: triangle rotates
+correctly with the helper function visible in the logged WGSL.
+
+**Key implementation details:**
+
+- `WgslFnData(name, src) extends js.Object` — runtime carrier, zero boxing.
+- `opaque type WgslFn[P, R] = WgslFnData` — compile-time typed wrapper.
+- `buildParamList[P]` — compile-time iteration over `NamedTuple.Names[P]` +
+  `NamedTuple.DropNames[P]` + `WGSLType` summon (same pattern as `derive.scala`).
+- `callExpr[R]` — `inline erasedValue[R] match` + `.asInstanceOf[ToExpr[R]]`
+  cast to the correct opaque `*Expr` type, same as `ToExpr` in `types.scala`.
+- `ReturnEmitter[R]` — wraps a `ToExpr[R]` in `return ...;` using
+  `v.asInstanceOf[String]` to cross the opaque boundary from outside `expr.scala`.
+- `private[dsl] def nameOf/srcOf` in the companion — exposes opaque internals
+  to per-arity `apply` extensions defined in the same file.
+- `program.fn(f)` — deduplicates by name using `hasOwnProperty` (same idiom as
+  `Painter.pipelineCache`). `helperFnsStr` joins all registered srcs with `"\n\n"`.
+- `helperFns: String = ""` added to `ShaderDef` and `Shader.apply` with
+  backwards-compatible default. Inserted between `uniformDecls` and
+  `buildVertexMain` in the WGSL parts array.
+- Per-arity `apply` extensions — arities 1–6, both unnamed (`N1 *: N2 *: EmptyTuple`)
+  and named-tuple (`NamedTuple.NamedTuple[K1 *: K2 *: EmptyTuple, N1 *: N2 *: EmptyTuple]`)
+  variants, because Scala 3 does NOT match named tuples against unnamed tuple patterns.
+
+**Key Scala 3 learnings:**
+
+- Named tuples `(v: Vec2, angle: Float)` do NOT match extension parameters typed
+  as `N1 *: N2 *: EmptyTuple`. Must provide parallel named-tuple extension
+  variants using the explicit `NamedTuple.NamedTuple[K *: EmptyTuple, N *: EmptyTuple]` form.
+- `private[dsl]` package-scoped visibility on methods in a companion object
+  allows same-package extensions to access opaque internals without exposing them
+  outside the package.
+
 ### Remaining Steps
 
-#### Step 1e: Mutable Variables — Not Started
+#### Step 1g: Mutable Variables — Not Started
 
 The `Var[T]` marker type, `MutableLocalRef`, cross-namespace collision
 detection, and reserved word validation have not been implemented. Currently all
@@ -1301,11 +1360,13 @@ src/gpu/shader/dsl/
 ├── types.scala      — Match types: ToExpr, UniformToExpr, ToLocal, ToAssignTarget
 ├── context.scala    — TypedExprAccessor, TypedAssignAccessor, TypedLocalAccessor,
 │                      AssignTarget, VertexCtx, FragmentCtx
-├── program.scala    — Program[A, V, U] builder class
+├── program.scala    — Program[A, V, U] builder class (+ fn registration, helperFnsStr)
+├── fn.scala         — WgslFnData, WgslFn[P,R], WgslFn.raw/dsl, ReturnEmitter,
+│                      per-arity apply extensions (arities 1–6, named + unnamed variants)
 └── local_ops.scala  — WGSL-native arithmetic extensions for Vec*Expr and Local*
                        types (must be separate file for opaque type boundary)
 ```
 
 Compared to plan: no separate `constructors.scala`, `stmt.scala`, or
-`package.scala`. Everything fits in fewer files. `local_ops.scala` and
-`types.scala` are additions not in the original plan.
+`package.scala`. Everything fits in fewer files. `local_ops.scala`, `types.scala`,
+and `fn.scala` are additions not in the original plan.

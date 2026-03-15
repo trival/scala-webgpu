@@ -2,6 +2,8 @@ package gpu.shader.dsl
 
 import scala.NamedTuple
 import scala.NamedTuple.AnyNamedTuple
+import scala.scalajs.js
+import trivalibs.utils.js.{Arr, Dict}
 
 // ---------------------------------------------------------------------------
 // Program[A, V, U] — DSL program builder with fully typed contexts
@@ -22,6 +24,22 @@ import scala.NamedTuple.AnyNamedTuple
 class Program[A, V, U]:
   var vertBody: Block = Block.empty
   var fragBody: Block = Block.empty
+  private val fnSrcs = Arr[String]()
+  private val fnNames = Dict[Boolean]()
+
+  /** Register a helper function to be emitted before vs_main/fs_main.
+    * Idempotent — registering the same name twice has no effect.
+    */
+  def fn[P, R](f: WgslFn[P, R]): Unit =
+    val data = f.asInstanceOf[WgslFnData]
+    if !js.DynamicImplicits.truthValue(
+        fnNames.asInstanceOf[js.Dynamic].hasOwnProperty(data.name),
+      )
+    then
+      fnNames(data.name) = true
+      fnSrcs.push(data.src)
+
+  def helperFnsStr: String = fnSrcs.mkString("\n\n")
 
   /** Vertex shader with optional typed locals. */
   inline def vert[L](

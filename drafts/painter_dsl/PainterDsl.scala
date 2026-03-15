@@ -33,13 +33,22 @@ def main(): Unit =
         translation: VertexUniform[Vec2],
     )
 
+    // Helper function defined with raw WGSL — applies mat2 rotation + translation
+    val applyTransform: WgslFn[(pos: Vec2, mat: Mat2, offset: Vec2), Vec2] =
+      WgslFn.raw("apply_transform"):
+        "return mat * pos + offset;"
+
     val shade = painter.shade[Attribs, Varyings, Uniforms]: program =>
-      program.vert[(rotated: Vec2)]: ctx =>
-        val rotated = ctx.locals.rotated
+      program.fn(applyTransform)
+
+      program.vert[EmptyTuple]: ctx =>
         Block(
-          rotated := ctx.bindings.rotation * ctx.in.position,
           ctx.out.position := vec4(
-            rotated + ctx.bindings.translation,
+            applyTransform(
+              ctx.in.position,
+              ctx.bindings.rotation,
+              ctx.bindings.translation,
+            ),
             0.0,
             1.0,
           ),
