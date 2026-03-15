@@ -34,9 +34,11 @@ def main(): Unit =
     )
 
     // Helper function defined with raw WGSL — applies mat2 rotation + translation
-    val applyTransform: WgslFn[(pos: Vec2, mat: Mat2, offset: Vec2), Vec2] =
-      WgslFn.raw("apply_transform"):
-        "return mat * pos + offset;"
+    val applyTransform =
+      WgslFn.dsl[(pos: Vec2, mat: Mat2, offset: Vec2), Vec2](
+        "apply_transform",
+      ): (p, ret) =>
+        ret(p.offset + p.mat * p.pos)
 
     val shade = painter.shade[Attribs, Varyings, Uniforms]: program =>
       program.fn(applyTransform)
