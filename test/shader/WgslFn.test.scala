@@ -1,7 +1,8 @@
-package gpu.shader.dsl
+package graphics.shader.dsl
 
-import gpu.math.*
-import gpu.shader.{FragmentUniform, VertexUniform, given}
+import graphics.math.cpu.*
+import graphics.math.gpu.{*, given}
+import graphics.shader.{FragmentUniform, VertexUniform, given}
 import munit.FunSuite
 
 class WgslFnTest extends FunSuite:

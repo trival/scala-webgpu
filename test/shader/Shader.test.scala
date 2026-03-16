@@ -1,6 +1,6 @@
-package gpu.shader
+package graphics.shader
 
-import gpu.math.*
+import graphics.math.cpu.*
 import munit.FunSuite
 
 class ShaderTest extends FunSuite:

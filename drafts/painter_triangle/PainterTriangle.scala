@@ -1,12 +1,11 @@
 package painter_triangle
 
-import gpu.buffers.*
-import gpu.math.*
-import gpu.math.given
-import gpu.painter.*
-import gpu.shader.None as GPUNone
-import gpu.shader.{*, given}
-import gpu.utils.animation.animate
+import graphics.buffers.*
+import graphics.math.cpu.{*, given}
+import graphics.painter.*
+import graphics.shader.None as GPUNone
+import graphics.shader.{*, given}
+import graphics.utils.animation.animate
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement

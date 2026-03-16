@@ -1,6 +1,7 @@
 package buffer_triangle
 
-import gpu.buffers.*
+import graphics.buffers.*
+import graphics.math.cpu.{*, given}
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
@@ -52,9 +53,9 @@ object BufferTriangle:
       canvas: HTMLCanvasElement,
       setStatus: (String, Boolean) => Unit,
   ): Unit =
-    import gpu.shader.{*, given}
-    import gpu.math.{*, given}
-    import gpu.shader.None as GPUNone
+    import graphics.shader.{*, given}
+    import graphics.math.{*, given}
+    import graphics.shader.None as GPUNone
 
     // Get WebGPU context
     val context = WebGPU.getContext(canvas)

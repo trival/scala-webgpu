@@ -1,14 +1,13 @@
 package painter_typed_bindings
 
-import gpu.buffers.*
-import gpu.math.*
-import gpu.math.Mat2.given
-import gpu.math.Mat2Buffer.given
-import gpu.math.given
-import gpu.painter.*
-import gpu.shader.None as GPUNone
-import gpu.shader.{*, given}
-import gpu.utils.animation.animate
+import graphics.buffers.*
+import graphics.math.cpu.Mat2.given
+import graphics.math.cpu.Mat2Buffer.given
+import graphics.math.cpu.{*, given}
+import graphics.painter.*
+import graphics.shader.None as GPUNone
+import graphics.shader.{*, given}
+import graphics.utils.animation.animate
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.document
