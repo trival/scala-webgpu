@@ -15,8 +15,9 @@ multiplication) can be used across all of them without duplication:
 The key insight: **`StructRef` slots must be pre-allocated once and then mutated
 in place**. Creating a new `StructRef` is as expensive as allocating a new GPU
 buffer slot. In a render loop running at 60fps, any allocation inside the loop
-will cause GC pressure in the JS runtime. The mutable ops API (`transpose(out)`,
-`normalize(out)`) exists specifically to support this zero-allocation pattern.
+will cause GC pressure in the JS runtime. The mutable ops API
+(`transposeTo(out)`, `normalizeTo(out)`) exists specifically to support this
+zero-allocation pattern.
 
 Tuples, by contrast, are pure values — they compose and transform freely in
 functional style, and their `ImmutableOps` let you chain operations without
@@ -26,9 +27,9 @@ worrying about aliasing or mutation.
 
 Each vector/matrix type is supported by a set of traits:
 
-- `Vec*Base` / `Mat*Base` — read-only field accessors (`x`, `y`, `m00`, …)
-  plus scalar helpers that return no new instance and cause no allocation
-  (`dot`, `length_squared`, `length` for vectors; `determinant` for matrices)
+- `Vec*Base` / `Mat*Base` — read-only field accessors (`x`, `y`, `m00`, …) plus
+  scalar helpers that return no new instance and cause no allocation (`dot`,
+  `length_squared`, `length` for vectors; `determinant` for matrices)
 - `Vec*Mutable` / `Mat*Mutable` — extends Base, adds field setters (`x_=`,
   `m00_=`, …)
 - `Mat*SharedOps` — matrix-only scalar operations (e.g. `determinant`); not
@@ -40,46 +41,56 @@ Each vector/matrix type is supported by a set of traits:
 
 ## Immutable vs mutable operation naming
 
-The naming convention makes allocation vs. mutation visible at the call site:
+The naming convention aligns with WGSL built-in function names and makes
+allocation vs. mutation visible at the call site:
 
-| Form                    | Trait          | Allocates?        | Works on tuples? | Returns         | Example                                |
-| ----------------------- | -------------- | ----------------- | ---------------- | --------------- | -------------------------------------- |
-| Past tense / adjective  | `ImmutableOps` | yes, via `create` | yes              | new `Mat`/`Vec` | `m.transposed`, `v.normalized`         |
-| Present tense + `(out)` | `MutableOps`   | no                | no               | `out`           | `m.transpose(out)`, `v.normalize(out)` |
-| Operator `+=` / `-=`    | `MutableOps`   | no                | no               | `Unit`          | `m += other`                           |
+| Form                  | Trait          | Allocates?        | Works on tuples? | Returns         | Example                                    |
+| --------------------- | -------------- | ----------------- | ---------------- | --------------- | ------------------------------------------ |
+| Present tense (WGSL)  | `ImmutableOps` | yes, via `create` | yes              | new `Mat`/`Vec` | `m.transpose`, `v.normalize`               |
+| Verb + `Self`         | `MutableOps`   | no                | no               | `self`          | `m.transposeSelf`, `v.normalizeSelf`       |
+| Verb + `To(out, ...)` | `MutableOps`   | no                | no               | `out`           | `m.transposeTo(out)`, `v.normalizeTo(out)` |
+| Operator `+=` / `-=`  | `MutableOps`   | no                | no               | `Unit`          | `m += other`                               |
 
-### ImmutableOps — past tense, returns new value
+### ImmutableOps — WGSL name, returns new value
 
 ```scala
-m.transposed      // -> Mat  (new allocation)
-m.inversed        // -> Mat  (new allocation)
-v.normalized      // -> Vec  (new allocation)
+m.transpose       // -> Mat  (new allocation)
+m.inverse         // -> Mat  (new allocation)
+v.normalize       // -> Vec  (new allocation)
+m.rotate(angle)   // -> Mat  (new allocation)
 ```
 
 - Always allocates a new instance through the abstract `create` method
 - Available for immutable types (tuples) and mutable classes; **not** provided
   for `StructRef` buffer types since those are pre-allocated and only mutated
-- Safe to chain: `m.transposed.inversed`
+- Safe to chain: `m.transpose.inverse`
 
-### MutableOps — present tense, writes into target, returns target
+### MutableOps — `Self` (in-place) and `To` (write to target)
 
 ```scala
-m.transpose()         // writes into m, returns m
-m.transpose(out)      // writes into out, returns out
-m.inverse()           // writes into m, returns m
-m.inverse(out)        // writes into out, returns out
-v.normalize()         // writes into v, returns v
-v.normalize(out)      // writes into out, returns out
+m.transposeSelf           // mutates m, returns m
+m.transposeTo(out)        // writes into out, returns out
+m.inverseSelf             // mutates m, returns m
+m.inverseTo(out)          // writes into out, returns out
+v.normalizeSelf           // mutates v, returns v
+v.normalizeTo(out)        // writes into out, returns out
+m.rotateSelf(angle)       // mutates m, returns m
+m.rotateTo(out, angle)    // writes into out, returns out
 ```
 
-- Zero allocation — reads source, writes into `out`, returns `out`
-- Returning `out` allows chaining and inline passing without an extra `val`:
+- Zero allocation — reads source, writes into target, returns target
+- `*Self` methods are `inline` and delegate to the corresponding `*To` method
+  with `self` as the output target
+- `*To` methods take `out` as the first parameter, followed by any operation
+  parameters (e.g. angle)
+- Returning the target allows chaining and inline passing without an extra
+  `val`:
   ```scala
-  upload(m.inverse(scratch))        // compute into scratch, pass directly
-  val result = a.transpose(b).inverse()  // chain mutable ops
+  upload(m.inverseTo(scratch))          // compute into scratch, pass directly
+  val result = a.transposeTo(b)         // transpose a into b
   ```
-- Default `out = self` is safe because all implementations read all fields into
-  local `val`s before writing any output
+- All implementations read all fields into local `val`s before writing any
+  output, so `self` as target is safe
 - Only available for mutable types (classes, `StructRef`s); tuples do not have
   `MutableOps`
 - Prefer these in hot paths (render loops) where `StructRef` allocations are

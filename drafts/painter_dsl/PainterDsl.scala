@@ -90,7 +90,7 @@ def main(): Unit =
       )
 
       mat1.update:
-        _.rotate(tpf / 1000 * 0.5)
+        _.rotateSelf(tpf / 1000 * 0.5)
 
       painter.draw(shape1, clearColor = (0.1, 0.1, 0.1, 1.0))
       painter.draw(shape2)

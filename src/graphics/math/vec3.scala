@@ -66,7 +66,7 @@ trait Vec3ImmutableOps[Num: {NumExt, NumOps}, Vec]:
         v.z * other.x - v.x * other.z,
         v.x * other.y - v.y * other.x,
       )
-    def normalized: Vec =
+    def normalize: Vec =
       v / v.length
 
 trait Vec3MutableOps[Num: {NumExt, NumOps}, Vec]:
@@ -147,4 +147,5 @@ trait Vec3MutableOps[Num: {NumExt, NumOps}, Vec]:
     def /=(other: Vec): Unit =
       v.div(other)
 
-    def normalize(out: Vec = v): Vec = v.divS(v.length, out)
+    def normalizeTo(out: Vec): Vec = v.divS(v.length, out)
+    inline def normalizeSelf: Vec = v.normalizeTo(v)

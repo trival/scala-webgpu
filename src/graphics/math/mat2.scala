@@ -97,12 +97,12 @@ trait Mat2ImmutableOps[Num: NumOps, Mat]:
         m.m01 * v.x + m.m11 * v.y,
       )
 
-    def transposed: Mat = create(
+    def transpose: Mat = create(
       m.m00, m.m10,
       m.m01, m.m11
     )
 
-    def inversed: Mat =
+    def inverse: Mat =
       val det = m.m00 * m.m11 - m.m10 * m.m01
       val invDet = summon[NumOps[Num]].one / det
       create(
@@ -110,7 +110,7 @@ trait Mat2ImmutableOps[Num: NumOps, Mat]:
         -m.m10 * invDet,  m.m00 * invDet
       )
 
-    def rotated(angle: Double)(using Conversion[Double, Num]): Mat =
+    def rotate(angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos
       val s: Num = angle.sin
       val ns = -s
@@ -146,20 +146,22 @@ trait Mat2MutableOps[Num: NumOps, Mat]:
       m.m00 = o; m.m01 = z
       m.m10 = z; m.m11 = o
 
-    def transpose(out: Mat = m): Mat =
+    def transposeTo(out: Mat): Mat =
       val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
       out.m00 = t00; out.m01 = t10; out.m10 = t01; out.m11 = t11
       out
+    inline def transposeSelf: Mat = m.transposeTo(m)
 
-    def inverse(out: Mat = m): Mat =
+    def inverseTo(out: Mat): Mat =
       val det = m.m00 * m.m11 - m.m10 * m.m01
       val invDet = summon[NumOps[Num]].one / det
       val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
       out.m00 =  t11 * invDet; out.m01 = -t01 * invDet
       out.m10 = -t10 * invDet; out.m11 =  t00 * invDet
       out
+    inline def inverseSelf: Mat = m.inverseTo(m)
 
-    def rotate(angle: Double, out: Mat = m)(using Conversion[Double, Num]): Mat =
+    def rotateTo(out: Mat, angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos
       val s: Num = angle.sin
       val ns = -s
@@ -167,5 +169,7 @@ trait Mat2MutableOps[Num: NumOps, Mat]:
       out.m00 = c * t00 + ns * t01; out.m01 = s * t00 + c * t01
       out.m10 = c * t10 + ns * t11; out.m11 = s * t10 + c * t11
       out
+    inline def rotateSelf(angle: Double)(using Conversion[Double, Num]): Mat =
+      m.rotateTo(m, angle)
 
 // format: on

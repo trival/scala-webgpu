@@ -198,14 +198,14 @@ trait Mat4ImmutableOps[Num: NumOps, Mat]:
         m.m03 * vx + m.m13 * vy + m.m23 * vz + m.m33 * vw,
       )
 
-    def transposed: Mat = create(
+    def transpose: Mat = create(
       m.m00, m.m10, m.m20, m.m30,
       m.m01, m.m11, m.m21, m.m31,
       m.m02, m.m12, m.m22, m.m32,
       m.m03, m.m13, m.m23, m.m33
     )
 
-    def inversed: Mat =
+    def inverse: Mat =
       val a00 = m.m00; val a01 = m.m01; val a02 = m.m02; val a03 = m.m03
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12; val a13 = m.m13
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22; val a23 = m.m23
@@ -245,7 +245,7 @@ trait Mat4ImmutableOps[Num: NumOps, Mat]:
       )
 
     // RotX: col0 unchanged, col1/col2 mixed, col3 unchanged
-    def rotatedX(angle: Double)(using Conversion[Double, Num]): Mat =
+    def rotateX(angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
       val ns = -s
       create(
@@ -256,7 +256,7 @@ trait Mat4ImmutableOps[Num: NumOps, Mat]:
       )
 
     // RotY: col1 unchanged, col0/col2 mixed, col3 unchanged
-    def rotatedY(angle: Double)(using Conversion[Double, Num]): Mat =
+    def rotateY(angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
       val ns = -s
       create(
@@ -267,7 +267,7 @@ trait Mat4ImmutableOps[Num: NumOps, Mat]:
       )
 
     // RotZ: col2 unchanged, col0/col1 mixed, col3 unchanged
-    def rotatedZ(angle: Double)(using Conversion[Double, Num]): Mat =
+    def rotateZ(angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
       val ns = -s
       create(
@@ -315,7 +315,7 @@ trait Mat4MutableOps[Num: NumOps, Mat]:
       m.m20 = z; m.m21 = z; m.m22 = o; m.m23 = z
       m.m30 = z; m.m31 = z; m.m32 = z; m.m33 = o
 
-    def transpose(out: Mat = m): Mat =
+    def transposeTo(out: Mat): Mat =
       val a00 = m.m00; val a01 = m.m01; val a02 = m.m02; val a03 = m.m03
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12; val a13 = m.m13
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22; val a23 = m.m23
@@ -325,8 +325,9 @@ trait Mat4MutableOps[Num: NumOps, Mat]:
       out.m20 = a02; out.m21 = a12; out.m22 = a22; out.m23 = a32
       out.m30 = a03; out.m31 = a13; out.m32 = a23; out.m33 = a33
       out
+    inline def transposeSelf: Mat = m.transposeTo(m)
 
-    def inverse(out: Mat = m): Mat =
+    def inverseTo(out: Mat): Mat =
       val a00 = m.m00; val a01 = m.m01; val a02 = m.m02; val a03 = m.m03
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12; val a13 = m.m13
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22; val a23 = m.m23
@@ -363,8 +364,9 @@ trait Mat4MutableOps[Num: NumOps, Mat]:
       out.m32 = (-a30 * b03 + a31 * b01 - a32 * b00) * invDet
       out.m33 = ( a20 * b03 - a21 * b01 + a22 * b00) * invDet
       out
+    inline def inverseSelf: Mat = m.inverseTo(m)
 
-    def rotateX(angle: Double, out: Mat = m)(using Conversion[Double, Num]): Mat =
+    def rotateXTo(out: Mat, angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
       val ns = -s
       val t10 = m.m10; val t11 = m.m11; val t12 = m.m12; val t13 = m.m13
@@ -374,8 +376,10 @@ trait Mat4MutableOps[Num: NumOps, Mat]:
       out.m20 = s * t10 + c * t20;  out.m21 = s * t11 + c * t21;  out.m22 = s * t12 + c * t22;  out.m23 = s * t13 + c * t23
       out.m30 = m.m30; out.m31 = m.m31; out.m32 = m.m32; out.m33 = m.m33
       out
+    inline def rotateXSelf(angle: Double)(using Conversion[Double, Num]): Mat =
+      m.rotateXTo(m, angle)
 
-    def rotateY(angle: Double, out: Mat = m)(using Conversion[Double, Num]): Mat =
+    def rotateYTo(out: Mat, angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
       val ns = -s
       val t00 = m.m00; val t01 = m.m01; val t02 = m.m02; val t03 = m.m03
@@ -385,8 +389,10 @@ trait Mat4MutableOps[Num: NumOps, Mat]:
       out.m20 = ns * t00 + c * t20; out.m21 = ns * t01 + c * t21; out.m22 = ns * t02 + c * t22; out.m23 = ns * t03 + c * t23
       out.m30 = m.m30; out.m31 = m.m31; out.m32 = m.m32; out.m33 = m.m33
       out
+    inline def rotateYSelf(angle: Double)(using Conversion[Double, Num]): Mat =
+      m.rotateYTo(m, angle)
 
-    def rotateZ(angle: Double, out: Mat = m)(using Conversion[Double, Num]): Mat =
+    def rotateZTo(out: Mat, angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
       val ns = -s
       val t00 = m.m00; val t01 = m.m01; val t02 = m.m02; val t03 = m.m03
@@ -396,5 +402,7 @@ trait Mat4MutableOps[Num: NumOps, Mat]:
       out.m20 = m.m20; out.m21 = m.m21; out.m22 = m.m22; out.m23 = m.m23
       out.m30 = m.m30; out.m31 = m.m31; out.m32 = m.m32; out.m33 = m.m33
       out
+    inline def rotateZSelf(angle: Double)(using Conversion[Double, Num]): Mat =
+      m.rotateZTo(m, angle)
 
 // format: on

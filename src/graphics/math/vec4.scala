@@ -64,7 +64,7 @@ trait Vec4ImmutableOps[Num: {NumExt, NumOps}, Vec]:
     @scala.annotation.targetName("divScalar")
     def /(scalar: Num): Vec =
       create(v.x / scalar, v.y / scalar, v.z / scalar, v.w / scalar)
-    def normalized: Vec =
+    def normalize: Vec =
       v / v.length
 
 trait Vec4MutableOps[Num: {NumExt, NumOps}, Vec]:
@@ -154,4 +154,5 @@ trait Vec4MutableOps[Num: {NumExt, NumOps}, Vec]:
     def /=(other: Vec): Unit =
       v.div(other)
 
-    def normalize(out: Vec = v): Vec = v.divS(v.length, out)
+    def normalizeTo(out: Vec): Vec = v.divS(v.length, out)
+    inline def normalizeSelf: Vec = v.normalizeTo(v)

@@ -48,7 +48,7 @@ trait Vec2ImmutableOps[Num: {NumExt, NumOps}, Vec]:
     def /(other: Vec): Vec = create(v.x / other.x, v.y / other.y)
     @scala.annotation.targetName("divScalar")
     def /(scalar: Num): Vec = create(v.x / scalar, v.y / scalar)
-    def normalized: Vec =
+    def normalize: Vec =
       v / v.length
 
 trait Vec2MutableOps[Num: {NumExt, NumOps}, Vec]:
@@ -122,4 +122,5 @@ trait Vec2MutableOps[Num: {NumExt, NumOps}, Vec]:
     def /=(other: Vec): Unit =
       v.div(other)
 
-    def normalize(out: Vec = v): Vec = v.divS(v.length, out)
+    def normalizeTo(out: Vec): Vec = v.divS(v.length, out)
+    inline def normalizeSelf: Vec = v.normalizeTo(v)
