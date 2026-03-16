@@ -196,7 +196,7 @@ class ShaderDslTest extends FunSuite:
 
     type Locals = (rotated: Vec2)
     type LocalFields = NTMap[Locals, ToLocal]
-    val accessor = TypedLocalAccessor[LocalFields]
+    val accessor = TypedLocalAccessor[LocalFields]()
 
     val rotated: LocalVec2 = accessor.rotated
 
@@ -389,4 +389,134 @@ class ShaderDslTest extends FunSuite:
     assert(
       fragBody.contains("out.color = vec4<f32>(color, 1.0);"),
       s"Frag missing color:\n$fragBody",
+    )
+
+  // =========================================================================
+  // VarExpr — stateful first-:= becomes var decl, subsequent become assign
+  // =========================================================================
+
+  test("VarExpr first := generates var decl"):
+    val v = new VarExpr("acc")
+    assertEquals(
+      (v := Vec2Expr("vec2<f32>(0.0, 0.0)")).toString,
+      "  var acc = vec2<f32>(0.0, 0.0);",
+    )
+
+  test("VarExpr subsequent := generates reassignment"):
+    val v = new VarExpr("acc")
+    v := Vec2Expr("init") // first
+    val reassign = v := Vec2Expr("next")
+    assertEquals(reassign.toString, "  acc = next;")
+
+  test("ConstExpr := generates const decl"):
+    val c = new ConstExpr("scale")
+    assertEquals(
+      (c := FloatExpr("2.0")).toString,
+      "  const scale = 2.0;",
+    )
+
+  test("VarVec2 supports arithmetic and stateful :="):
+    val acc = VarVec2("acc")
+    val delta = Vec2Expr("delta")
+    // First := → var decl
+    assertEquals(
+      (acc := Vec2Expr("vec2<f32>(0.0, 0.0)")).toString,
+      "  var acc = vec2<f32>(0.0, 0.0);",
+    )
+    // Math works
+    assertEquals((acc + delta).toString, "(acc + delta)")
+    // Second := → reassign
+    assertEquals((acc := (acc + delta)).toString, "  acc = (acc + delta);")
+
+  test("ConstFloat supports arithmetic and const decl"):
+    val s = ConstFloat("scale")
+    assertEquals(
+      (s := FloatExpr("2.0")).toString,
+      "  const scale = 2.0;",
+    )
+    assertEquals((s * FloatExpr("x")).toString, "(scale * x)")
+
+  // =========================================================================
+  // TypedLocalAccessor with kinds dict — dispatches var/const/let
+  // =========================================================================
+
+  test("TypedLocalAccessor dispatches var/const/let from kinds dict"):
+    import trivalibs.utils.js.Dict
+    import scala.NamedTuple.Map as NTMap
+
+    type Locals = (acc: Var[Vec2], scale: Const[Float], tmp: Vec2)
+    type LocalFields = NTMap[Locals, ToLocal]
+
+    val kinds = Dict[String]()
+    kinds("acc") = "v"
+    kinds("scale") = "c"
+    val accessor = TypedLocalAccessor[LocalFields](kinds)
+
+    val acc: VarVec2 = accessor.acc
+    val scale: ConstFloat = accessor.scale
+    val tmp: LocalVec2 = accessor.tmp
+
+    assertEquals((acc := Vec2Expr("v")).toString, "  var acc = v;")
+    acc := Vec2Expr("v2") // mark as declared
+    assertEquals((acc := Vec2Expr("v2")).toString, "  acc = v2;")
+    assertEquals((scale := FloatExpr("2.0")).toString, "  const scale = 2.0;")
+    assertEquals((tmp := Vec2Expr("t")).toString, "  let tmp = t;")
+
+  // =========================================================================
+  // Full program integration — mixed Var, Const, and bare locals
+  // =========================================================================
+
+  test("Program.vert with Var and Const locals generates correct WGSL"):
+    type Attribs = (position: Vec2)
+    type Varyings = EmptyTuple
+    type Uniforms = (delta: VertexUniform[Vec2])
+
+    val program = Program[Attribs, Varyings, Uniforms]()
+
+    program.vert[(acc: Var[Vec2], scale: Const[Float], tmp: Vec2)]: ctx =>
+      Block(
+        ctx.locals.scale := 2.0,
+        ctx.locals.acc := ctx.in.position,
+        ctx.locals.tmp := ctx.locals.acc + ctx.bindings.delta,
+        ctx.locals.acc := ctx.locals.tmp,
+        ctx.out.position := vec4(ctx.locals.acc, 0.0, 1.0),
+      )
+
+    val body = program.vertBodyStr
+    assert(body.contains("const scale = 2.0;"), s"Missing const:\n$body")
+    assert(body.contains("var acc = in.position;"), s"Missing var decl:\n$body")
+    assert(body.contains("let tmp = (acc + delta);"), s"Missing let:\n$body")
+    assert(body.contains("acc = tmp;"), s"Missing reassign:\n$body")
+    assert(
+      body.contains("out.position = vec4<f32>(acc, 0.0, 1.0);"),
+      s"Missing position:\n$body",
+    )
+
+  // =========================================================================
+  // Scala helper function with VarExpr — inlines without WgslFn
+  // =========================================================================
+
+  test("Scala helper function with VarExpr inlines into shader"):
+    def accumulate(acc: VarVec2, value: Vec2Expr): Stmt =
+      acc := acc + value
+
+    type Attribs = (position: Vec2)
+    type Varyings = EmptyTuple
+    type Uniforms = (delta: VertexUniform[Vec2])
+
+    val program = Program[Attribs, Varyings, Uniforms]()
+
+    program.vert[(acc: Var[Vec2])]: ctx =>
+      Block(
+        ctx.locals.acc := ctx.in.position,
+        accumulate(ctx.locals.acc, ctx.bindings.delta),
+        ctx.out.position := vec4(ctx.locals.acc, 0.0, 1.0),
+      )
+
+    val body = program.vertBodyStr
+    assert(body.contains("var acc = in.position;"), s"Missing var decl:\n$body")
+    assert(body.contains("acc = (acc + delta);"), s"Missing accumulate:\n$body")
+    assert(
+      body.contains("out.position = vec4<f32>(acc, 0.0, 1.0);"),
+      s"Missing position:\n$body",
     )

@@ -4,6 +4,16 @@ import graphics.math.cpu.*
 import graphics.math.gpu.*
 import graphics.shader.FragmentUniform
 import graphics.shader.VertexUniform
+import trivalibs.utils.js.Dict
+import scala.NamedTuple
+import scala.NamedTuple.AnyNamedTuple
+import scala.compiletime.*
+
+/** Marker type for mutable WGSL local variables (`var`). */
+class Var[T]
+
+/** Marker type for WGSL compile-time constants (`const`). */
+class Const[T]
 
 /** Maps GPU math types to their DSL expression equivalents. */
 type ToExpr[T] = T match
@@ -23,14 +33,46 @@ type UniformToExpr[T] = T match
   case FragmentUniform[t] => ToExpr[t]
   case _                  => ToExpr[T]
 
-/** Maps GPU math types to Local* opaque types for typed local variables. */
+/** Maps GPU math types to Local/Var/Const opaque types for typed local variables. */
 type ToLocal[T] = T match
+  case Var[Float]   => VarFloat
+  case Var[Double]  => VarFloat
+  case Var[Vec2]    => VarVec2
+  case Var[Vec3]    => VarVec3
+  case Var[Vec4]    => VarVec4
+  case Const[Float]  => ConstFloat
+  case Const[Double] => ConstFloat
+  case Const[Vec2]   => ConstVec2
+  case Const[Vec3]   => ConstVec3
+  case Const[Vec4]   => ConstVec4
   case Float  => LocalFloat
   case Double => LocalFloat
-  // case Boolean => LocalBool
-  case Vec2 => LocalVec2
-  case Vec3 => LocalVec3
-  case Vec4 => LocalVec4
-  // case Mat2    => LocalMat2
-  // case Mat3    => LocalMat3
-  // case Mat4    => LocalMat4
+  case Vec2   => LocalVec2
+  case Vec3   => LocalVec3
+  case Vec4   => LocalVec4
+
+/** Builds a Dict mapping field names to their kind: "v" for Var, "c" for Const.
+  * Plain locals are omitted (default). Called at compile time via inline.
+  */
+inline def buildLocalKinds[L]: Dict[String] =
+  val d = Dict[String]()
+  inline erasedValue[L] match
+    case _: EmptyTuple => ()
+    case _ =>
+      populateKinds[
+        NamedTuple.Names[L & AnyNamedTuple],
+        NamedTuple.DropNames[L & AnyNamedTuple],
+      ](d)
+  d
+
+private inline def populateKinds[Names <: Tuple, Types <: Tuple](
+    d: Dict[String],
+): Unit =
+  inline (erasedValue[Names], erasedValue[Types]) match
+    case _: (EmptyTuple, EmptyTuple) => ()
+    case _: ((n *: ns), (t *: ts)) =>
+      inline erasedValue[t] match
+        case _: Var[?]   => d(constValue[n & String]) = "v"
+        case _: Const[?] => d(constValue[n & String]) = "c"
+        case _           => ()
+      populateKinds[ns, ts](d)

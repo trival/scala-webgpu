@@ -47,12 +47,14 @@ class Program[A, V, U]:
   inline def vert[L](
       body: VertexCtx[A, V, U, L] => Block,
   ): Unit =
+    val kinds = buildLocalKinds[L]
     val ctx = VertexCtx[A, V, U, L](
       in = TypedExprAccessor[NamedTuple.Map[A & AnyNamedTuple, ToExpr]]("in"),
       out = TypedAssignAccessor[(position: AssignTarget)]("out"),
       bindings =
         TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]](""),
-      locals = TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]],
+      locals =
+        TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]](kinds),
     )
     vertBody = body(ctx)
 
@@ -60,6 +62,7 @@ class Program[A, V, U]:
   inline def frag[L](
       body: FragmentCtx[V, U, L] => Block,
   ): Unit =
+    val kinds = buildLocalKinds[L]
     val ctx = FragmentCtx[V, U, L](
       in = TypedExprAccessor[
         NamedTuple.Map[V & AnyNamedTuple, ToExpr],
@@ -67,7 +70,8 @@ class Program[A, V, U]:
       out = TypedAssignAccessor[(color: AssignTarget)]("out"),
       bindings =
         TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]](""),
-      locals = TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]],
+      locals =
+        TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]](kinds),
     )
     fragBody = body(ctx)
 

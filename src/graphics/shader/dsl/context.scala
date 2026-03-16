@@ -1,9 +1,11 @@
 package graphics.shader.dsl
 
 import graphics.math.gpu.*
+import trivalibs.utils.js.Dict
 
 import scala.NamedTuple
 import scala.NamedTuple.AnyNamedTuple
+import scala.scalajs.js
 
 // ---------------------------------------------------------------------------
 // Typed Selectable Accessors — compile-time field checking via named tuples
@@ -42,10 +44,20 @@ class AssignTarget(val target: String):
   * Vec*Expr & LocalExpr, so math operations (via Vec*Expr) and `:=` (via
   * LocalExpr) are both available. At runtime all are LocalExpr.
   */
-class TypedLocalAccessor[F <: AnyNamedTuple] extends Selectable:
+class TypedLocalAccessor[F <: AnyNamedTuple](
+    kinds: Dict[String] = Dict[String](),
+) extends Selectable:
   type Fields = F
 
-  def selectDynamic(name: String): Any = LocalExpr(name)
+  def selectDynamic(name: String): Any =
+    if js.DynamicImplicits.truthValue(
+        kinds.asInstanceOf[js.Dynamic].hasOwnProperty(name),
+      )
+    then
+      kinds(name) match
+        case "v" => new VarExpr(name)
+        case _   => new ConstExpr(name)
+    else new LocalExpr(name)
 
 // ---------------------------------------------------------------------------
 // Stage-Specific Context Types

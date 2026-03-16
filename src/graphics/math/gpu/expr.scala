@@ -20,6 +20,18 @@ class Expr(val wgsl: String):
 class LocalExpr(val name: String) extends Expr(name):
   def :=(value: Expr): Stmt = Stmt.let(name, value)
 
+class VarExpr(name: String) extends LocalExpr(name):
+  private var declared = false
+  override def :=(value: Expr): Stmt =
+    if !declared then
+      declared = true
+      Stmt.varDecl(name, value)
+    else
+      Stmt.varAssign(name, value)
+
+class ConstExpr(name: String) extends LocalExpr(name):
+  override def :=(value: Expr): Stmt = Stmt.constDecl(name, value)
+
 // ---------------------------------------------------------------------------
 // All opaque types in one object so the compiler sees through them and can
 // validate bounds like `LocalVec2 <: Vec2Expr & LocalExpr`.
@@ -83,6 +95,32 @@ object Expr:
   opaque type LocalBool <: BoolExpr & LocalExpr = LocalExpr
   object LocalBool { def apply(s: String): LocalBool = new LocalExpr(s) }
 
+  // Var types — mutable locals (var on first :=, reassignment after)
+  opaque type VarFloat <: FloatExpr & VarExpr = VarExpr
+  object VarFloat { def apply(s: String): VarFloat = new VarExpr(s) }
+
+  opaque type VarVec2 <: Vec2Expr & VarExpr = VarExpr
+  object VarVec2 { def apply(s: String): VarVec2 = new VarExpr(s) }
+
+  opaque type VarVec3 <: Vec3Expr & VarExpr = VarExpr
+  object VarVec3 { def apply(s: String): VarVec3 = new VarExpr(s) }
+
+  opaque type VarVec4 <: Vec4Expr & VarExpr = VarExpr
+  object VarVec4 { def apply(s: String): VarVec4 = new VarExpr(s) }
+
+  // Const types — WGSL compile-time constants
+  opaque type ConstFloat <: FloatExpr & ConstExpr = ConstExpr
+  object ConstFloat { def apply(s: String): ConstFloat = new ConstExpr(s) }
+
+  opaque type ConstVec2 <: Vec2Expr & ConstExpr = ConstExpr
+  object ConstVec2 { def apply(s: String): ConstVec2 = new ConstExpr(s) }
+
+  opaque type ConstVec3 <: Vec3Expr & ConstExpr = ConstExpr
+  object ConstVec3 { def apply(s: String): ConstVec3 = new ConstExpr(s) }
+
+  opaque type ConstVec4 <: Vec4Expr & ConstExpr = ConstExpr
+  object ConstVec4 { def apply(s: String): ConstVec4 = new ConstExpr(s) }
+
 export Expr.{
   FloatExpr,
   Vec2Expr,
@@ -100,6 +138,14 @@ export Expr.{
   LocalMat3,
   LocalMat4,
   LocalBool,
+  VarFloat,
+  VarVec2,
+  VarVec3,
+  VarVec4,
+  ConstFloat,
+  ConstVec2,
+  ConstVec3,
+  ConstVec4,
 }
 
 // ---------------------------------------------------------------------------
@@ -440,6 +486,8 @@ object Stmt:
     s"  $target = ${value.wgsl};"
   inline def let(name: String, value: Expr): Stmt =
     s"  let $name = ${value.wgsl};"
+  inline def constDecl(name: String, value: Expr): Stmt =
+    s"  const $name = ${value.wgsl};"
   inline def varDecl(name: String, value: Expr): Stmt =
     s"  var $name = ${value.wgsl};"
   inline def varDeclTyped(name: String, wgslType: String, value: Expr): Stmt =

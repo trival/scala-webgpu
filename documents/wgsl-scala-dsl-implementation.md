@@ -1327,13 +1327,57 @@ correctly with the helper function visible in the logged WGSL.
   allows same-package extensions to access opaque internals without exposing them
   outside the package.
 
+#### Step 1g: Mutable Variables and Constants ✅
+
+**Files**: `src/graphics/math/gpu/expr.scala`, `src/graphics/shader/dsl/types.scala`,
+`src/graphics/shader/dsl/context.scala`, `src/graphics/shader/dsl/program.scala`
+
+Implemented `Var[T]` and `Const[T]` marker types for full WGSL local variable
+support. All three WGSL declaration forms are now available:
+
+```scala
+type Locals = (acc: Var[Vec2], scale: Const[Float], tmp: Vec2)
+
+program.vert[Locals]: ctx =>
+  Block(
+    ctx.locals.scale := 2.0,                       // const scale = 2.0;
+    ctx.locals.acc := ctx.in.position,              // var acc = in.position;
+    ctx.locals.tmp := ctx.locals.acc + bindings.delta, // let tmp = (acc + delta);
+    ctx.locals.acc := ctx.locals.tmp,               // acc = tmp;
+    ctx.out.position := vec4(ctx.locals.acc, 0.0, 1.0),
+  )
+```
+
+Reusable Scala helper functions with `Var*` parameters inline directly — no
+`WgslFn` needed:
+
+```scala
+def accumulate(acc: VarVec2, value: Vec2Expr): Stmt =
+  acc := acc + value
+
+// Inlines to: acc = (acc + delta);
+accumulate(ctx.locals.acc, ctx.bindings.delta)
+```
+
+**Key implementation details:**
+
+- `VarExpr extends LocalExpr` — stateful: first `:=` emits `var name = expr;`,
+  subsequent `:=` emit `name = expr;`
+- `ConstExpr extends LocalExpr` — `:=` always emits `const name = expr;`
+- Opaque types `VarFloat`, `VarVec2`, `VarVec3`, `VarVec4` (bounds
+  `<: Vec*Expr & VarExpr`) and `ConstFloat`, `ConstVec2`, `ConstVec3`,
+  `ConstVec4` (bounds `<: Vec*Expr & ConstExpr`) inside `object Expr`
+- `ToLocal[T]` match type extended to handle `Var[T]` and `Const[T]` wrappers
+- `buildLocalKinds[L]` — inline compile-time iteration over
+  `NamedTuple.Names[L]` + `NamedTuple.DropNames[L]`, builds a `Dict[String]`
+  mapping field names to `"v"` or `"c"`. Guards against `EmptyTuple` before
+  reducing the named tuple intersection.
+- `TypedLocalAccessor` updated to accept `kinds: Dict[String]` and dispatch to
+  `VarExpr`, `ConstExpr`, or `LocalExpr` based on the dict.
+- `Program.vert[L]` and `Program.frag[L]` call `buildLocalKinds[L]` and pass
+  the result to `TypedLocalAccessor`.
+
 ### Remaining Steps
-
-#### Step 1g: Mutable Variables — Not Started
-
-The `Var[T]` marker type, `MutableLocalRef`, cross-namespace collision
-detection, and reserved word validation have not been implemented. Currently all
-locals are immutable (`let`).
 
 #### Additional Math Operations — Not Started
 
