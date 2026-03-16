@@ -45,45 +45,45 @@ trait Mat2Mutable[Num, Mat] extends Mat2Base[Num, Mat]:
 trait Mat2SharedOps[Num: NumOps, Mat]:
 
   extension (m: Mat)(using Mat2Base[Num, Mat])
-    inline def determinant: Num =
+    def determinant: Num =
       m.m00 * m.m11 - m.m10 * m.m01
 
 trait Mat2ImmutableOps[Num: NumOps, Mat]:
 
   def create(m00: Num, m01: Num, m10: Num, m11: Num): Mat
 
-  inline def from[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
+  def from[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
     create(other.m00, other.m01, other.m10, other.m11)
 
-  inline def fromRotation(angle: Double)(using Conversion[Double, Num]): Mat =
+  def fromRotation(angle: Double)(using Conversion[Double, Num]): Mat =
     val c: Num = angle.cos
     val s: Num = angle.sin
     create(c, s, -s, c)
 
-  inline def identity: Mat =
+  def identity: Mat =
     val z = summon[NumOps[Num]].zero
     val o = summon[NumOps[Num]].one
     create(o, z, z, o)
 
   extension (m: Mat)(using Mat2Base[Num, Mat])
-    inline def +(other: Mat): Mat = create(
+    def +(other: Mat): Mat = create(
       m.m00 + other.m00, m.m01 + other.m01,
       m.m10 + other.m10, m.m11 + other.m11
     )
 
-    inline def -(other: Mat): Mat = create(
+    def -(other: Mat): Mat = create(
       m.m00 - other.m00, m.m01 - other.m01,
       m.m10 - other.m10, m.m11 - other.m11
     )
 
     @scala.annotation.targetName("scalarMul")
-    inline def *(scalar: Num): Mat = create(
+    def *(scalar: Num): Mat = create(
       m.m00 * scalar, m.m01 * scalar,
       m.m10 * scalar, m.m11 * scalar
     )
 
     @scala.annotation.targetName("matMul")
-    inline def *(other: Mat): Mat = create(
+    def *(other: Mat): Mat = create(
       m.m00 * other.m00 + m.m10 * other.m01,
       m.m01 * other.m00 + m.m11 * other.m01,
       m.m00 * other.m10 + m.m10 * other.m11,
@@ -91,18 +91,18 @@ trait Mat2ImmutableOps[Num: NumOps, Mat]:
     )
 
     @scala.annotation.targetName("vecMul")
-    inline def *[Vec](v: Vec)(using Vec2Base[Num, Vec], Vec2ImmutableOps[Num, Vec]): Vec =
+    def *[Vec](v: Vec)(using Vec2Base[Num, Vec], Vec2ImmutableOps[Num, Vec]): Vec =
       summon[Vec2ImmutableOps[Num, Vec]].create(
         m.m00 * v.x + m.m10 * v.y,
         m.m01 * v.x + m.m11 * v.y,
       )
 
-    inline def transposed: Mat = create(
+    def transposed: Mat = create(
       m.m00, m.m10,
       m.m01, m.m11
     )
 
-    inline def inversed: Mat =
+    def inversed: Mat =
       val det = m.m00 * m.m11 - m.m10 * m.m01
       val invDet = summon[NumOps[Num]].one / det
       create(
@@ -110,7 +110,7 @@ trait Mat2ImmutableOps[Num: NumOps, Mat]:
         -m.m10 * invDet,  m.m00 * invDet
       )
 
-    inline def rotated(angle: Double)(using Conversion[Double, Num]): Mat =
+    def rotated(angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos
       val s: Num = angle.sin
       val ns = -s
@@ -122,36 +122,36 @@ trait Mat2ImmutableOps[Num: NumOps, Mat]:
 trait Mat2MutableOps[Num: NumOps, Mat]:
 
   extension (m: Mat)(using mb: Mat2Mutable[Num, Mat])
-    inline def set[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
+    def set[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
       m.m00 = other.m00; m.m01 = other.m01
       m.m10 = other.m10; m.m11 = other.m11
-    inline def :=[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
+    def :=[Num2, Mat2_](other: Mat2_)(using Mat2Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
       m.set(other)
 
-    inline def +=(other: Mat): Unit =
+    def +=(other: Mat): Unit =
       m.m00 = m.m00 + other.m00; m.m01 = m.m01 + other.m01
       m.m10 = m.m10 + other.m10; m.m11 = m.m11 + other.m11
 
-    inline def -=(other: Mat): Unit =
+    def -=(other: Mat): Unit =
       m.m00 = m.m00 - other.m00; m.m01 = m.m01 - other.m01
       m.m10 = m.m10 - other.m10; m.m11 = m.m11 - other.m11
 
-    inline def *=(scalar: Num): Unit =
+    def *=(scalar: Num): Unit =
       m.m00 = m.m00 * scalar; m.m01 = m.m01 * scalar
       m.m10 = m.m10 * scalar; m.m11 = m.m11 * scalar
 
-    inline def setIdentity(): Unit =
+    def setIdentity(): Unit =
       val z = summon[NumOps[Num]].zero
       val o = summon[NumOps[Num]].one
       m.m00 = o; m.m01 = z
       m.m10 = z; m.m11 = o
 
-    inline def transpose(out: Mat = m): Mat =
+    def transpose(out: Mat = m): Mat =
       val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
       out.m00 = t00; out.m01 = t10; out.m10 = t01; out.m11 = t11
       out
 
-    inline def inverse(out: Mat = m): Mat =
+    def inverse(out: Mat = m): Mat =
       val det = m.m00 * m.m11 - m.m10 * m.m01
       val invDet = summon[NumOps[Num]].one / det
       val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
@@ -159,7 +159,7 @@ trait Mat2MutableOps[Num: NumOps, Mat]:
       out.m10 = -t10 * invDet; out.m11 =  t00 * invDet
       out
 
-    inline def rotate(angle: Double, out: Mat = m)(using Conversion[Double, Num]): Mat =
+    def rotate(angle: Double, out: Mat = m)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos
       val s: Num = angle.sin
       val ns = -s

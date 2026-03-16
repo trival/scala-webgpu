@@ -10,8 +10,8 @@ import scala.NamedTuple.AnyNamedTuple
 
 /** Typed read-only accessor for input fields and uniforms.
   *
-  * Fields maps to Expr subtypes (Vec2Expr, Mat2Expr, etc.), giving typed
-  * field access like `ctx.in.position` → `Vec2Expr`.
+  * Fields maps to Expr subtypes (Vec2Expr, Mat2Expr, etc.), giving typed field
+  * access like `ctx.in.position` → `Vec2Expr`.
   */
 class TypedExprAccessor[F <: AnyNamedTuple](prefix: String) extends Selectable:
   type Fields = F
@@ -25,7 +25,8 @@ class TypedExprAccessor[F <: AnyNamedTuple](prefix: String) extends Selectable:
   * Fields maps to AssignTarget for all field types, preserving the `:=`
   * operator for assignment statements.
   */
-class TypedAssignAccessor[F <: AnyNamedTuple](prefix: String) extends Selectable:
+class TypedAssignAccessor[F <: AnyNamedTuple](prefix: String)
+    extends Selectable:
   type Fields = F
 
   def selectDynamic(name: String): AssignTarget =
@@ -36,14 +37,14 @@ class AssignTarget(val target: String):
 
 /** Typed read+write accessor for local variables.
   *
-  * Fields maps to Local* types (e.g., LocalVec2, LocalMat2). Each extends
-  * its Expr class (Vec2Expr, etc.) and the LocalExpr trait, so all math
-  * operations and `:=` for let-binding are available.
+  * Fields maps to Local* types (e.g., LocalVec2, LocalMat2). Each extends its
+  * Expr class (Vec2Expr, etc.) and the LocalExpr trait, so all math operations
+  * and `:=` for let-binding are available.
   */
 class TypedLocalAccessor[F <: AnyNamedTuple] extends Selectable:
   type Fields = F
 
-  def selectDynamic(name: String): Any = LocalExpr(name)
+  def selectDynamic(name: String): Any = Expr(name)
 
 // ---------------------------------------------------------------------------
 // Stage-Specific Context Types
@@ -53,7 +54,9 @@ class TypedLocalAccessor[F <: AnyNamedTuple] extends Selectable:
 class VertexCtx[A, V, U, L](
     val in: TypedExprAccessor[NamedTuple.Map[A & AnyNamedTuple, ToExpr]],
     val out: TypedAssignAccessor[(position: AssignTarget)],
-    val bindings: TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]],
+    val bindings: TypedExprAccessor[
+      NamedTuple.Map[U & AnyNamedTuple, UniformToExpr],
+    ],
     val locals: TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]],
 )
 
@@ -61,6 +64,8 @@ class VertexCtx[A, V, U, L](
 class FragmentCtx[V, U, L](
     val in: TypedExprAccessor[NamedTuple.Map[V & AnyNamedTuple, ToExpr]],
     val out: TypedAssignAccessor[(color: AssignTarget)],
-    val bindings: TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]],
+    val bindings: TypedExprAccessor[
+      NamedTuple.Map[U & AnyNamedTuple, UniformToExpr],
+    ],
     val locals: TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]],
 )

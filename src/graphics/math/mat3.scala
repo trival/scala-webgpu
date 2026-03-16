@@ -62,7 +62,7 @@ trait Mat3SharedOps[Num: NumOps, Mat]:
 
 
   extension (m: Mat)(using Mat3Base[Num, Mat])
-    inline def determinant: Num =
+    def determinant: Num =
       val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
@@ -82,7 +82,7 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
   ): Mat
   // format: on
 
-  inline def from[Num2, Mat2_](
+  def from[Num2, Mat2_](
       other: Mat2_,
   )(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Mat =
     create(
@@ -97,31 +97,31 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
       other.m22,
     )
 
-  inline def fromRotationX(angle: Double)(using Conversion[Double, Num]): Mat =
+  def fromRotationX(angle: Double)(using Conversion[Double, Num]): Mat =
     val c: Num = angle.cos; val s: Num = angle.sin
     val ns = -s
     val z = summon[NumOps[Num]].zero; val o = summon[NumOps[Num]].one
     create(o, z, z, z, c, s, z, ns, c)
 
-  inline def fromRotationY(angle: Double)(using Conversion[Double, Num]): Mat =
+  def fromRotationY(angle: Double)(using Conversion[Double, Num]): Mat =
     val c: Num = angle.cos; val s: Num = angle.sin
     val ns = -s
     val z = summon[NumOps[Num]].zero; val o = summon[NumOps[Num]].one
     create(c, z, ns, z, o, z, s, z, c)
 
-  inline def fromRotationZ(angle: Double)(using Conversion[Double, Num]): Mat =
+  def fromRotationZ(angle: Double)(using Conversion[Double, Num]): Mat =
     val c: Num = angle.cos; val s: Num = angle.sin
     val ns = -s
     val z = summon[NumOps[Num]].zero; val o = summon[NumOps[Num]].one
     create(c, s, z, ns, c, z, z, z, o)
 
-  inline def identity: Mat =
+  def identity: Mat =
     val z = summon[NumOps[Num]].zero
     val o = summon[NumOps[Num]].one
     create(o, z, z, z, o, z, z, z, o)
 
   extension (m: Mat)(using Mat3Base[Num, Mat])
-    inline def +(other: Mat): Mat = create(
+    def +(other: Mat): Mat = create(
       m.m00 + other.m00,
       m.m01 + other.m01,
       m.m02 + other.m02,
@@ -133,7 +133,7 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
       m.m22 + other.m22,
     )
 
-    inline def -(other: Mat): Mat = create(
+    def -(other: Mat): Mat = create(
       m.m00 - other.m00,
       m.m01 - other.m01,
       m.m02 - other.m02,
@@ -146,7 +146,7 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
     )
 
     @scala.annotation.targetName("scalarMul")
-    inline def *(scalar: Num): Mat = create(
+    def *(scalar: Num): Mat = create(
       m.m00 * scalar,
       m.m01 * scalar,
       m.m02 * scalar,
@@ -159,7 +159,7 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
     )
 
     @scala.annotation.targetName("matMul")
-    inline def *(other: Mat): Mat =
+    def *(other: Mat): Mat =
       val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
@@ -179,7 +179,7 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
       )
 
     @scala.annotation.targetName("vecMul")
-    inline def *[Vec](
+    def *[Vec](
         v: Vec,
     )(using Vec3Base[Num, Vec], Vec3ImmutableOps[Num, Vec]): Vec =
       summon[Vec3ImmutableOps[Num, Vec]].create(
@@ -188,7 +188,7 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
         m.m02 * v.x + m.m12 * v.y + m.m22 * v.z,
       )
 
-    inline def transposed: Mat = create(
+    def transposed: Mat = create(
       m.m00,
       m.m10,
       m.m20,
@@ -200,7 +200,7 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
       m.m22,
     )
 
-    inline def inversed: Mat =
+    def inversed: Mat =
       val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
@@ -229,7 +229,7 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
       )
 
     // RotX: col0 unchanged, col1/col2 mixed
-    inline def rotatedX(angle: Double)(using Conversion[Double, Num]): Mat =
+    def rotatedX(angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
       val ns = -s
       create(
@@ -245,7 +245,7 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
       )
 
     // RotY: col1 unchanged, col0/col2 mixed
-    inline def rotatedY(angle: Double)(using Conversion[Double, Num]): Mat =
+    def rotatedY(angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
       val ns = -s
       create(
@@ -261,7 +261,7 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
       )
 
     // RotZ: col2 unchanged, col0/col1 mixed
-    inline def rotatedZ(angle: Double)(using Conversion[Double, Num]): Mat =
+    def rotatedZ(angle: Double)(using Conversion[Double, Num]): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
       val ns = -s
       create(
@@ -279,18 +279,18 @@ trait Mat3ImmutableOps[Num: NumOps, Mat]:
 trait Mat3MutableOps[Num: NumOps, Mat]:
 
   extension (m: Mat)(using mb: Mat3Mutable[Num, Mat])
-    inline def set[Num2, Mat2_](
+    def set[Num2, Mat2_](
         other: Mat2_,
     )(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
       m.m00 = other.m00; m.m01 = other.m01; m.m02 = other.m02
       m.m10 = other.m10; m.m11 = other.m11; m.m12 = other.m12
       m.m20 = other.m20; m.m21 = other.m21; m.m22 = other.m22
-    inline def :=[Num2, Mat2_](
+    def :=[Num2, Mat2_](
         other: Mat2_,
     )(using Mat3Base[Num2, Mat2_], Conversion[Num2, Num]): Unit =
       m.set(other)
 
-    inline def +=(other: Mat): Unit =
+    def +=(other: Mat): Unit =
       m.m00 = m.m00 + other.m00; m.m01 = m.m01 + other.m01;
       m.m02 = m.m02 + other.m02
       m.m10 = m.m10 + other.m10; m.m11 = m.m11 + other.m11;
@@ -298,7 +298,7 @@ trait Mat3MutableOps[Num: NumOps, Mat]:
       m.m20 = m.m20 + other.m20; m.m21 = m.m21 + other.m21;
       m.m22 = m.m22 + other.m22
 
-    inline def -=(other: Mat): Unit =
+    def -=(other: Mat): Unit =
       m.m00 = m.m00 - other.m00; m.m01 = m.m01 - other.m01;
       m.m02 = m.m02 - other.m02
       m.m10 = m.m10 - other.m10; m.m11 = m.m11 - other.m11;
@@ -306,19 +306,19 @@ trait Mat3MutableOps[Num: NumOps, Mat]:
       m.m20 = m.m20 - other.m20; m.m21 = m.m21 - other.m21;
       m.m22 = m.m22 - other.m22
 
-    inline def *=(scalar: Num): Unit =
+    def *=(scalar: Num): Unit =
       m.m00 = m.m00 * scalar; m.m01 = m.m01 * scalar; m.m02 = m.m02 * scalar
       m.m10 = m.m10 * scalar; m.m11 = m.m11 * scalar; m.m12 = m.m12 * scalar
       m.m20 = m.m20 * scalar; m.m21 = m.m21 * scalar; m.m22 = m.m22 * scalar
 
-    inline def setIdentity(): Unit =
+    def setIdentity(): Unit =
       val z = summon[NumOps[Num]].zero
       val o = summon[NumOps[Num]].one
       m.m00 = o; m.m01 = z; m.m02 = z
       m.m10 = z; m.m11 = o; m.m12 = z
       m.m20 = z; m.m21 = z; m.m22 = o
 
-    inline def transpose(out: Mat = m): Mat =
+    def transpose(out: Mat = m): Mat =
       val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
@@ -327,7 +327,7 @@ trait Mat3MutableOps[Num: NumOps, Mat]:
       out.m20 = a02; out.m21 = a12; out.m22 = a22
       out
 
-    inline def inverse(out: Mat = m): Mat =
+    def inverse(out: Mat = m): Mat =
       val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
       val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
       val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
@@ -348,7 +348,7 @@ trait Mat3MutableOps[Num: NumOps, Mat]:
       out.m20 = c02 * invDet; out.m21 = c12 * invDet; out.m22 = c22 * invDet
       out
 
-    inline def rotateX(angle: Double, out: Mat = m)(using
+    def rotateX(angle: Double, out: Mat = m)(using
         Conversion[Double, Num],
     ): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
@@ -362,7 +362,7 @@ trait Mat3MutableOps[Num: NumOps, Mat]:
       out.m22 = s * t12 + c * t22
       out
 
-    inline def rotateY(angle: Double, out: Mat = m)(using
+    def rotateY(angle: Double, out: Mat = m)(using
         Conversion[Double, Num],
     ): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin
@@ -376,7 +376,7 @@ trait Mat3MutableOps[Num: NumOps, Mat]:
       out.m22 = ns * t02 + c * t22
       out
 
-    inline def rotateZ(angle: Double, out: Mat = m)(using
+    def rotateZ(angle: Double, out: Mat = m)(using
         Conversion[Double, Num],
     ): Mat =
       val c: Num = angle.cos; val s: Num = angle.sin

@@ -22,17 +22,13 @@ object Expr:
   def raw(s: String): Expr = new Expr(s)
   def apply(s: String): Expr = new Expr(s)
 
-  opaque type FloatExpr <: Expr = Expr
-  object FloatExpr { def apply(s: String): FloatExpr = new Expr(s) }
+  class FloatExpr(wgsl: String) extends Expr(wgsl)
 
-  opaque type Vec2Expr <: Expr = Expr
-  object Vec2Expr { def apply(s: String): Vec2Expr = new Expr(s) }
+  class Vec2Expr(wgsl: String) extends Expr(wgsl)
 
-  opaque type Vec3Expr <: Expr = Expr
-  object Vec3Expr { def apply(s: String): Vec3Expr = new Expr(s) }
+  class Vec3Expr(wgsl: String) extends Expr(wgsl)
 
-  opaque type Vec4Expr <: Expr = Expr
-  object Vec4Expr { def apply(s: String): Vec4Expr = new Expr(s) }
+  class Vec4Expr(wgsl: String) extends Expr(wgsl)
 
   opaque type Mat2Expr <: Expr = Expr
   object Mat2Expr { def apply(s: String): Mat2Expr = new Expr(s) }
@@ -63,45 +59,41 @@ export Expr.{
 // to any Local* type at runtime.
 // ---------------------------------------------------------------------------
 
-class LocalExpr(val name: String) extends Expr(name):
+trait LocalExpr:
+  def name: String
   def :=(value: Expr): Stmt = Stmt.let(name, value)
 
 object LocalExpr:
-  def apply(name: String): LocalExpr = new LocalExpr(name)
 
-  opaque type LocalFloat <: LocalExpr = LocalExpr
-  object LocalFloat { def apply(s: String): LocalFloat = new LocalExpr(s) }
+  class LocalFloat(val name: String) extends FloatExpr(name) with LocalExpr
 
-  opaque type LocalVec2 <: LocalExpr = LocalExpr
-  object LocalVec2 { def apply(s: String): LocalVec2 = new LocalExpr(s) }
+  class LocalVec2(val name: String) extends Vec2Expr(name) with LocalExpr
 
-  opaque type LocalVec3 <: LocalExpr = LocalExpr
-  object LocalVec3 { def apply(s: String): LocalVec3 = new LocalExpr(s) }
+  class LocalVec3(val name: String) extends Vec3Expr(name) with LocalExpr
 
-  opaque type LocalVec4 <: LocalExpr = LocalExpr
-  object LocalVec4 { def apply(s: String): LocalVec4 = new LocalExpr(s) }
+  class LocalVec4(val name: String) extends Vec4Expr(name) with LocalExpr
 
-  opaque type LocalMat2 <: LocalExpr = LocalExpr
-  object LocalMat2 { def apply(s: String): LocalMat2 = new LocalExpr(s) }
+  // opaque type LocalMat2 <: LocalExpr = LocalExpr
+  // object LocalMat2 { def apply(s: String): LocalMat2 = new LocalExpr(s) }
 
-  opaque type LocalMat3 <: LocalExpr = LocalExpr
-  object LocalMat3 { def apply(s: String): LocalMat3 = new LocalExpr(s) }
+  // opaque type LocalMat3 <: LocalExpr = LocalExpr
+  // object LocalMat3 { def apply(s: String): LocalMat3 = new LocalExpr(s) }
 
-  opaque type LocalMat4 <: LocalExpr = LocalExpr
-  object LocalMat4 { def apply(s: String): LocalMat4 = new LocalExpr(s) }
+  // opaque type LocalMat4 <: LocalExpr = LocalExpr
+  // object LocalMat4 { def apply(s: String): LocalMat4 = new LocalExpr(s) }
 
-  opaque type LocalBool <: LocalExpr = LocalExpr
-  object LocalBool { def apply(s: String): LocalBool = new LocalExpr(s) }
+  // opaque type LocalBool <: LocalExpr = LocalExpr
+  // object LocalBool { def apply(s: String): LocalBool = new LocalExpr(s) }
 
 export LocalExpr.{
   LocalFloat,
   LocalVec2,
   LocalVec3,
   LocalVec4,
-  LocalMat2,
-  LocalMat3,
-  LocalMat4,
-  LocalBool,
+  // LocalMat2,
+  // LocalMat3,
+  // LocalMat4,
+  // LocalBool,
 }
 
 // ---------------------------------------------------------------------------
@@ -109,14 +101,14 @@ export LocalExpr.{
 // their corresponding expression type is expected.
 // ---------------------------------------------------------------------------
 
-given Conversion[LocalFloat, FloatExpr] = l => FloatExpr(l.wgsl)
-given Conversion[LocalVec2, Vec2Expr] = l => Vec2Expr(l.wgsl)
-given Conversion[LocalVec3, Vec3Expr] = l => Vec3Expr(l.wgsl)
-given Conversion[LocalVec4, Vec4Expr] = l => Vec4Expr(l.wgsl)
-given Conversion[LocalMat2, Mat2Expr] = l => Mat2Expr(l.wgsl)
-given Conversion[LocalMat3, Mat3Expr] = l => Mat3Expr(l.wgsl)
-given Conversion[LocalMat4, Mat4Expr] = l => Mat4Expr(l.wgsl)
-given Conversion[LocalBool, BoolExpr] = l => BoolExpr(l.wgsl)
+// given Conversion[LocalFloat, FloatExpr] = l => FloatExpr(l.wgsl)
+// given Conversion[LocalVec2, Vec2Expr] = l => Vec2Expr(l.wgsl)
+// given Conversion[LocalVec3, Vec3Expr] = l => Vec3Expr(l.wgsl)
+// given Conversion[LocalVec4, Vec4Expr] = l => Vec4Expr(l.wgsl)
+// given Conversion[LocalMat2, Mat2Expr] = l => Mat2Expr(l.wgsl)
+// given Conversion[LocalMat3, Mat3Expr] = l => Mat3Expr(l.wgsl)
+// given Conversion[LocalMat4, Mat4Expr] = l => Mat4Expr(l.wgsl)
+// given Conversion[LocalBool, BoolExpr] = l => BoolExpr(l.wgsl)
 
 // ---------------------------------------------------------------------------
 // Implicit conversions from numeric literals
@@ -222,6 +214,40 @@ given Vec2ImmutableOps[FloatExpr, Vec2Expr]:
   def create(x: FloatExpr, y: FloatExpr): Vec2Expr =
     Vec2Expr(s"vec2<f32>(${x.wgsl}, ${y.wgsl})")
 
+  extension (v: Vec2Expr)(using Vec2Base[FloatExpr, Vec2Expr])
+    @scala.annotation.targetName("addVec")
+    override def +(other: Vec2Expr): Vec2Expr = Vec2Expr(
+      s"(${v.wgsl} + ${other.wgsl})",
+    )
+    @scala.annotation.targetName("addScalar")
+    override def +(scalar: FloatExpr): Vec2Expr = Vec2Expr(
+      s"(${v.wgsl} + ${scalar.wgsl})",
+    )
+    @scala.annotation.targetName("subVec")
+    override def -(other: Vec2Expr): Vec2Expr = Vec2Expr(
+      s"(${v.wgsl} - ${other.wgsl})",
+    )
+    @scala.annotation.targetName("subScalar")
+    override def -(scalar: FloatExpr): Vec2Expr = Vec2Expr(
+      s"(${v.wgsl} - ${scalar.wgsl})",
+    )
+    @scala.annotation.targetName("mulVec")
+    override def *(other: Vec2Expr): Vec2Expr = Vec2Expr(
+      s"(${v.wgsl} * ${other.wgsl})",
+    )
+    @scala.annotation.targetName("mulScalar")
+    override def *(scalar: FloatExpr): Vec2Expr = Vec2Expr(
+      s"(${v.wgsl} * ${scalar.wgsl})",
+    )
+    @scala.annotation.targetName("divVec")
+    override def /(other: Vec2Expr): Vec2Expr = Vec2Expr(
+      s"(${v.wgsl} / ${other.wgsl})",
+    )
+    @scala.annotation.targetName("divScalar")
+    override def /(scalar: FloatExpr): Vec2Expr = Vec2Expr(
+      s"(${v.wgsl} / ${scalar.wgsl})",
+    )
+
 // ---------------------------------------------------------------------------
 // Vec3Base — for Vec3Expr and LocalVec3
 // ---------------------------------------------------------------------------
@@ -239,6 +265,40 @@ given Vec3Base[FloatExpr, LocalVec3] = vec3BaseInstance[LocalVec3]
 given Vec3ImmutableOps[FloatExpr, Vec3Expr]:
   def create(x: FloatExpr, y: FloatExpr, z: FloatExpr): Vec3Expr =
     Vec3Expr(s"vec3<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl})")
+
+  extension (v: Vec3Expr)(using Vec3Base[FloatExpr, Vec3Expr])
+    @scala.annotation.targetName("addVec")
+    override def +(other: Vec3Expr): Vec3Expr = Vec3Expr(
+      s"(${v.wgsl} + ${other.wgsl})",
+    )
+    @scala.annotation.targetName("addScalar")
+    override def +(scalar: FloatExpr): Vec3Expr = Vec3Expr(
+      s"(${v.wgsl} + ${scalar.wgsl})",
+    )
+    @scala.annotation.targetName("subVec")
+    override def -(other: Vec3Expr): Vec3Expr = Vec3Expr(
+      s"(${v.wgsl} - ${other.wgsl})",
+    )
+    @scala.annotation.targetName("subScalar")
+    override def -(scalar: FloatExpr): Vec3Expr = Vec3Expr(
+      s"(${v.wgsl} - ${scalar.wgsl})",
+    )
+    @scala.annotation.targetName("mulVec")
+    override def *(other: Vec3Expr): Vec3Expr = Vec3Expr(
+      s"(${v.wgsl} * ${other.wgsl})",
+    )
+    @scala.annotation.targetName("mulScalar")
+    override def *(scalar: FloatExpr): Vec3Expr = Vec3Expr(
+      s"(${v.wgsl} * ${scalar.wgsl})",
+    )
+    @scala.annotation.targetName("divVec")
+    override def /(other: Vec3Expr): Vec3Expr = Vec3Expr(
+      s"(${v.wgsl} / ${other.wgsl})",
+    )
+    @scala.annotation.targetName("divScalar")
+    override def /(scalar: FloatExpr): Vec3Expr = Vec3Expr(
+      s"(${v.wgsl} / ${scalar.wgsl})",
+    )
 
 // ---------------------------------------------------------------------------
 // Vec4Base — for Vec4Expr and LocalVec4
@@ -259,6 +319,40 @@ given Vec4ImmutableOps[FloatExpr, Vec4Expr]:
   def create(x: FloatExpr, y: FloatExpr, z: FloatExpr, w: FloatExpr): Vec4Expr =
     Vec4Expr(s"vec4<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl}, ${w.wgsl})")
 
+  extension (v: Vec4Expr)(using Vec4Base[FloatExpr, Vec4Expr])
+    @scala.annotation.targetName("addVec")
+    override def +(other: Vec4Expr): Vec4Expr = Vec4Expr(
+      s"(${v.wgsl} + ${other.wgsl})",
+    )
+    @scala.annotation.targetName("addScalar")
+    override def +(scalar: FloatExpr): Vec4Expr = Vec4Expr(
+      s"(${v.wgsl} + ${scalar.wgsl})",
+    )
+    @scala.annotation.targetName("subVec")
+    override def -(other: Vec4Expr): Vec4Expr = Vec4Expr(
+      s"(${v.wgsl} - ${other.wgsl})",
+    )
+    @scala.annotation.targetName("subScalar")
+    override def -(scalar: FloatExpr): Vec4Expr = Vec4Expr(
+      s"(${v.wgsl} - ${scalar.wgsl})",
+    )
+    @scala.annotation.targetName("mulVec")
+    override def *(other: Vec4Expr): Vec4Expr = Vec4Expr(
+      s"(${v.wgsl} * ${other.wgsl})",
+    )
+    @scala.annotation.targetName("mulScalar")
+    override def *(scalar: FloatExpr): Vec4Expr = Vec4Expr(
+      s"(${v.wgsl} * ${scalar.wgsl})",
+    )
+    @scala.annotation.targetName("divVec")
+    override def /(other: Vec4Expr): Vec4Expr = Vec4Expr(
+      s"(${v.wgsl} / ${other.wgsl})",
+    )
+    @scala.annotation.targetName("divScalar")
+    override def /(scalar: FloatExpr): Vec4Expr = Vec4Expr(
+      s"(${v.wgsl} / ${scalar.wgsl})",
+    )
+
 // ---------------------------------------------------------------------------
 // Mat2Base — for Mat2Expr and LocalMat2
 // ---------------------------------------------------------------------------
@@ -272,7 +366,7 @@ private def mat2BaseInstance[M <: Expr]: Mat2Base[FloatExpr, M] =
       def m11: FloatExpr = FloatExpr(s"${m.wgsl}[1][1]")
 
 given Mat2Base[FloatExpr, Mat2Expr] = mat2BaseInstance[Mat2Expr]
-given Mat2Base[FloatExpr, LocalMat2] = mat2BaseInstance[LocalMat2]
+// given Mat2Base[FloatExpr, LocalMat2] = mat2BaseInstance[LocalMat2]
 
 given Mat2ImmutableOps[FloatExpr, Mat2Expr]:
   def create(
@@ -282,6 +376,17 @@ given Mat2ImmutableOps[FloatExpr, Mat2Expr]:
       m11: FloatExpr,
   ): Mat2Expr =
     Mat2Expr(s"mat2x2<f32>(${m00.wgsl}, ${m01.wgsl}, ${m10.wgsl}, ${m11.wgsl})")
+
+  extension (m: Mat2Expr)(using Mat2Base[FloatExpr, Mat2Expr])
+    @scala.annotation.targetName("matMul")
+    override def *(other: Mat2Expr): Mat2Expr = Mat2Expr(
+      s"(${m.wgsl} * ${other.wgsl})",
+    )
+    @scala.annotation.targetName("vecMul")
+    override def *[Vec](
+        v: Vec,
+    )(using Vec2Base[FloatExpr, Vec], Vec2ImmutableOps[FloatExpr, Vec]): Vec =
+      Vec2Expr(s"(${m.wgsl} * ${v.asInstanceOf[Expr].wgsl})").asInstanceOf[Vec]
 
 // ---------------------------------------------------------------------------
 // Mat3Base — for Mat3Expr and LocalMat3
@@ -301,7 +406,7 @@ private def mat3BaseInstance[M <: Expr]: Mat3Base[FloatExpr, M] =
       def m22: FloatExpr = FloatExpr(s"${m.wgsl}[2][2]")
 
 given Mat3Base[FloatExpr, Mat3Expr] = mat3BaseInstance[Mat3Expr]
-given Mat3Base[FloatExpr, LocalMat3] = mat3BaseInstance[LocalMat3]
+// given Mat3Base[FloatExpr, LocalMat3] = mat3BaseInstance[LocalMat3]
 
 given Mat3ImmutableOps[FloatExpr, Mat3Expr]:
   def create(
@@ -318,6 +423,17 @@ given Mat3ImmutableOps[FloatExpr, Mat3Expr]:
     Mat3Expr(
       s"mat3x3<f32>(${m00.wgsl}, ${m01.wgsl}, ${m02.wgsl}, ${m10.wgsl}, ${m11.wgsl}, ${m12.wgsl}, ${m20.wgsl}, ${m21.wgsl}, ${m22.wgsl})",
     )
+
+  extension (m: Mat3Expr)(using Mat3Base[FloatExpr, Mat3Expr])
+    @scala.annotation.targetName("matMul")
+    override def *(other: Mat3Expr): Mat3Expr = Mat3Expr(
+      s"(${m.wgsl} * ${other.wgsl})",
+    )
+    @scala.annotation.targetName("vecMul")
+    override def *[Vec](
+        v: Vec,
+    )(using Vec3Base[FloatExpr, Vec], Vec3ImmutableOps[FloatExpr, Vec]): Vec =
+      Vec3Expr(s"(${m.wgsl} * ${v.asInstanceOf[Expr].wgsl})").asInstanceOf[Vec]
 
 // ---------------------------------------------------------------------------
 // Mat4Base — for Mat4Expr and LocalMat4
@@ -344,7 +460,7 @@ private def mat4BaseInstance[M <: Expr]: Mat4Base[FloatExpr, M] =
       def m33: FloatExpr = FloatExpr(s"${m.wgsl}[3][3]")
 
 given Mat4Base[FloatExpr, Mat4Expr] = mat4BaseInstance[Mat4Expr]
-given Mat4Base[FloatExpr, LocalMat4] = mat4BaseInstance[LocalMat4]
+// given Mat4Base[FloatExpr, LocalMat4] = mat4BaseInstance[LocalMat4]
 
 // format: off
 given Mat4ImmutableOps[FloatExpr, Mat4Expr]:
@@ -355,7 +471,91 @@ given Mat4ImmutableOps[FloatExpr, Mat4Expr]:
       m30: FloatExpr, m31: FloatExpr, m32: FloatExpr, m33: FloatExpr,
   ): Mat4Expr =
     Mat4Expr(s"mat4x4<f32>(${m00.wgsl}, ${m01.wgsl}, ${m02.wgsl}, ${m03.wgsl}, ${m10.wgsl}, ${m11.wgsl}, ${m12.wgsl}, ${m13.wgsl}, ${m20.wgsl}, ${m21.wgsl}, ${m22.wgsl}, ${m23.wgsl}, ${m30.wgsl}, ${m31.wgsl}, ${m32.wgsl}, ${m33.wgsl})")
-// format: on
+  // format: on
+
+  extension (m: Mat4Expr)(using Mat4Base[FloatExpr, Mat4Expr])
+    @scala.annotation.targetName("matMul")
+    override def *(other: Mat4Expr): Mat4Expr = Mat4Expr(
+      s"(${m.wgsl} * ${other.wgsl})",
+    )
+    @scala.annotation.targetName("vecMul")
+    override def *[Vec](
+        v: Vec,
+    )(using Vec4Base[FloatExpr, Vec], Vec4ImmutableOps[FloatExpr, Vec]): Vec =
+      Vec4Expr(s"(${m.wgsl} * ${v.asInstanceOf[Expr].wgsl})").asInstanceOf[Vec]
+
+// ---------------------------------------------------------------------------
+// Standalone extensions for *Expr arithmetic.
+// These are needed in addition to the overrides above because Scala 3 doesn't
+// chain implicit conversions (Local* → *Expr) with extension methods from
+// given instances. Top-level extensions DO compose with implicit conversions.
+// ---------------------------------------------------------------------------
+
+// extension (v: Vec2Expr)
+//   @scala.annotation.targetName("vec2AddVec2")
+//   def +(other: Vec2Expr): Vec2Expr = Vec2Expr(s"(${v.wgsl} + ${other.wgsl})")
+//   @scala.annotation.targetName("vec2SubVec2")
+//   def -(other: Vec2Expr): Vec2Expr = Vec2Expr(s"(${v.wgsl} - ${other.wgsl})")
+//   @scala.annotation.targetName("vec2MulVec2")
+//   def *(other: Vec2Expr): Vec2Expr = Vec2Expr(s"(${v.wgsl} * ${other.wgsl})")
+//   @scala.annotation.targetName("vec2DivVec2")
+//   def /(other: Vec2Expr): Vec2Expr = Vec2Expr(s"(${v.wgsl} / ${other.wgsl})")
+//   @scala.annotation.targetName("vec2AddScalar")
+//   def +(s: FloatExpr): Vec2Expr = Vec2Expr(s"(${v.wgsl} + ${s.wgsl})")
+//   @scala.annotation.targetName("vec2SubScalar")
+//   def -(s: FloatExpr): Vec2Expr = Vec2Expr(s"(${v.wgsl} - ${s.wgsl})")
+//   @scala.annotation.targetName("vec2MulScalar")
+//   def *(s: FloatExpr): Vec2Expr = Vec2Expr(s"(${v.wgsl} * ${s.wgsl})")
+//   @scala.annotation.targetName("vec2DivScalar")
+//   def /(s: FloatExpr): Vec2Expr = Vec2Expr(s"(${v.wgsl} / ${s.wgsl})")
+
+// extension (v: Vec3Expr)
+//   @scala.annotation.targetName("vec3AddVec3")
+//   def +(other: Vec3Expr): Vec3Expr = Vec3Expr(s"(${v.wgsl} + ${other.wgsl})")
+//   @scala.annotation.targetName("vec3SubVec3")
+//   def -(other: Vec3Expr): Vec3Expr = Vec3Expr(s"(${v.wgsl} - ${other.wgsl})")
+//   @scala.annotation.targetName("vec3MulVec3")
+//   def *(other: Vec3Expr): Vec3Expr = Vec3Expr(s"(${v.wgsl} * ${other.wgsl})")
+//   @scala.annotation.targetName("vec3DivVec3")
+//   def /(other: Vec3Expr): Vec3Expr = Vec3Expr(s"(${v.wgsl} / ${other.wgsl})")
+//   @scala.annotation.targetName("vec3AddScalar")
+//   def +(s: FloatExpr): Vec3Expr = Vec3Expr(s"(${v.wgsl} + ${s.wgsl})")
+//   @scala.annotation.targetName("vec3SubScalar")
+//   def -(s: FloatExpr): Vec3Expr = Vec3Expr(s"(${v.wgsl} - ${s.wgsl})")
+//   @scala.annotation.targetName("vec3MulScalar")
+//   def *(s: FloatExpr): Vec3Expr = Vec3Expr(s"(${v.wgsl} * ${s.wgsl})")
+//   @scala.annotation.targetName("vec3DivScalar")
+//   def /(s: FloatExpr): Vec3Expr = Vec3Expr(s"(${v.wgsl} / ${s.wgsl})")
+
+// extension (v: Vec4Expr)
+//   @scala.annotation.targetName("vec4AddVec4")
+//   def +(other: Vec4Expr): Vec4Expr = Vec4Expr(s"(${v.wgsl} + ${other.wgsl})")
+//   @scala.annotation.targetName("vec4SubVec4")
+//   def -(other: Vec4Expr): Vec4Expr = Vec4Expr(s"(${v.wgsl} - ${other.wgsl})")
+//   @scala.annotation.targetName("vec4MulVec4")
+//   def *(other: Vec4Expr): Vec4Expr = Vec4Expr(s"(${v.wgsl} * ${other.wgsl})")
+//   @scala.annotation.targetName("vec4DivVec4")
+//   def /(other: Vec4Expr): Vec4Expr = Vec4Expr(s"(${v.wgsl} / ${other.wgsl})")
+//   @scala.annotation.targetName("vec4AddScalar")
+//   def +(s: FloatExpr): Vec4Expr = Vec4Expr(s"(${v.wgsl} + ${s.wgsl})")
+//   @scala.annotation.targetName("vec4SubScalar")
+//   def -(s: FloatExpr): Vec4Expr = Vec4Expr(s"(${v.wgsl} - ${s.wgsl})")
+//   @scala.annotation.targetName("vec4MulScalar")
+//   def *(s: FloatExpr): Vec4Expr = Vec4Expr(s"(${v.wgsl} * ${s.wgsl})")
+//   @scala.annotation.targetName("vec4DivScalar")
+//   def /(s: FloatExpr): Vec4Expr = Vec4Expr(s"(${v.wgsl} / ${s.wgsl})")
+
+extension (m: Mat2Expr)
+  @scala.annotation.targetName("mat2MulVec2")
+  def *(v: Vec2Expr): Vec2Expr = Vec2Expr(s"(${m.wgsl} * ${v.wgsl})")
+
+extension (m: Mat3Expr)
+  @scala.annotation.targetName("mat3MulVec3")
+  def *(v: Vec3Expr): Vec3Expr = Vec3Expr(s"(${m.wgsl} * ${v.wgsl})")
+
+extension (m: Mat4Expr)
+  @scala.annotation.targetName("mat4MulVec4")
+  def *(v: Vec4Expr): Vec4Expr = Vec4Expr(s"(${m.wgsl} * ${v.wgsl})")
 
 // ---------------------------------------------------------------------------
 // Vector constructors (lowercase, matching WGSL syntax)

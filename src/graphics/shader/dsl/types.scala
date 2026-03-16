@@ -25,12 +25,12 @@ type UniformToExpr[T] = T match
 
 /** Maps GPU math types to Local* opaque types for typed local variables. */
 type ToLocal[T] = T match
-  case Float   => LocalFloat
-  case Double  => LocalFloat
-  case Boolean => LocalBool
-  case Vec2    => LocalVec2
-  case Vec3    => LocalVec3
-  case Vec4    => LocalVec4
-  case Mat2    => LocalMat2
-  case Mat3    => LocalMat3
-  case Mat4    => LocalMat4
+  case Float  => LocalFloat
+  case Double => LocalFloat
+  // case Boolean => LocalBool
+  case Vec2 => LocalVec2
+  case Vec3 => LocalVec3
+  case Vec4 => LocalVec4
+  // case Mat2    => LocalMat2
+  // case Mat3    => LocalMat3
+  // case Mat4    => LocalMat4
