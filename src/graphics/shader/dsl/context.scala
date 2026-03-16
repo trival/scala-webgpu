@@ -1,6 +1,7 @@
 package graphics.shader.dsl
 
 import graphics.math.gpu.*
+
 import scala.NamedTuple
 import scala.NamedTuple.AnyNamedTuple
 
@@ -37,14 +38,14 @@ class AssignTarget(val target: String):
 
 /** Typed read+write accessor for local variables.
   *
-  * Fields maps to Local* types (e.g., LocalVec2, LocalMat2). Each extends its
-  * Expr class (Vec2Expr, etc.) and the LocalExpr trait, so all math operations
-  * and `:=` for let-binding are available.
+  * Fields maps to Local* types (e.g., LocalVec2). Each is an opaque type <:
+  * Vec*Expr & LocalExpr, so math operations (via Vec*Expr) and `:=` (via
+  * LocalExpr) are both available. At runtime all are LocalExpr.
   */
 class TypedLocalAccessor[F <: AnyNamedTuple] extends Selectable:
   type Fields = F
 
-  def selectDynamic(name: String): Any = Expr(name)
+  def selectDynamic(name: String): Any = LocalExpr(name)
 
 // ---------------------------------------------------------------------------
 // Stage-Specific Context Types

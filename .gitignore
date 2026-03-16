@@ -7,3 +7,4 @@
 node_modules
 drafts/out/
 drafts/**/main.min.js
+*.semanticdb

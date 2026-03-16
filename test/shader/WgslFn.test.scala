@@ -1,6 +1,5 @@
 package graphics.shader.dsl
 
-import graphics.math.cpu.*
 import graphics.math.gpu.{*, given}
 import graphics.shader.{FragmentUniform, VertexUniform, given}
 import munit.FunSuite

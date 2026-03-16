@@ -1,6 +1,5 @@
 package graphics.shader.dsl
 
-import graphics.math.cpu.*
 import graphics.math.gpu.{*, given}
 import graphics.shader.{FragmentUniform, VertexUniform}
 import munit.FunSuite
@@ -125,7 +124,7 @@ class ShaderDslTest extends FunSuite:
     assertEquals(stmt.toString, "  let rotated = expr;")
 
   test("LocalVec2 supports both := and arithmetic"):
-    val local: LocalVec2 = LocalExpr("rotated").asInstanceOf[LocalVec2]
+    val local = LocalVec2("rotated")
     val other = Vec2Expr("translation")
 
     // Assignment
@@ -208,6 +207,16 @@ class ShaderDslTest extends FunSuite:
     // Can be used in arithmetic
     val sum = rotated + Vec2Expr("offset")
     assertEquals(sum.toString, "(rotated + offset)")
+
+    // Scalar multiplication
+    val scaled = rotated * FloatExpr("2.0")
+    assertEquals(scaled.toString, "(rotated * 2.0)")
+    // Vec multiplication
+    val mulVec = rotated * Vec2Expr("other")
+    assertEquals(mulVec.toString, "(rotated * other)")
+    // Implicit conversion
+    val scaledI = rotated * (2.0: FloatExpr)
+    assertEquals(scaledI.toString, "(rotated * 2.0)")
 
   // =========================================================================
   // Full Program builder — end-to-end integration
@@ -295,9 +304,11 @@ class ShaderDslTest extends FunSuite:
     val program = Program[Attribs, Varyings, Uniforms]()
 
     program.vert[(moved: Vec2, final_pos: Vec2)]: ctx =>
+      val moved: LocalVec2 = ctx.locals.moved
+      val scaled = moved * 2.0
       Block(
         ctx.locals.moved := ctx.in.position + ctx.bindings.offset,
-        ctx.locals.final_pos := ctx.locals.moved * 2.0,
+        ctx.locals.final_pos := scaled,
         ctx.out.position := vec4(ctx.locals.final_pos, 0.0, 1.0),
       )
 

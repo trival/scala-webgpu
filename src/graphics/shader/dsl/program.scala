@@ -1,10 +1,11 @@
 package graphics.shader.dsl
 
 import graphics.math.gpu.*
+import trivalibs.utils.js.Arr
+import trivalibs.utils.js.Dict
 import scala.NamedTuple
 import scala.NamedTuple.AnyNamedTuple
 import scala.scalajs.js
-import trivalibs.utils.js.{Arr, Dict}
 
 // ---------------------------------------------------------------------------
 // Program[A, V, U] — DSL program builder with fully typed contexts
@@ -51,8 +52,7 @@ class Program[A, V, U]:
       out = TypedAssignAccessor[(position: AssignTarget)]("out"),
       bindings =
         TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]](""),
-      locals =
-        TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]],
+      locals = TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]],
     )
     vertBody = body(ctx)
 
@@ -62,13 +62,12 @@ class Program[A, V, U]:
   ): Unit =
     val ctx = FragmentCtx[V, U, L](
       in = TypedExprAccessor[
-        NamedTuple.Map[V & AnyNamedTuple, ToExpr]
+        NamedTuple.Map[V & AnyNamedTuple, ToExpr],
       ]("in"),
       out = TypedAssignAccessor[(color: AssignTarget)]("out"),
       bindings =
         TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]](""),
-      locals =
-        TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]],
+      locals = TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]],
     )
     fragBody = body(ctx)
 
