@@ -33,23 +33,25 @@ type UniformToExpr[T] = T match
   case FragmentUniform[t] => ToExpr[t]
   case _                  => ToExpr[T]
 
-/** Maps GPU math types to Local/Var/Const opaque types for typed local variables. */
+/** Maps GPU math types to Local/Var/Const opaque types for typed local
+  * variables.
+  */
 type ToLocal[T] = T match
-  case Var[Float]   => VarFloat
-  case Var[Double]  => VarFloat
-  case Var[Vec2]    => VarVec2
-  case Var[Vec3]    => VarVec3
-  case Var[Vec4]    => VarVec4
+  case Var[Float]    => VarFloat
+  case Var[Double]   => VarFloat
+  case Var[Vec2]     => VarVec2
+  case Var[Vec3]     => VarVec3
+  case Var[Vec4]     => VarVec4
   case Const[Float]  => ConstFloat
   case Const[Double] => ConstFloat
   case Const[Vec2]   => ConstVec2
   case Const[Vec3]   => ConstVec3
   case Const[Vec4]   => ConstVec4
-  case Float  => LocalFloat
-  case Double => LocalFloat
-  case Vec2   => LocalVec2
-  case Vec3   => LocalVec3
-  case Vec4   => LocalVec4
+  case Float         => LetFloat
+  case Double        => LetFloat
+  case Vec2          => LetVec2
+  case Vec3          => LetVec3
+  case Vec4          => LetVec4
 
 /** Builds a Dict mapping field names to their kind: "v" for Var, "c" for Const.
   * Plain locals are omitted (default). Called at compile time via inline.
@@ -58,7 +60,7 @@ inline def buildLocalKinds[L]: Dict[String] =
   val d = Dict[String]()
   inline erasedValue[L] match
     case _: EmptyTuple => ()
-    case _ =>
+    case _             =>
       populateKinds[
         NamedTuple.Names[L & AnyNamedTuple],
         NamedTuple.DropNames[L & AnyNamedTuple],
@@ -70,7 +72,7 @@ private inline def populateKinds[Names <: Tuple, Types <: Tuple](
 ): Unit =
   inline (erasedValue[Names], erasedValue[Types]) match
     case _: (EmptyTuple, EmptyTuple) => ()
-    case _: ((n *: ns), (t *: ts)) =>
+    case _: ((n *: ns), (t *: ts))   =>
       inline erasedValue[t] match
         case _: Var[?]   => d(constValue[n & String]) = "v"
         case _: Const[?] => d(constValue[n & String]) = "c"

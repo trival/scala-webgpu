@@ -13,30 +13,29 @@ class Expr(val wgsl: String):
   override def toString: String = wgsl
 
 // ---------------------------------------------------------------------------
-// LocalExpr — base class for local variable expressions.
+// LetExpr — base class for local variable expressions.
 // Extends Expr so runtime values created by selectDynamic are compatible.
 // ---------------------------------------------------------------------------
 
-class LocalExpr(val name: String) extends Expr(name):
+class LetExpr(val name: String) extends Expr(name):
   def :=(value: Expr): Stmt = Stmt.let(name, value)
 
-class VarExpr(name: String) extends LocalExpr(name):
+class VarExpr(name: String) extends LetExpr(name):
   private var declared = false
   override def :=(value: Expr): Stmt =
     if !declared then
       declared = true
       Stmt.varDecl(name, value)
-    else
-      Stmt.varAssign(name, value)
+    else Stmt.varAssign(name, value)
 
-class ConstExpr(name: String) extends LocalExpr(name):
+class ConstExpr(name: String) extends LetExpr(name):
   override def :=(value: Expr): Stmt = Stmt.constDecl(name, value)
 
 // ---------------------------------------------------------------------------
 // All opaque types in one object so the compiler sees through them and can
-// validate bounds like `LocalVec2 <: Vec2Expr & LocalExpr`.
-// Inside this object: Vec2Expr = Expr, and LocalExpr <: Expr = Vec2Expr.
-// Outside: LocalVec2 <: Vec2Expr (gets all Vec2 ops) & LocalExpr (gets :=).
+// validate bounds like `LocalVec2 <: Vec2Expr & LetExpr`.
+// Inside this object: Vec2Expr = Expr, and LetExpr <: Expr = Vec2Expr.
+// Outside: LocalVec2 <: Vec2Expr (gets all Vec2 ops) & LetExpr (gets :=).
 // ---------------------------------------------------------------------------
 
 object Expr:
@@ -67,33 +66,33 @@ object Expr:
   opaque type BoolExpr <: Expr = Expr
   object BoolExpr { def apply(s: String): BoolExpr = new Expr(s) }
 
-  // Local types — each <: its Expr type (for math ops) & LocalExpr (for :=)
-  // At runtime all are LocalExpr instances, so selectDynamic returning
-  // LocalExpr(name) + asInstanceOf cast works safely.
+  // Local types — each <: its Expr type (for math ops) & LetExpr (for :=)
+  // At runtime all are LetExpr instances, so selectDynamic returning
+  // LetExpr(name) + asInstanceOf cast works safely.
 
-  opaque type LocalFloat <: FloatExpr & LocalExpr = LocalExpr
-  object LocalFloat { def apply(s: String): LocalFloat = new LocalExpr(s) }
+  opaque type LetFloat <: FloatExpr & LetExpr = LetExpr
+  object LetFloat { def apply(s: String): LetFloat = new LetExpr(s) }
 
-  opaque type LocalVec2 <: Vec2Expr & LocalExpr = LocalExpr
-  object LocalVec2 { def apply(s: String): LocalVec2 = new LocalExpr(s) }
+  opaque type LetVec2 <: Vec2Expr & LetExpr = LetExpr
+  object LetVec2 { def apply(s: String): LetVec2 = new LetExpr(s) }
 
-  opaque type LocalVec3 <: Vec3Expr & LocalExpr = LocalExpr
-  object LocalVec3 { def apply(s: String): LocalVec3 = new LocalExpr(s) }
+  opaque type LetVec3 <: Vec3Expr & LetExpr = LetExpr
+  object LetVec3 { def apply(s: String): LetVec3 = new LetExpr(s) }
 
-  opaque type LocalVec4 <: Vec4Expr & LocalExpr = LocalExpr
-  object LocalVec4 { def apply(s: String): LocalVec4 = new LocalExpr(s) }
+  opaque type LetVec4 <: Vec4Expr & LetExpr = LetExpr
+  object LetVec4 { def apply(s: String): LetVec4 = new LetExpr(s) }
 
-  opaque type LocalMat2 <: Mat2Expr & LocalExpr = LocalExpr
-  object LocalMat2 { def apply(s: String): LocalMat2 = new LocalExpr(s) }
+  opaque type LetMat2 <: Mat2Expr & LetExpr = LetExpr
+  object LetMat2 { def apply(s: String): LetMat2 = new LetExpr(s) }
 
-  opaque type LocalMat3 <: Mat3Expr & LocalExpr = LocalExpr
-  object LocalMat3 { def apply(s: String): LocalMat3 = new LocalExpr(s) }
+  opaque type LetMat3 <: Mat3Expr & LetExpr = LetExpr
+  object LetMat3 { def apply(s: String): LetMat3 = new LetExpr(s) }
 
-  opaque type LocalMat4 <: Mat4Expr & LocalExpr = LocalExpr
-  object LocalMat4 { def apply(s: String): LocalMat4 = new LocalExpr(s) }
+  opaque type LetMat4 <: Mat4Expr & LetExpr = LetExpr
+  object LetMat4 { def apply(s: String): LetMat4 = new LetExpr(s) }
 
-  opaque type LocalBool <: BoolExpr & LocalExpr = LocalExpr
-  object LocalBool { def apply(s: String): LocalBool = new LocalExpr(s) }
+  opaque type LetBool <: BoolExpr & LetExpr = LetExpr
+  object LetBool { def apply(s: String): LetBool = new LetExpr(s) }
 
   // Var types — mutable locals (var on first :=, reassignment after)
   opaque type VarFloat <: FloatExpr & VarExpr = VarExpr
@@ -130,14 +129,14 @@ export Expr.{
   Mat3Expr,
   Mat4Expr,
   BoolExpr,
-  LocalFloat,
-  LocalVec2,
-  LocalVec3,
-  LocalVec4,
-  LocalMat2,
-  LocalMat3,
-  LocalMat4,
-  LocalBool,
+  LetFloat,
+  LetVec2,
+  LetVec3,
+  LetVec4,
+  LetMat2,
+  LetMat3,
+  LetMat4,
+  LetBool,
   VarFloat,
   VarVec2,
   VarVec3,

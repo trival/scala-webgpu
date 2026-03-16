@@ -41,8 +41,8 @@ class AssignTarget(val target: String):
 /** Typed read+write accessor for local variables.
   *
   * Fields maps to Local* types (e.g., LocalVec2). Each is an opaque type <:
-  * Vec*Expr & LocalExpr, so math operations (via Vec*Expr) and `:=` (via
-  * LocalExpr) are both available. At runtime all are LocalExpr.
+  * Vec*Expr & LetExpr, so math operations (via Vec*Expr) and `:=` (via LetExpr)
+  * are both available. At runtime all are LetExpr.
   */
 class TypedLocalAccessor[F <: AnyNamedTuple](
     kinds: Dict[String] = Dict[String](),
@@ -55,9 +55,9 @@ class TypedLocalAccessor[F <: AnyNamedTuple](
       )
     then
       kinds(name) match
-        case "v" => new VarExpr(name)
-        case _   => new ConstExpr(name)
-    else new LocalExpr(name)
+        case "v" => VarExpr(name)
+        case _   => ConstExpr(name)
+    else LetExpr(name)
 
 // ---------------------------------------------------------------------------
 // Stage-Specific Context Types

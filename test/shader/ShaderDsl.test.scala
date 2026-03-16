@@ -115,16 +115,16 @@ class ShaderDslTest extends FunSuite:
     assertEquals(stmt.toString, "  out.position = v;")
 
   // =========================================================================
-  // LocalExpr — := produces let statements, can be used in expressions
+  // LetExpr — := produces let statements, can be used in expressions
   // =========================================================================
 
-  test("LocalExpr := produces let Stmt"):
-    val local = LocalExpr("rotated")
+  test("LetExpr := produces let Stmt"):
+    val local = LetExpr("rotated")
     val stmt = local := Vec2Expr("expr")
     assertEquals(stmt.toString, "  let rotated = expr;")
 
-  test("LocalVec2 supports both := and arithmetic"):
-    val local = LocalVec2("rotated")
+  test("LetVec2 supports both := and arithmetic"):
+    val local = LetVec2("rotated")
     val other = Vec2Expr("translation")
 
     // Assignment
@@ -198,7 +198,7 @@ class ShaderDslTest extends FunSuite:
     type LocalFields = NTMap[Locals, ToLocal]
     val accessor = TypedLocalAccessor[LocalFields]()
 
-    val rotated: LocalVec2 = accessor.rotated
+    val rotated: LetVec2 = accessor.rotated
 
     // := produces let statement
     val letStmt = rotated := Vec2Expr("value")
@@ -304,7 +304,7 @@ class ShaderDslTest extends FunSuite:
     val program = Program[Attribs, Varyings, Uniforms]()
 
     program.vert[(moved: Vec2, final_pos: Vec2)]: ctx =>
-      val moved: LocalVec2 = ctx.locals.moved
+      val moved: LetVec2 = ctx.locals.moved
       val scaled = moved * 2.0
       Block(
         ctx.locals.moved := ctx.in.position + ctx.bindings.offset,
@@ -454,7 +454,7 @@ class ShaderDslTest extends FunSuite:
 
     val acc: VarVec2 = accessor.acc
     val scale: ConstFloat = accessor.scale
-    val tmp: LocalVec2 = accessor.tmp
+    val tmp: LetVec2 = accessor.tmp
 
     assertEquals((acc := Vec2Expr("v")).toString, "  var acc = v;")
     acc := Vec2Expr("v2") // mark as declared
