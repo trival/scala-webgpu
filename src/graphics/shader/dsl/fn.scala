@@ -123,6 +123,55 @@ object WgslFn:
   private[dsl] def nameOf[P, R](fn: WgslFn[P, R]): String = fn.name
   private[dsl] def srcOf[P, R](fn: WgslFn[P, R]): String = fn.src
 
+  // -------------------------------------------------------------------------
+  // DSL body constructor with typed locals
+  // -------------------------------------------------------------------------
+
+  /** Define a WGSL function using the Scala shader DSL with typed locals.
+    *
+    * Type parameters: [L, P, R] — locals, params, return type.
+    *
+    * Example:
+    * {{{
+    * val accumulate: WgslFn[(v: Vec2, delta: Vec2), Vec2] =
+    *   WgslFn.dsl[(acc: Var[Vec2]), (v: Vec2, delta: Vec2), Vec2]("accumulate"): ctx =>
+    *     Block(
+    *       ctx.locals.acc := ctx.params.v,
+    *       ctx.locals.acc := ctx.locals.acc + ctx.params.delta,
+    *       ctx.ret(ctx.locals.acc),
+    *     )
+    * }}}
+    */
+  inline def dsl[L, P, R](name: String)(
+      body: WgslFnCtx[P, L, R] => Block,
+  ): WgslFn[P, R] =
+    val kinds = buildLocalKinds[L]
+    val ctx = WgslFnCtx[P, L, R](
+      params = TypedExprAccessor[NamedTuple.Map[P & AnyNamedTuple, ToExpr]](""),
+      locals =
+        TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]](kinds),
+      ret = ReturnEmitter[R](),
+    )
+    val block = body(ctx)
+    val paramList = buildParamList[P]
+    val retType = wgslReturnType[R]
+    val src = s"fn $name($paramList) -> $retType {\n${Block.unwrap(block)}\n}"
+    WgslFnData(name, src)
+
+// ---------------------------------------------------------------------------
+// WgslFnCtx[P, L, R] — context for WgslFn.dsl with typed locals
+// ---------------------------------------------------------------------------
+
+class WgslFnCtx[P, L, R](
+    val params: TypedExprAccessor[
+      NamedTuple.Map[P & AnyNamedTuple, ToExpr],
+    ],
+    val locals: TypedLocalAccessor[
+      NamedTuple.Map[L & AnyNamedTuple, ToLocal],
+    ],
+    val ret: ReturnEmitter[R],
+)
+
 // ---------------------------------------------------------------------------
 // ReturnEmitter[R] — typed return statement builder for WgslFn.dsl
 // ---------------------------------------------------------------------------

@@ -194,3 +194,87 @@ class WgslFnTest extends FunSuite:
       body.contains("rotate(in.position, angle)"),
       s"Missing rotate call:\n$body",
     )
+
+  // =========================================================================
+  // VarExpr inside WgslFn.dsl — manual var declaration
+  // =========================================================================
+
+  test("VarVec2 inside WgslFn.dsl generates var decl and reassignment"):
+    val fn =
+      WgslFn.dsl[(v: Vec2, delta: Vec2), Vec2]("accumulate"): (p, ret) =>
+        val acc = VarVec2("acc")
+        Block(
+          acc := p.v,
+          acc := acc + p.delta,
+          ret(acc),
+        )
+
+    val data = fn.asInstanceOf[WgslFnData]
+
+    assert(data.src.contains("var acc = v;"), s"Missing var decl:\n${data.src}")
+    assert(
+      data.src.contains("acc = (acc + delta);"),
+      s"Missing reassign:\n${data.src}",
+    )
+    assert(data.src.contains("return acc;"), s"Missing return:\n${data.src}")
+
+  // =========================================================================
+  // WgslFn.dsl with typed locals (ctx-style API)
+  // =========================================================================
+
+  test("WgslFn.dsl with typed locals generates var decl and reassignment"):
+    val fn: WgslFn[(v: Vec2, delta: Vec2), Vec2] =
+      WgslFn.dsl[(acc: Var[Vec2]), (v: Vec2, delta: Vec2), Vec2](
+        "accumulate",
+      ): ctx =>
+        val acc = ctx.locals.acc
+        Block(
+          acc := ctx.params.v,
+          acc := acc + ctx.params.delta,
+          ctx.ret(acc),
+        )
+
+    val data = fn.asInstanceOf[WgslFnData]
+    assert(data.src.contains("var acc = v;"), s"Missing var decl:\n${data.src}")
+    assert(
+      data.src.contains("acc = (acc + delta);"),
+      s"Missing reassign:\n${data.src}",
+    )
+    assert(data.src.contains("return acc;"), s"Missing return:\n${data.src}")
+
+  test("WgslFn.dsl with const local generates const decl"):
+    val fn: WgslFn[(v: Vec2, scale: Float), Vec2] =
+      WgslFn.dsl[(s: Const[Float]), (v: Vec2, scale: Float), Vec2](
+        "scaleVec",
+      ): ctx =>
+        Block(
+          ctx.locals.s := ctx.params.scale,
+          ctx.ret(ctx.params.v * ctx.locals.s),
+        )
+
+    val data = fn.asInstanceOf[WgslFnData]
+    assert(
+      data.src.contains("const s = scale;"),
+      s"Missing const decl:\n${data.src}",
+    )
+
+  test("WgslFn.dsl with mixed locals (var + let)"):
+    val fn: WgslFn[(v: Vec2), Vec2] =
+      WgslFn.dsl[(acc: Var[Vec2], tmp: Vec2), (v: Vec2), Vec2](
+        "mixedLocals",
+      ): ctx =>
+        Block(
+          ctx.locals.acc := ctx.params.v,
+          ctx.locals.tmp := ctx.locals.acc,
+          ctx.ret(ctx.locals.tmp),
+        )
+
+    val data = fn.asInstanceOf[WgslFnData]
+    assert(
+      data.src.contains("var acc = v;"),
+      s"Missing var decl:\n${data.src}",
+    )
+    assert(
+      data.src.contains("let tmp = acc;"),
+      s"Missing let decl:\n${data.src}",
+    )
