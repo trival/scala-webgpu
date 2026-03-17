@@ -164,27 +164,27 @@ trivial `Math.*` implementations.
 
 #### Vector Operations (Vec*Base/ImmutableOps → Vec*Expr)
 
-| CPU                | GPU (DSL)           | WGSL Output        | Notes                  |
-| ------------------ | ------------------- | ------------------ | ---------------------- |
-| `v + w`            | `v + w`             | `(v + w)`          |                        |
-| `v - w`            | `v - w`             | `(v - w)`          |                        |
-| `v * w`            | `v * w`             | `(v * w)`          | Componentwise          |
-| `v * s`            | `v * s`             | `(v * s)`          | Scalar multiply        |
-| `v / w`            | `v / w`             | `(v / w)`          | Componentwise          |
-| `v / s`            | `v / s`             | `(v / s)`          | Scalar divide          |
-| `v.dot(w)`         | `v.dot(w)`          | `dot(v, w)`        |                        |
-| `v.cross(w)`       | `v.cross(w)`        | `cross(v, w)`      | Vec3 only              |
-| `v.length`         | `v.length`          | `length(v)`        |                        |
-| `v.length_squared` | `v.length_squared`  | `dot(v, v)`        | No WGSL built-in       |
-| `v.normalized`     | `v.normalized`      | `normalize(v)`     | Immutable convention   |
-| `v.x` / `.y` / …   | `v.x` / `.y` / …    | `v.x` / `.y` / …   | Component access       |
-| `v.r` / `.g` / …   | `v.r` / `.g` / …    | `v.x` / `.y` / …   | Color aliases          |
-| —                  | `v.distance(w)`     | `distance(v, w)`   | Add to VecBase         |
-| —                  | `v.reflected(n)`    | `reflect(v, n)`    | Add to VecImmutableOps |
-| —                  | `v.refracted(n, η)` | `refract(v, n, η)` | Add to VecImmutableOps |
+| CPU                | GPU (DSL)          | WGSL Output        | Notes                  |
+| ------------------ | ------------------ | ------------------ | ---------------------- |
+| `v + w`            | `v + w`            | `(v + w)`          |                        |
+| `v - w`            | `v - w`            | `(v - w)`          |                        |
+| `v * w`            | `v * w`            | `(v * w)`          | Componentwise          |
+| `v * s`            | `v * s`            | `(v * s)`          | Scalar multiply        |
+| `v / w`            | `v / w`            | `(v / w)`          | Componentwise          |
+| `v / s`            | `v / s`            | `(v / s)`          | Scalar divide          |
+| `v.dot(w)`         | `v.dot(w)`         | `dot(v, w)`        |                        |
+| `v.cross(w)`       | `v.cross(w)`       | `cross(v, w)`      | Vec3 only              |
+| `v.length`         | `v.length`         | `length(v)`        |                        |
+| `v.length_squared` | `v.length_squared` | `dot(v, v)`        | No WGSL built-in       |
+| `v.normalize`      | `v.normalize`      | `normalize(v)`     | Immutable convention   |
+| `v.x` / `.y` / …   | `v.x` / `.y` / …   | `v.x` / `.y` / …   | Component access       |
+| `v.r` / `.g` / …   | `v.r` / `.g` / …   | `v.x` / `.y` / …   | Color aliases          |
+| —                  | `v.distance(w)`    | `distance(v, w)`   | Add to VecBase         |
+| —                  | `v.reflect(n)`     | `reflect(v, n)`    | Add to VecImmutableOps |
+| —                  | `v.refract(n, η)`  | `refract(v, n, η)` | Add to VecImmutableOps |
 
-Note: MutableOps (`v.normalize()`, `v.add(w, out)`) have no GPU equivalent —
-WGSL is a functional language with no in-place mutation of vectors. MutableOps
+Note: MutableOps (`v.normalizeSelf()`, `v.addTo(out, w)`) have no GPU equivalent
+— WGSL is a functional language with no in-place mutation of vectors. MutableOps
 remain CPU-only.
 
 #### Matrix Operations (Mat*ImmutableOps → Mat*Expr)
@@ -194,7 +194,7 @@ remain CPU-only.
 | `m * n`         | `m * n`         | `(m * n)`        | Matrix multiply  |
 | `m * v`         | `m * v`         | `(m * v)`        | Matrix × vector  |
 | `m * s`         | `m * s`         | `(m * s)`        | Scalar multiply  |
-| `m.transposed`  | `m.transposed`  | `transpose(m)`   |                  |
+| `m.transpose`   | `m.transpose`   | `transpose(m)`   |                  |
 | `m.determinant` | `m.determinant` | `determinant(m)` |                  |
 | `m.inversed`    | —               | —                | No WGSL built-in |
 
@@ -1160,20 +1160,25 @@ plan, and what remains to be done.
 
 #### Step 1a: CPU Math Gaps — Matrix Multiply ✅
 
-Matrix multiplication was already present in the math library (`Mat2ImmutableOps`,
-`Mat3ImmutableOps`, `Mat4ImmutableOps`) before this work began. No changes needed.
+Matrix multiplication was already present in the math library
+(`Mat2ImmutableOps`, `Mat3ImmutableOps`, `Mat4ImmutableOps`) before this work
+began. No changes needed.
 
 #### Step 1b: Expression Types + Trait Instances ✅
 
 **File**: `src/gpu/shader/dsl/expr.scala`
 
 Implemented as planned:
+
 - All opaque types: `Expr`, `FloatExpr`, `Vec2Expr`–`Vec4Expr`,
   `Mat2Expr`–`Mat4Expr`, `BoolExpr`
 - `given NumOps[FloatExpr]`, `given NumExt[FloatExpr]`
-- `given Vec*Base[FloatExpr, Vec*Expr]` and `given Vec*ImmutableOps[FloatExpr, Vec*Expr]`
-- `given Mat*Base[FloatExpr, Mat*Expr]` and `given Mat*ImmutableOps[FloatExpr, Mat*Expr]`
-- Implicit conversions: `Double → FloatExpr`, `Float → FloatExpr`, `Int → FloatExpr`
+- `given Vec*Base[FloatExpr, Vec*Expr]` and
+  `given Vec*ImmutableOps[FloatExpr, Vec*Expr]`
+- `given Mat*Base[FloatExpr, Mat*Expr]` and
+  `given Mat*ImmutableOps[FloatExpr, Mat*Expr]`
+- Implicit conversions: `Double → FloatExpr`, `Float → FloatExpr`,
+  `Int → FloatExpr`
 - `vec2(...)`, `vec3(...)`, `vec4(...)` constructors
 - `Stmt` and `Block` opaque types
 
@@ -1184,8 +1189,9 @@ the current code size.
 
 #### Step 1c: Program Builder + Painter Integration ✅
 
-**Files**: `src/gpu/shader/dsl/context.scala`, `src/gpu/shader/dsl/program.scala`,
-`src/gpu/painter/painter.scala`, `drafts/painter_dsl/`
+**Files**: `src/gpu/shader/dsl/context.scala`,
+`src/gpu/shader/dsl/program.scala`, `src/gpu/painter/painter.scala`,
+`drafts/painter_dsl/`
 
 Implemented as planned. The `painter_dsl` draft renders two animated rotating
 triangles using the DSL, visually identical to the string-based
@@ -1214,17 +1220,19 @@ type system constraints. All `ctx.in`, `ctx.out`, `ctx.bindings`, and
    `TypedAssignAccessor[F]`, and `TypedLocalAccessor[F]` — all parameterized
    with a `Fields` named tuple type for compile-time field checking.
 
-3. **Local* opaque types instead of `LocalRef` + conversion**: The plan used
+3. **Local\* opaque types instead of `LocalRef` + conversion**: The plan used
    `class LocalRef(name: String)` with `given Conversion[LocalRef, Expr]` for
    math operations. This doesn't work because `given Conversion` does NOT
    trigger extension method resolution from type class instances in Scala 3.
    Instead, individual opaque types are used:
+
    ```scala
    opaque type LocalExpr  <: Expr                   = String
    opaque type LocalFloat <: FloatExpr & LocalExpr  = String
    opaque type LocalVec2  <: Vec2Expr & LocalExpr   = String
    // ... etc for Vec3, Vec4, Mat2–Mat4, Bool
    ```
+
    The `:=` operator is an extension on `LocalExpr` (inherited by all subtypes).
    Match types `ToLocal[T]` and `ToExpr[T]` in `types.scala` map GPU math types
    to their corresponding Local/Expr types.
@@ -1241,8 +1249,8 @@ type system constraints. All `ctx.in`, `ctx.out`, `ctx.bindings`, and
 5. **Native WGSL matrix-vector multiplication**: The plan assumed `m * v` from
    `Mat2ImmutableOps` would generate correct WGSL. In practice, the trait's
    `inline def *` expands component-wise (correct for CPU but verbose for WGSL).
-   Direct extensions in `local_ops.scala` override this with native
-   `(m * v)` syntax via `Vec*Expr.matMul` helpers defined in `expr.scala`.
+   Direct extensions in `local_ops.scala` override this with native `(m * v)`
+   syntax via `Vec*Expr.matMul` helpers defined in `expr.scala`.
 
 6. **`& AnyNamedTuple` intersections instead of bounds**: The plan used
    `Program[A <: AnyNamedTuple, V <: Tuple, U <: AnyNamedTuple]`. This breaks
@@ -1265,8 +1273,8 @@ type system constraints. All `ctx.in`, `ctx.out`, `ctx.bindings`, and
   (e.g., `Vec2ImmutableOps[FloatExpr, Vec2Expr]`) are NOT found on subtypes
   because the type parameter inference infers the subtype, not the supertype.
 - Inside the opaque type defining file, `String.+` takes priority over any
-  extension `+` because all `*Expr` types are transparent `= String` there.
-  This is why `local_ops.scala` must be a separate file.
+  extension `+` because all `*Expr` types are transparent `= String` there. This
+  is why `local_ops.scala` must be a separate file.
 
 #### Step 1e: External Reusable Functions (`WgslFn`) ✅
 
@@ -1302,35 +1310,42 @@ correctly with the helper function visible in the logged WGSL.
 - `WgslFnData(name, src) extends js.Object` — runtime carrier, zero boxing.
 - `opaque type WgslFn[P, R] = WgslFnData` — compile-time typed wrapper.
 - `buildParamList[P]` — compile-time iteration over `NamedTuple.Names[P]` +
-  `NamedTuple.DropNames[P]` + `WGSLType` summon (same pattern as `derive.scala`).
+  `NamedTuple.DropNames[P]` + `WGSLType` summon (same pattern as
+  `derive.scala`).
 - `callExpr[R]` — `inline erasedValue[R] match` + `.asInstanceOf[ToExpr[R]]`
   cast to the correct opaque `*Expr` type, same as `ToExpr` in `types.scala`.
 - `ReturnEmitter[R]` — wraps a `ToExpr[R]` in `return ...;` using
-  `v.asInstanceOf[String]` to cross the opaque boundary from outside `expr.scala`.
-- `private[dsl] def nameOf/srcOf` in the companion — exposes opaque internals
-  to per-arity `apply` extensions defined in the same file.
+  `v.asInstanceOf[String]` to cross the opaque boundary from outside
+  `expr.scala`.
+- `private[dsl] def nameOf/srcOf` in the companion — exposes opaque internals to
+  per-arity `apply` extensions defined in the same file.
 - `program.fn(f)` — deduplicates by name using `hasOwnProperty` (same idiom as
-  `Painter.pipelineCache`). `helperFnsStr` joins all registered srcs with `"\n\n"`.
+  `Painter.pipelineCache`). `helperFnsStr` joins all registered srcs with
+  `"\n\n"`.
 - `helperFns: String = ""` added to `ShaderDef` and `Shader.apply` with
   backwards-compatible default. Inserted between `uniformDecls` and
   `buildVertexMain` in the WGSL parts array.
-- Per-arity `apply` extensions — arities 1–6, both unnamed (`N1 *: N2 *: EmptyTuple`)
-  and named-tuple (`NamedTuple.NamedTuple[K1 *: K2 *: EmptyTuple, N1 *: N2 *: EmptyTuple]`)
-  variants, because Scala 3 does NOT match named tuples against unnamed tuple patterns.
+- Per-arity `apply` extensions — arities 1–6, both unnamed
+  (`N1 *: N2 *: EmptyTuple`) and named-tuple
+  (`NamedTuple.NamedTuple[K1 *: K2 *: EmptyTuple, N1 *: N2 *: EmptyTuple]`)
+  variants, because Scala 3 does NOT match named tuples against unnamed tuple
+  patterns.
 
 **Key Scala 3 learnings:**
 
 - Named tuples `(v: Vec2, angle: Float)` do NOT match extension parameters typed
   as `N1 *: N2 *: EmptyTuple`. Must provide parallel named-tuple extension
-  variants using the explicit `NamedTuple.NamedTuple[K *: EmptyTuple, N *: EmptyTuple]` form.
+  variants using the explicit
+  `NamedTuple.NamedTuple[K *: EmptyTuple, N *: EmptyTuple]` form.
 - `private[dsl]` package-scoped visibility on methods in a companion object
-  allows same-package extensions to access opaque internals without exposing them
-  outside the package.
+  allows same-package extensions to access opaque internals without exposing
+  them outside the package.
 
 #### Step 1g: Mutable Variables and Constants ✅
 
-**Files**: `src/graphics/math/gpu/expr.scala`, `src/graphics/shader/dsl/types.scala`,
-`src/graphics/shader/dsl/context.scala`, `src/graphics/shader/dsl/program.scala`
+**Files**: `src/graphics/math/gpu/expr.scala`,
+`src/graphics/shader/dsl/types.scala`, `src/graphics/shader/dsl/context.scala`,
+`src/graphics/shader/dsl/program.scala`
 
 Implemented `Var[T]` and `Const[T]` marker types for full WGSL local variable
 support. All three WGSL declaration forms are now available:
@@ -1374,8 +1389,8 @@ accumulate(ctx.locals.acc, ctx.bindings.delta)
   reducing the named tuple intersection.
 - `TypedLocalAccessor` updated to accept `kinds: Dict[String]` and dispatch to
   `VarExpr`, `ConstExpr`, or `LocalExpr` based on the dict.
-- `Program.vert[L]` and `Program.frag[L]` call `buildLocalKinds[L]` and pass
-  the result to `TypedLocalAccessor`.
+- `Program.vert[L]` and `Program.frag[L]` call `buildLocalKinds[L]` and pass the
+  result to `TypedLocalAccessor`.
 
 ### Remaining Steps
 
@@ -1393,7 +1408,8 @@ color aliases (`.r`, `.g`, `.b`). These will be added incrementally as needed.
 
 #### Hygienic Naming — Not Started
 
-No compile-time reserved word validation or local-vs-uniform collision detection.
+No compile-time reserved word validation or local-vs-uniform collision
+detection.
 
 ### Current File Layout
 
@@ -1412,5 +1428,5 @@ src/gpu/shader/dsl/
 ```
 
 Compared to plan: no separate `constructors.scala`, `stmt.scala`, or
-`package.scala`. Everything fits in fewer files. `local_ops.scala`, `types.scala`,
-and `fn.scala` are additions not in the original plan.
+`package.scala`. Everything fits in fewer files. `local_ops.scala`,
+`types.scala`, and `fn.scala` are additions not in the original plan.

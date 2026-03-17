@@ -1413,7 +1413,7 @@ All planned components are implemented and working:
 | `Option` for optional values              | `Opt` (`js.UndefOr`)                                      | Follows JS bundle size rules                                                                     |
 | `Dict` (js.Dictionary) for pipeline cache | `Dict[GPURenderPipeline]` with string keys                | Zero-cost JS object as hashmap                                                                   |
 
-### Milestone 1, Step B — Panel + Blit: Not Started
+### Milestone 1, Step B — Panel + Blit: **Done**
 
 ### Milestone 2 — Type-Safe Named Bindings: **Done**
 
