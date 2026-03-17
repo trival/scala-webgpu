@@ -24,6 +24,7 @@ CPU/GPU boundary the way React abstracts the server/client boundary.
 8. [WebGPU Facade Extensions](#8-webgpu-facade-extensions)
 9. [Open Questions](#9-open-questions)
 10. [File Organization](#10-file-organization)
+11. [Implementation Status](#11-implementation-status)
 
 ---
 
@@ -1093,30 +1094,23 @@ type BindingValueAt[Uniforms, Name <: String] = ... // resolve name → type via
 
 ---
 
+### Milestone 3 — Shader DSL + Layer/LayerShade: **Done**
+
+See Section 11 for implementation status.
+
 ### Future Milestones
 
-#### Milestone 3 — Layers (Post-Processing) & Cross-Panel Composition
+#### Milestone 4 — Cross-Panel Composition & Advanced Pipeline
 
-- Layer class (fullscreen post-processing — Rust "Effect")
 - Texture ping-pong for layer chains
 - PanelBinding enum (Source, AtIndex, Depth, etc.) — reading textures from other
   Panels
 - Multi-panel compositing in `show()`
 - Form: index buffers and multiple vertex buffers
-
-#### Milestone 4 — Advanced Features
-
 - Depth testing, MSAA, MRT
 - Mipmap generation
 - Sampler bindings
 - Instance rendering with per-instance binding overrides
-- Instance rendering optimization (four-case strategy)
-
-#### Milestone 5 — Examples & Polish
-
-- Triangle, textured quad, animated uniforms
-- Blur post-processing, deferred lighting
-- API ergonomics review
 
 ---
 
@@ -1355,27 +1349,60 @@ def copyTextureToTexture(src: js.Dynamic, dst: js.Dynamic, size: js.Dynamic): Un
 ## 10. File Organization
 
 ```
-src/gpu/painter/
+src/graphics/painter/
 ├── enums.scala        — Opaque types: PrimitiveTopology, CullMode, FrontFace, BlendFactor, BlendOp, BlendState
-├── Shade.scala        — Shade class + factories
-├── Form.scala         — Form class
-├── Shape.scala        — Shape class + binding storage
-├── Layer.scala        — Layer: fullscreen post-processing (Rust "Effect")
-├── Panel.scala        — Panel: render target + shapes (Rust "Layer")
-├── Painter.scala      — Painter class, pipeline cache, draw/paint/show
-├── init.scala         — initPainter bootstrap function
-└── package.scala      — re-exports
+├── shade.scala        — Shade[U] class + factories
+├── form.scala         — Form class
+├── shape.scala        — Shape[U] class + typed bind(), processEntry
+├── layer.scala        — Layer[U]: fullscreen post-processing (Rust "Effect")
+├── panel.scala        — Panel: render target + layers + onResize
+├── painter.scala      — Painter class, pipeline cache, draw/paint/show/onResize
+└── init.scala         — initPainter bootstrap function
+
+src/graphics/shader/
+├── types.scala        — WGSLType type class, VertexUniform/FragmentUniform/SharedUniform
+├── derive.scala       — WGSL generation, uniformFieldIndex, checkUniformFieldType
+├── layouts.scala      — vertex + bind group layout derivation
+├── builtins.scala     — builtin attribute types (BuiltinVertexIndex, etc.)
+├── shader.scala       — ShaderDef, Shader.full
+└── dsl/
+    ├── types.scala        — Expr types: FloatExpr, Vec2/3/4Expr, Mat2/3/4Expr, BoolExpr,
+    │                         AssignTarget, Stmt, Block; Local types: LetFloat, LetVec2/3/4,
+    │                         VarFloat, VarVec2/3/4, ConstFloat, ConstVec2/3/4
+    ├── context.scala      — VertexCtx, FragmentCtx, TypedExprAccessor, TypedLocalAccessor,
+    │                         TypedAssignAccessor, VertexOut; ToExpr/ToLocal/UniformToExpr type maps
+    ├── program.scala      — Program[A, V, U]: DSL builder for vert/frag shaders with typed locals
+    ├── layer_program.scala — LayerProgram[U]: DSL builder for layer (fullscreen) fragment shaders
+    └── fn.scala           — WgslFn helpers: WgslFn.raw, WgslFn.dsl for calling raw/DSL functions
+
+src/graphics/math/
+├── vec2.scala / vec3.scala / vec4.scala — Vec*ImmutableOps traits: full math including
+│                                           lerp, gte/gt/lte/lt, comparison operators < <= > >=
+├── mat2.scala / mat3.scala / mat4.scala — matrix types
+├── cpu/                                 — CPU concrete implementations
+└── gpu/
+    ├── expr.scala   — FloatExpr/Vec2/3/4Expr/Mat2/3/4Expr with WGSL-optimized overrides
+    │                   (abs, fract, mix/lerp, normalize, dot, length, step/gte/gt/lte/lt,
+    │                    smoothstep, min, max, clamp, sign, floor, ceil, round, exp, log, sqrt,
+    │                    vector comparison operators using WGSL step())
+    └── package.scala — re-exports + GPU math helpers (vec2/3/4, mat2/3/4 constructors)
+
+trivalibs/src/utils/numbers.scala
+    — NumExt trait: mix, lerp (alias), step (alias for gte), gte/gt/lte/lt (0/1 result)
 
 src/webgpu/
 └── facades.scala      — extended incrementally per milestone
 
-drafts/                    — iterative working examples
-├── index.html             — portal page linking to all drafts
-├── out/                   — compiled JS output
-├── simple_triangle/       — raw WebGPU, hardcoded vertices
-├── buffer_triangle/       — raw WebGPU + typed helpers
-├── painter_triangle/      — Painter + draw() (Step A)
-└── panel_triangle/        — Panel + paint/show (Step B)
+drafts/                        — iterative working examples
+├── index.html                 — portal page linking to all drafts
+├── out/                       — compiled JS output
+├── simple_triangle/           — raw WebGPU, hardcoded vertices
+├── buffer_triangle/           — raw WebGPU + typed helpers
+├── painter_triangle/          — Painter + draw() (Milestone 1 Step A)
+├── panel_triangle/            — Panel + paint/show (Milestone 1 Step B)
+├── painter_typed_bindings/    — type-safe named bindings (Milestone 2)
+├── painter_dsl/               — Shader DSL with Program builder (Milestone 3)
+└── panel_layer/               — fullscreen animated plasma via layerShade + onResize (Milestone 3)
 ```
 
 ---
@@ -1486,3 +1513,177 @@ with compile-time validation of binding names and value types.
 | Separate managed vs external binding maps                       | Single `BindingSlots` array                                     | Both managed and external bindings are `BufferBinding` objects; no need for separate storage                              |
 | `Shade` stores runtime `Map[String, (Int, Int)]` name→slot      | Compile-time only via `uniformFieldIndex` inline                | No runtime name resolution needed; all names resolve to indices at compile time                                           |
 | Match type `UnwrapBinding[V]` for BufferBinding type extraction | `summonFrom` with `V <:< BufferBinding[Expected, ?]`            | Match types on `final class` don't reliably reduce in Scala 3; `summonFrom` with `<:<` works correctly                    |
+
+---
+
+### Milestone 3 — Shader DSL + Layer/LayerShade: **Done**
+
+#### Shader DSL
+
+The Scala shader DSL replaces raw WGSL string bodies with a type-safe expression
+tree that compiles to WGSL. It is split across `src/graphics/shader/dsl/`.
+
+**Expression types** (`dsl/types.scala`):
+
+- `FloatExpr`, `Vec2Expr`, `Vec3Expr`, `Vec4Expr`, `Mat2Expr`, `Mat3Expr`,
+  `Mat4Expr` — GPU expression wrappers carrying a `.wgsl: String` that emits the
+  WGSL representation
+- `BoolExpr` — for WGSL boolean expressions
+- `AssignTarget` — an l-value (e.g. `out.color`) that can receive `:=`
+- `Stmt` — a single WGSL statement; `Block(stmts*)` — a sequence of statements
+- **Local variable types**:
+  - `LetFloat/Vec2/Vec3/Vec4` — `let` bindings (immutable in WGSL, reassignable
+    by re-declaring; generates `var` in WGSL for flexibility)
+  - `VarFloat/Vec2/Vec3/Vec4` — mutable `var` local variables
+  - `ConstFloat/Vec2/Vec3/Vec4` — `const` compile-time constants
+
+**Typed accessors** (`dsl/context.scala`):
+
+- `TypedExprAccessor[T]` — provides typed named field access over a named tuple
+  `T`, returning the correct expression type per field (e.g. `ctx.in.position`
+  returns a `Vec2Expr`)
+- `TypedLocalAccessor[T]` — provides typed access to local variables with `:=`
+  assignment support
+- `TypedAssignAccessor[T]` — provides typed l-values for output fields
+- `VertexOut[V]` — vertex output accessor with built-in `position` (`Vec4Expr`)
+  plus user-defined varyings
+
+**Contexts**:
+
+- `VertexCtx[A, V, U, L]` — vertex shader context with `in`, `out`, `bindings`,
+  `locals`
+- `FragmentCtx[V, U, L]` — fragment shader context with `in`, `out`, `bindings`,
+  `locals`
+
+**`Program[A, V, U]`** (`dsl/program.scala`) — DSL builder for full vertex +
+fragment shaders:
+
+- `program.vert[L](ctx => Block(...))` — define vertex shader; `[L]` is an
+  optional named tuple of local variable types
+- `program.frag[L](ctx => Block(...))` — define fragment shader
+- `program.fn(wgslFn)` — register a helper function (idempotent)
+- `painter.shade[A, V, U](program => ...)` accepts a `Program[A, V, U]` builder
+  callback
+
+**`LayerProgram[U]`** (`dsl/layer_program.scala`) — DSL builder for fullscreen
+layer fragment shaders:
+
+- Fixed vertex stage (fullscreen triangle from `vertex_index`, passes UV
+  varying)
+- `program.frag[L](ctx => Block(...))` — define only the fragment shader; input
+  is `ctx.in.uv: Vec2Expr` in 0..1 range
+- `painter.layerShade[U](program => ...)` accepts a `LayerProgram[U]` callback
+
+**`WgslFn` helpers** (`dsl/fn.scala`):
+
+- `WgslFn.raw(name, src)` — register a raw WGSL function string
+- `WgslFn.dsl[(Params), Return](name)(body)` — define a helper function using
+  the DSL; `body` receives typed parameter accessors and a `ret()` callback
+- Registered functions are emitted into the shader before `vs_main`/`fs_main`
+
+**Draft** (`drafts/painter_dsl/`):
+
+- Two animated triangles sharing one shade defined with `Program`
+- Uses a `WgslFn.dsl` helper (`apply_transform`) for mat2 rotation + translation
+- Vertex shader has a typed local variable `t: Vec2`
+- Fragment shader reads `ctx.bindings.color`
+- Validates DSL-generated WGSL produces correct visuals end-to-end
+
+---
+
+#### Layer / LayerShade
+
+**`Layer[U]`** (`src/graphics/painter/layer.scala`):
+
+- Typed companion to `Shape[U]` for fullscreen post-processing
+- Holds `shade: Shade[U]`, `bindings: BindingSlots`, optional `blendState`
+- Typed `bind("name" := value)` overloads — same compile-time validation as
+  `Shape` via `processEntry`
+- `painter.layer(shade)` factory method
+
+**Fullscreen layer vertex shader**:
+
+- Embedded in `ShaderDef` as `LAYER_VERT_BODY` — generates a full-screen
+  triangle from `vertex_index` built-in, computing UV as
+  `(x * 0.5, 1.0 - y * 0.5)`
+- Uses `VBI = (vertex_index: BuiltinVertexIndex)` as vertex input
+
+**`Shade[U]` for layers**:
+
+- `painter.layerShade[U](program => ...)` — creates a `Shade[U]` using
+  `Shader.full` with `VBI`, fixed vert body, and user-defined frag body from
+  `LayerProgram[U]`
+- Returns the same `Shade[U]` type as regular shade, compatible with `Layer[U]`
+
+**Panel integration**:
+
+- `painter.panel(layers = Arr(layer1, layer2, ...))` — Panel now accepts a
+  `layers` list in addition to (or instead of) shapes
+- `paint(panel)` renders shapes first, then layers in order into the panel
+  texture
+
+**Draft** (`drafts/panel_layer/`):
+
+- Fullscreen animated plasma effect
+- Uniforms: `time: FragmentUniform[Float]`, `res: FragmentUniform[Vec2]`
+- Fragment shader: aspect-corrected UV
+  `p = (uv - 0.5) * vec2(aspect * 2.0, 2.0)`, then three sinusoidal color
+  channels using `p.x`, `p.y`, `p.length`, and `time`
+- Demonstrates `ctx.in.uv`, `LetFloat`/`LetVec2` local variables, and `Block`
+  DSL
+
+---
+
+#### `onResize` — Painter Resize Callback
+
+**`Painter.onResize`** (`src/graphics/painter/painter.scala`):
+
+- `painter.onResize((w, h) => ...)` — register a callback invoked whenever the
+  canvas dimensions change
+- Resize is detected at the start of `paint()` by comparing canvas size against
+  previously stored dimensions
+- First call always fires (previous dimensions start at 0×0)
+- Implemented with a `resizeCallbacks: Arr[(Int, Int) => Unit]` array and a
+  manual `while` loop to avoid Scala collection overhead
+- Used in `panel_layer` draft to update the `res` binding when the canvas is
+  resized, keeping the aspect ratio correct
+
+---
+
+#### Math Library Extensions
+
+**`NumExt` trait** (`trivalibs/src/utils/numbers.scala`):
+
+- Added `lerp(b, t)` as `inline def lerp = mix(b, t)` — alias for `mix`;
+  automatically delegates to whichever `mix` override exists in the given
+- Added `gte(edge)`, `gt(edge)`, `lte(edge)`, `lt(edge)` — return `1.0`/`0.0`
+  (not boolean) for threshold comparisons
+- Changed `step` to `inline def step(edge) = gte(edge)` — step is now an alias
+  for `gte` for WGSL familiarity
+- CPU implementations in `NumExt[Double]` and `NumExt[Float]` givens use
+  `if/else` expressions
+
+**Vec2/3/4 ImmutableOps traits** (`src/graphics/math/vec2.scala` etc.):
+
+- Added `lerp(b, t)` overloads (vec-vec-vec and vec-vec-scalar) as inline
+  aliases for `mix`
+- Added componentwise comparison operators `<`, `<=`, `>`, `>=` — fill a new
+  vector with `0.0`/`1.0` per component using `gte`/`gt`/`lte`/`lt` on scalars
+
+**GPU expression givens** (`src/graphics/math/gpu/expr.scala`):
+
+All operations generate single WGSL built-in calls instead of component-wise
+expansion:
+
+- `NumExt[FloatExpr]` given: `gte` → `step(edge, x)`, `lte` → `step(x, edge)`,
+  `gt` → `(1.0 - step(x, edge))`, `lt` → `(1.0 - step(edge, x))`
+- `Vec*ImmutableOps` givens: `normalize`, `abs`, `sign`, `floor`, `ceil`,
+  `round`, `fract`, `exp`, `log`, `log2`, `sqrt` → single WGSL call
+- `min`, `max`, `clamp`, `mix`/`lerp`, `step`, `smoothstep` → single WGSL call
+- Vector comparison operators `<`, `<=`, `>`, `>=` → WGSL `step()`-based
+  expressions on vector types:
+  - `v >= other` → `step(other, v)` (1 where component ≥ edge)
+  - `v <= other` → `step(v, other)`
+  - `v > other` → `(1.0 - step(v, other))`
+  - `v < other` → `(1.0 - step(other, v))`
+- `Vec*Base` givens: `dot(a, b)` → `dot(a, b)`, `length` → `length(v)`

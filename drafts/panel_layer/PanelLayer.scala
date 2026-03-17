@@ -22,7 +22,7 @@ def main(): Unit =
   initPainter(canvas): painter =>
     type Uniforms = (
         time: FragmentUniform[Float],
-        resolution: FragmentUniform[Vec2],
+        res: FragmentUniform[Vec2],
     )
 
     val shade = painter.layerShade[Uniforms]: program =>
@@ -31,7 +31,7 @@ def main(): Unit =
         val p = LetVec2("p")
         val d = LetFloat("d")
         val t = ctx.bindings.time
-        val res = ctx.bindings.resolution
+        val res = ctx.bindings.res
         Block(
           aspect := res.x / res.y,
           p := (ctx.in.uv - 0.5) * vec2(aspect * 2.0, 2.0),
@@ -47,7 +47,7 @@ def main(): Unit =
     val time = painter.binding(0.0f)
     val res = painter.binding[Vec2]
 
-    val layer = painter.layer(shade).bind("time" := time, "resolution" := res)
+    val layer = painter.layer(shade).bind("time" := time, "res" := res)
     val panel = painter.panel(layers = Arr(layer))
 
     painter.onResize: (w, h) =>
