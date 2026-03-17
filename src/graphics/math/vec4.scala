@@ -34,6 +34,16 @@ trait Vec4Mutable[Num: {NumExt, NumOps}, Vec] extends Vec4Base[Num, Vec]:
 trait Vec4ImmutableOps[Num: {NumExt, NumOps}, Vec]:
 
   def create(x: Num, y: Num, z: Num, w: Num): Vec
+
+  inline def apply[V3](xyz: V3, w: Num)(using Vec3Base[Num, V3]): Vec =
+    create(xyz.x, xyz.y, xyz.z, w)
+
+  inline def apply[V2](xy: V2, z: Num, w: Num)(using Vec2Base[Num, V2]): Vec =
+    create(xy.x, xy.y, z, w)
+
+  inline def apply[V2](xy: V2, zw: V2)(using Vec2Base[Num, V2]): Vec =
+    create(xy.x, xy.y, zw.x, zw.y)
+
   def from[Num2, Vec2](
       other: Vec2,
   )(using Vec4Base[Num2, Vec2], Conversion[Num2, Num]): Vec =

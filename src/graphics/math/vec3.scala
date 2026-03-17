@@ -30,6 +30,10 @@ trait Vec3Mutable[Num: {NumExt, NumOps}, Vec] extends Vec3Base[Num, Vec]:
 trait Vec3ImmutableOps[Num: {NumExt, NumOps}, Vec]:
 
   def create(x: Num, y: Num, z: Num): Vec
+
+  inline def apply[V2](xy: V2, z: Num)(using Vec2Base[Num, V2]): Vec =
+    create(xy.x, xy.y, z)
+
   def from[Num2, Vec2](
       other: Vec2,
   )(using Vec3Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
