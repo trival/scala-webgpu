@@ -76,8 +76,93 @@ trait Vec4ImmutableOps[Num: {NumExt, NumOps}, Vec]:
     @scala.annotation.targetName("divScalar")
     def /(scalar: Num): Vec =
       create(v.x / scalar, v.y / scalar, v.z / scalar, v.w / scalar)
-    def normalize: Vec =
-      v / v.length
+    def normalize: Vec = v / v.length
+
+    def abs: Vec = create(v.x.abs, v.y.abs, v.z.abs, v.w.abs)
+    def sign: Vec = create(v.x.sign, v.y.sign, v.z.sign, v.w.sign)
+    def floor: Vec = create(v.x.floor, v.y.floor, v.z.floor, v.w.floor)
+    def ceil: Vec = create(v.x.ceil, v.y.ceil, v.z.ceil, v.w.ceil)
+    def round: Vec = create(v.x.round, v.y.round, v.z.round, v.w.round)
+    def fract: Vec = create(v.x.fract, v.y.fract, v.z.fract, v.w.fract)
+    def exp: Vec = create(v.x.exp, v.y.exp, v.z.exp, v.w.exp)
+    def log: Vec = create(v.x.log, v.y.log, v.z.log, v.w.log)
+    def log2: Vec = create(v.x.log2, v.y.log2, v.z.log2, v.w.log2)
+    def sqrt: Vec = create(v.x.sqrt, v.y.sqrt, v.z.sqrt, v.w.sqrt)
+
+    def min(other: Vec): Vec =
+      create(
+        v.x.min(other.x),
+        v.y.min(other.y),
+        v.z.min(other.z),
+        v.w.min(other.w),
+      )
+    def max(other: Vec): Vec =
+      create(
+        v.x.max(other.x),
+        v.y.max(other.y),
+        v.z.max(other.z),
+        v.w.max(other.w),
+      )
+    def clamp(lo: Num, hi: Num): Vec =
+      create(
+        v.x.clamp(lo, hi),
+        v.y.clamp(lo, hi),
+        v.z.clamp(lo, hi),
+        v.w.clamp(lo, hi),
+      )
+    @scala.annotation.targetName("mixVec")
+    def mix(b: Vec, t: Vec): Vec =
+      create(
+        v.x.mix(b.x, t.x),
+        v.y.mix(b.y, t.y),
+        v.z.mix(b.z, t.z),
+        v.w.mix(b.w, t.w),
+      )
+    @scala.annotation.targetName("mixScalar")
+    def mix(b: Vec, t: Num): Vec =
+      create(v.x.mix(b.x, t), v.y.mix(b.y, t), v.z.mix(b.z, t), v.w.mix(b.w, t))
+    @scala.annotation.targetName("lerpVec")
+    inline def lerp(b: Vec, t: Vec): Vec = v.mix(b, t)
+    @scala.annotation.targetName("lerpScalar")
+    inline def lerp(b: Vec, t: Num): Vec = v.mix(b, t)
+    @scala.annotation.targetName("ltVec")
+    def <(other: Vec): Vec =
+      create(v.x.lt(other.x), v.y.lt(other.y), v.z.lt(other.z), v.w.lt(other.w))
+    @scala.annotation.targetName("lteVec")
+    def <=(other: Vec): Vec = create(
+      v.x.lte(other.x),
+      v.y.lte(other.y),
+      v.z.lte(other.z),
+      v.w.lte(other.w),
+    )
+    @scala.annotation.targetName("gtVec")
+    def >(other: Vec): Vec =
+      create(v.x.gt(other.x), v.y.gt(other.y), v.z.gt(other.z), v.w.gt(other.w))
+    @scala.annotation.targetName("gteVec")
+    def >=(other: Vec): Vec = create(
+      v.x.gte(other.x),
+      v.y.gte(other.y),
+      v.z.gte(other.z),
+      v.w.gte(other.w),
+    )
+    @scala.annotation.targetName("stepVec")
+    def step(edge: Vec): Vec =
+      create(
+        v.x.step(edge.x),
+        v.y.step(edge.y),
+        v.z.step(edge.z),
+        v.w.step(edge.w),
+      )
+    @scala.annotation.targetName("stepScalar")
+    def step(edge: Num): Vec =
+      create(v.x.step(edge), v.y.step(edge), v.z.step(edge), v.w.step(edge))
+    def smoothstep(edge0: Vec, edge1: Vec): Vec =
+      create(
+        v.x.smoothstep(edge0.x, edge1.x),
+        v.y.smoothstep(edge0.y, edge1.y),
+        v.z.smoothstep(edge0.z, edge1.z),
+        v.w.smoothstep(edge0.w, edge1.w),
+      )
 
 trait Vec4MutableOps[Num: {NumExt, NumOps}, Vec]:
 

@@ -1,0 +1,58 @@
+package panel_layer
+
+import graphics.math.cpu.{*, given}
+import graphics.math.gpu.{*, given}
+import graphics.painter.*
+import graphics.shader.dsl.{*, given}
+import graphics.shader.{*, given}
+import graphics.utils.animation.animate
+import org.scalajs.dom.HTMLCanvasElement
+import org.scalajs.dom.document
+import trivalibs.utils.js.*
+import trivalibs.utils.numbers.NumExt.given
+
+import scala.scalajs.js
+import scala.scalajs.js.annotation.*
+
+@JSExportTopLevel("main", moduleID = "panel_layer")
+def main(): Unit =
+  val canvas =
+    document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
+
+  initPainter(canvas): painter =>
+    type Uniforms = (
+        time: FragmentUniform[Float],
+        resolution: FragmentUniform[Vec2],
+    )
+
+    val shade = painter.layerShade[Uniforms]: program =>
+      program.frag: ctx =>
+        val aspect = LetFloat("aspect")
+        val p = LetVec2("p")
+        val d = LetFloat("d")
+        val t = ctx.bindings.time
+        val res = ctx.bindings.resolution
+        Block(
+          aspect := res.x / res.y,
+          p := (ctx.in.uv - 0.5) * vec2(aspect * 2.0, 2.0),
+          d := p.length,
+          ctx.out.color := vec4(
+            (p.x * 4.0 + (p.y * 3.0 + t).sin + t).sin * 0.5 + 0.5,
+            (p.y * 4.0 + (p.x * 3.0 - t * 0.7).sin - t * 0.5).sin * 0.5 + 0.5,
+            (d * 5.0 - t * 1.5).sin * 0.5 + 0.5,
+            1.0,
+          ),
+        )
+
+    val layer = painter.layer(shade)
+    val panel = painter.panel(layers = Arr(layer))
+
+    painter.onResize: (w, h) =>
+      layer.bind("resolution" := Vec2(w.toDouble, h.toDouble))
+
+    var time = 0.0
+    animate: tpf =>
+      time += tpf
+      layer.bind("time" := (time / 1000.0).toFloat)
+      painter.paint(panel)
+      painter.show(panel)

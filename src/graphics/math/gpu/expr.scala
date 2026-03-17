@@ -182,8 +182,14 @@ given NumExt[FloatExpr]:
       s"pow(${a.wgsl}, ${exp.wgsl})",
     )
     def abs: FloatExpr = FloatExpr(s"abs(${a.wgsl})")
+    def sign: FloatExpr = FloatExpr(s"sign(${a.wgsl})")
     def floor: FloatExpr = FloatExpr(s"floor(${a.wgsl})")
     def ceil: FloatExpr = FloatExpr(s"ceil(${a.wgsl})")
+    def round: FloatExpr = FloatExpr(s"round(${a.wgsl})")
+    def fract: FloatExpr = FloatExpr(s"fract(${a.wgsl})")
+    def exp: FloatExpr = FloatExpr(s"exp(${a.wgsl})")
+    def log: FloatExpr = FloatExpr(s"log(${a.wgsl})")
+    def log2: FloatExpr = FloatExpr(s"log2(${a.wgsl})")
     def sin: FloatExpr = FloatExpr(s"sin(${a.wgsl})")
     def cos: FloatExpr = FloatExpr(s"cos(${a.wgsl})")
     def tan: FloatExpr = FloatExpr(s"tan(${a.wgsl})")
@@ -193,12 +199,33 @@ given NumExt[FloatExpr]:
     def atan2(other: FloatExpr): FloatExpr = FloatExpr(
       s"atan2(${a.wgsl}, ${other.wgsl})",
     )
-    def clamp(min: FloatExpr, max: FloatExpr): FloatExpr = FloatExpr(
-      s"clamp(${a.wgsl}, ${min.wgsl}, ${max.wgsl})",
+    def min(other: FloatExpr): FloatExpr = FloatExpr(
+      s"min(${a.wgsl}, ${other.wgsl})",
     )
+    def max(other: FloatExpr): FloatExpr = FloatExpr(
+      s"max(${a.wgsl}, ${other.wgsl})",
+    )
+    def clamp(min: FloatExpr, max: FloatExpr): FloatExpr =
+      FloatExpr(s"clamp(${a.wgsl}, ${min.wgsl}, ${max.wgsl})")
     def clamp01: FloatExpr = FloatExpr(s"saturate(${a.wgsl})")
     def fit0111: FloatExpr = FloatExpr(s"(${a.wgsl} * 2.0 - 1.0)")
     def fit1101: FloatExpr = FloatExpr(s"(${a.wgsl} * 0.5 + 0.5)")
+    def mix(b: FloatExpr, t: FloatExpr): FloatExpr =
+      FloatExpr(s"mix(${a.wgsl}, ${b.wgsl}, ${t.wgsl})")
+    def gte(edge: FloatExpr): FloatExpr = FloatExpr(
+      s"step(${edge.wgsl}, ${a.wgsl})",
+    )
+    def gt(edge: FloatExpr): FloatExpr = FloatExpr(
+      s"(1.0 - step(${a.wgsl}, ${edge.wgsl}))",
+    )
+    def lte(edge: FloatExpr): FloatExpr = FloatExpr(
+      s"step(${a.wgsl}, ${edge.wgsl})",
+    )
+    def lt(edge: FloatExpr): FloatExpr = FloatExpr(
+      s"(1.0 - step(${edge.wgsl}, ${a.wgsl}))",
+    )
+    def smoothstep(edge0: FloatExpr, edge1: FloatExpr): FloatExpr =
+      FloatExpr(s"smoothstep(${edge0.wgsl}, ${edge1.wgsl}, ${a.wgsl})")
 
 // ---------------------------------------------------------------------------
 // Vec2 — LocalVec2 <: Vec2Expr, so only one Base + one ImmutableOps needed
@@ -209,6 +236,10 @@ given Vec2Base[FloatExpr, Vec2Expr] =
     extension (v: Vec2Expr)
       def x: FloatExpr = FloatExpr(s"${v.wgsl}.x")
       def y: FloatExpr = FloatExpr(s"${v.wgsl}.y")
+      override def dot(other: Vec2Expr): FloatExpr = FloatExpr(
+        s"dot(${v.wgsl}, ${other.wgsl})",
+      )
+      override def length: FloatExpr = FloatExpr(s"length(${v.wgsl})")
 
 given Vec2ImmutableOps[FloatExpr, Vec2Expr]:
   def create(x: FloatExpr, y: FloatExpr): Vec2Expr =
@@ -244,6 +275,50 @@ given Vec2ImmutableOps[FloatExpr, Vec2Expr]:
       Vec2Expr(s"(${v.wgsl} / ${scalar.wgsl})")
     def /(scalar: Double): Vec2Expr = v / (scalar: FloatExpr)
 
+    override def normalize: Vec2Expr = Vec2Expr(s"normalize(${v.wgsl})")
+    override def abs: Vec2Expr = Vec2Expr(s"abs(${v.wgsl})")
+    override def sign: Vec2Expr = Vec2Expr(s"sign(${v.wgsl})")
+    override def floor: Vec2Expr = Vec2Expr(s"floor(${v.wgsl})")
+    override def ceil: Vec2Expr = Vec2Expr(s"ceil(${v.wgsl})")
+    override def round: Vec2Expr = Vec2Expr(s"round(${v.wgsl})")
+    override def fract: Vec2Expr = Vec2Expr(s"fract(${v.wgsl})")
+    override def exp: Vec2Expr = Vec2Expr(s"exp(${v.wgsl})")
+    override def log: Vec2Expr = Vec2Expr(s"log(${v.wgsl})")
+    override def log2: Vec2Expr = Vec2Expr(s"log2(${v.wgsl})")
+    override def sqrt: Vec2Expr = Vec2Expr(s"sqrt(${v.wgsl})")
+    override def min(other: Vec2Expr): Vec2Expr =
+      Vec2Expr(s"min(${v.wgsl}, ${other.wgsl})")
+    override def max(other: Vec2Expr): Vec2Expr =
+      Vec2Expr(s"max(${v.wgsl}, ${other.wgsl})")
+    override def clamp(lo: FloatExpr, hi: FloatExpr): Vec2Expr =
+      Vec2Expr(s"clamp(${v.wgsl}, ${lo.wgsl}, ${hi.wgsl})")
+    @annotation.targetName("mixVec")
+    override def mix(b: Vec2Expr, t: Vec2Expr): Vec2Expr =
+      Vec2Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
+    @annotation.targetName("mixScalar")
+    override def mix(b: Vec2Expr, t: FloatExpr): Vec2Expr =
+      Vec2Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
+    @annotation.targetName("stepVec")
+    override def step(edge: Vec2Expr): Vec2Expr =
+      Vec2Expr(s"step(${edge.wgsl}, ${v.wgsl})")
+    @annotation.targetName("stepScalar")
+    override def step(edge: FloatExpr): Vec2Expr =
+      Vec2Expr(s"step(${edge.wgsl}, ${v.wgsl})")
+    override def smoothstep(edge0: Vec2Expr, edge1: Vec2Expr): Vec2Expr =
+      Vec2Expr(s"smoothstep(${edge0.wgsl}, ${edge1.wgsl}, ${v.wgsl})")
+    @annotation.targetName("ltVec")
+    override def <(other: Vec2Expr): Vec2Expr =
+      Vec2Expr(s"(1.0 - step(${other.wgsl}, ${v.wgsl}))")
+    @annotation.targetName("lteVec")
+    override def <=(other: Vec2Expr): Vec2Expr =
+      Vec2Expr(s"step(${v.wgsl}, ${other.wgsl})")
+    @annotation.targetName("gtVec")
+    override def >(other: Vec2Expr): Vec2Expr =
+      Vec2Expr(s"(1.0 - step(${v.wgsl}, ${other.wgsl}))")
+    @annotation.targetName("gteVec")
+    override def >=(other: Vec2Expr): Vec2Expr =
+      Vec2Expr(s"step(${other.wgsl}, ${v.wgsl})")
+
 // ---------------------------------------------------------------------------
 // Vec3 — LocalVec3 <: Vec3Expr
 // ---------------------------------------------------------------------------
@@ -254,6 +329,10 @@ given Vec3Base[FloatExpr, Vec3Expr] =
       def x: FloatExpr = FloatExpr(s"${v.wgsl}.x")
       def y: FloatExpr = FloatExpr(s"${v.wgsl}.y")
       def z: FloatExpr = FloatExpr(s"${v.wgsl}.z")
+      override def dot(other: Vec3Expr): FloatExpr = FloatExpr(
+        s"dot(${v.wgsl}, ${other.wgsl})",
+      )
+      override def length: FloatExpr = FloatExpr(s"length(${v.wgsl})")
 
 given Vec3ImmutableOps[FloatExpr, Vec3Expr]:
   def create(x: FloatExpr, y: FloatExpr, z: FloatExpr): Vec3Expr =
@@ -289,6 +368,50 @@ given Vec3ImmutableOps[FloatExpr, Vec3Expr]:
       Vec3Expr(s"(${v.wgsl} / ${scalar.wgsl})")
     def /(scalar: Double): Vec3Expr = v / (scalar: FloatExpr)
 
+    override def normalize: Vec3Expr = Vec3Expr(s"normalize(${v.wgsl})")
+    override def abs: Vec3Expr = Vec3Expr(s"abs(${v.wgsl})")
+    override def sign: Vec3Expr = Vec3Expr(s"sign(${v.wgsl})")
+    override def floor: Vec3Expr = Vec3Expr(s"floor(${v.wgsl})")
+    override def ceil: Vec3Expr = Vec3Expr(s"ceil(${v.wgsl})")
+    override def round: Vec3Expr = Vec3Expr(s"round(${v.wgsl})")
+    override def fract: Vec3Expr = Vec3Expr(s"fract(${v.wgsl})")
+    override def exp: Vec3Expr = Vec3Expr(s"exp(${v.wgsl})")
+    override def log: Vec3Expr = Vec3Expr(s"log(${v.wgsl})")
+    override def log2: Vec3Expr = Vec3Expr(s"log2(${v.wgsl})")
+    override def sqrt: Vec3Expr = Vec3Expr(s"sqrt(${v.wgsl})")
+    override def min(other: Vec3Expr): Vec3Expr =
+      Vec3Expr(s"min(${v.wgsl}, ${other.wgsl})")
+    override def max(other: Vec3Expr): Vec3Expr =
+      Vec3Expr(s"max(${v.wgsl}, ${other.wgsl})")
+    override def clamp(lo: FloatExpr, hi: FloatExpr): Vec3Expr =
+      Vec3Expr(s"clamp(${v.wgsl}, ${lo.wgsl}, ${hi.wgsl})")
+    @annotation.targetName("mixVec")
+    override def mix(b: Vec3Expr, t: Vec3Expr): Vec3Expr =
+      Vec3Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
+    @annotation.targetName("mixScalar")
+    override def mix(b: Vec3Expr, t: FloatExpr): Vec3Expr =
+      Vec3Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
+    @annotation.targetName("stepVec")
+    override def step(edge: Vec3Expr): Vec3Expr =
+      Vec3Expr(s"step(${edge.wgsl}, ${v.wgsl})")
+    @annotation.targetName("stepScalar")
+    override def step(edge: FloatExpr): Vec3Expr =
+      Vec3Expr(s"step(${edge.wgsl}, ${v.wgsl})")
+    override def smoothstep(edge0: Vec3Expr, edge1: Vec3Expr): Vec3Expr =
+      Vec3Expr(s"smoothstep(${edge0.wgsl}, ${edge1.wgsl}, ${v.wgsl})")
+    @annotation.targetName("ltVec")
+    override def <(other: Vec3Expr): Vec3Expr =
+      Vec3Expr(s"(1.0 - step(${other.wgsl}, ${v.wgsl}))")
+    @annotation.targetName("lteVec")
+    override def <=(other: Vec3Expr): Vec3Expr =
+      Vec3Expr(s"step(${v.wgsl}, ${other.wgsl})")
+    @annotation.targetName("gtVec")
+    override def >(other: Vec3Expr): Vec3Expr =
+      Vec3Expr(s"(1.0 - step(${v.wgsl}, ${other.wgsl}))")
+    @annotation.targetName("gteVec")
+    override def >=(other: Vec3Expr): Vec3Expr =
+      Vec3Expr(s"step(${other.wgsl}, ${v.wgsl})")
+
 // ---------------------------------------------------------------------------
 // Vec4 — LocalVec4 <: Vec4Expr
 // ---------------------------------------------------------------------------
@@ -300,6 +423,10 @@ given Vec4Base[FloatExpr, Vec4Expr] =
       def y: FloatExpr = FloatExpr(s"${v.wgsl}.y")
       def z: FloatExpr = FloatExpr(s"${v.wgsl}.z")
       def w: FloatExpr = FloatExpr(s"${v.wgsl}.w")
+      override def dot(other: Vec4Expr): FloatExpr = FloatExpr(
+        s"dot(${v.wgsl}, ${other.wgsl})",
+      )
+      override def length: FloatExpr = FloatExpr(s"length(${v.wgsl})")
 
 given Vec4ImmutableOps[FloatExpr, Vec4Expr]:
   def create(x: FloatExpr, y: FloatExpr, z: FloatExpr, w: FloatExpr): Vec4Expr =
@@ -330,6 +457,50 @@ given Vec4ImmutableOps[FloatExpr, Vec4Expr]:
     @annotation.targetName("divScalar")
     override def /(scalar: FloatExpr): Vec4Expr =
       Vec4Expr(s"(${v.wgsl} / ${scalar.wgsl})")
+
+    override def normalize: Vec4Expr = Vec4Expr(s"normalize(${v.wgsl})")
+    override def abs: Vec4Expr = Vec4Expr(s"abs(${v.wgsl})")
+    override def sign: Vec4Expr = Vec4Expr(s"sign(${v.wgsl})")
+    override def floor: Vec4Expr = Vec4Expr(s"floor(${v.wgsl})")
+    override def ceil: Vec4Expr = Vec4Expr(s"ceil(${v.wgsl})")
+    override def round: Vec4Expr = Vec4Expr(s"round(${v.wgsl})")
+    override def fract: Vec4Expr = Vec4Expr(s"fract(${v.wgsl})")
+    override def exp: Vec4Expr = Vec4Expr(s"exp(${v.wgsl})")
+    override def log: Vec4Expr = Vec4Expr(s"log(${v.wgsl})")
+    override def log2: Vec4Expr = Vec4Expr(s"log2(${v.wgsl})")
+    override def sqrt: Vec4Expr = Vec4Expr(s"sqrt(${v.wgsl})")
+    override def min(other: Vec4Expr): Vec4Expr =
+      Vec4Expr(s"min(${v.wgsl}, ${other.wgsl})")
+    override def max(other: Vec4Expr): Vec4Expr =
+      Vec4Expr(s"max(${v.wgsl}, ${other.wgsl})")
+    override def clamp(lo: FloatExpr, hi: FloatExpr): Vec4Expr =
+      Vec4Expr(s"clamp(${v.wgsl}, ${lo.wgsl}, ${hi.wgsl})")
+    @annotation.targetName("mixVec")
+    override def mix(b: Vec4Expr, t: Vec4Expr): Vec4Expr =
+      Vec4Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
+    @annotation.targetName("mixScalar")
+    override def mix(b: Vec4Expr, t: FloatExpr): Vec4Expr =
+      Vec4Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
+    @annotation.targetName("stepVec")
+    override def step(edge: Vec4Expr): Vec4Expr =
+      Vec4Expr(s"step(${edge.wgsl}, ${v.wgsl})")
+    @annotation.targetName("stepScalar")
+    override def step(edge: FloatExpr): Vec4Expr =
+      Vec4Expr(s"step(${edge.wgsl}, ${v.wgsl})")
+    override def smoothstep(edge0: Vec4Expr, edge1: Vec4Expr): Vec4Expr =
+      Vec4Expr(s"smoothstep(${edge0.wgsl}, ${edge1.wgsl}, ${v.wgsl})")
+    @annotation.targetName("ltVec")
+    override def <(other: Vec4Expr): Vec4Expr =
+      Vec4Expr(s"(1.0 - step(${other.wgsl}, ${v.wgsl}))")
+    @annotation.targetName("lteVec")
+    override def <=(other: Vec4Expr): Vec4Expr =
+      Vec4Expr(s"step(${v.wgsl}, ${other.wgsl})")
+    @annotation.targetName("gtVec")
+    override def >(other: Vec4Expr): Vec4Expr =
+      Vec4Expr(s"(1.0 - step(${v.wgsl}, ${other.wgsl}))")
+    @annotation.targetName("gteVec")
+    override def >=(other: Vec4Expr): Vec4Expr =
+      Vec4Expr(s"step(${other.wgsl}, ${v.wgsl})")
 
 // ---------------------------------------------------------------------------
 // Mat2

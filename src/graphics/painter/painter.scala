@@ -3,7 +3,9 @@ package graphics.painter
 import graphics.buffers.*
 import graphics.math.*
 import graphics.math.cpu.*
+import graphics.math.cpu.Vec2
 import graphics.shader.*
+import graphics.shader.dsl.LayerProgram
 import graphics.shader.dsl.Program
 import org.scalajs.dom.HTMLCanvasElement
 import trivalibs.bufferdata.StructArray
@@ -12,6 +14,12 @@ import webgpu.*
 
 import scala.compiletime.erasedValue
 import scala.scalajs.js
+
+private val LAYER_VERT_BODY =
+  """  let x = f32((in.vertex_index << 1u) & 2u) * 2.0 - 1.0;
+  let y = f32(in.vertex_index & 2u) * 2.0 - 1.0;
+  out.uv = vec2f(x * 0.5 + 0.5, 0.5 - y * 0.5);
+  out.position = vec4f(x, y, 0.0, 1.0);"""
 
 private val BLIT_WGSL = """
 struct VsOut {
@@ -47,6 +55,11 @@ class Painter(
 ):
   private val pipelineCache = Dict[GPURenderPipeline]()
   private var nextShadeId = 0
+  private var prevCanvasWidth = 0
+  private var prevCanvasHeight = 0
+  private val resizeCallbacks = Arr[(Int, Int) => Unit]()
+
+  def onResize(cb: (Int, Int) => Unit): Unit = resizeCallbacks.push(cb)
 
   def width: Int = canvas.width
   def height: Int = canvas.height
@@ -59,7 +72,11 @@ class Painter(
   inline def shade[A, V, U](build: Program[A, V, U] => Unit): Shade[U] =
     val program = new Program[A, V, U]
     build(program)
-    shade[A, V, U](program.vertBodyStr, program.fragBodyStr, program.helperFnsStr)
+    shade[A, V, U](
+      program.vertBodyStr,
+      program.fragBodyStr,
+      program.helperFnsStr,
+    )
 
   inline def shade[A, V, U](
       vertWgsl: String,
@@ -90,6 +107,49 @@ class Painter(
         val vbl = sd.vertexBufferLayout
         val (bgls, pl) = sd.createPipelineLayout(device)
         Shade[U](id, module, vbl, bgls(0), pl, false)
+
+  // =========================================================================
+  // LayerShade factory — fullscreen triangle with user fragment shader
+  // =========================================================================
+
+  inline def layerShade[U](build: LayerProgram[U] => Unit): Shade[U] =
+    val program = new LayerProgram[U]
+    build(program)
+    val id = nextShadeId
+    nextShadeId += 1
+    type VBI = (vertex_index: BuiltinVertexIndex)
+    inline erasedValue[U] match
+      case _: EmptyTuple =>
+        val sd = Shader.full[
+          EmptyTuple,
+          (uv: Vec2),
+          EmptyTuple,
+          VBI,
+          VertOut,
+          EmptyTuple,
+          FragOut,
+        ](LAYER_VERT_BODY, program.fragBodyStr, program.helperFnsStr)
+        val wgsl = sd.generateWGSL
+        log(wgsl)
+        val module = device.createShaderModule(Obj.literal(code = wgsl))
+        val pl = layouts.createPipelineLayout(device, Arr[GPUBindGroupLayout]())
+        Shade[U](id, module, null, null, pl, false)
+      case _ =>
+        type Wrapped = (values: U)
+        val sd = Shader.full[
+          EmptyTuple,
+          (uv: Vec2),
+          Wrapped,
+          VBI,
+          VertOut,
+          EmptyTuple,
+          FragOut,
+        ](LAYER_VERT_BODY, program.fragBodyStr, program.helperFnsStr)
+        val wgsl = sd.generateWGSL
+        log(wgsl)
+        val module = device.createShaderModule(Obj.literal(code = wgsl))
+        val (bgls, pl) = sd.createPipelineLayout(device)
+        Shade[U](id, module, null, bgls(0), pl, false)
 
   // =========================================================================
   // Form factory
@@ -128,6 +188,17 @@ class Painter(
     Shape[U](form, shade, device, bindings, cullMode, blendState)
 
   // =========================================================================
+  // Layer factory
+  // =========================================================================
+
+  def layer[U](
+      shade: Shade[U],
+      bindings: BindingSlots = Arr(),
+      blendState: Opt[BlendState] = Opt.Null,
+  ): Layer[U] =
+    Layer[U](shade, device, bindings, blendState)
+
+  // =========================================================================
   // Panel factory
   // =========================================================================
 
@@ -136,8 +207,9 @@ class Painter(
       height: Int = 0,
       clearColor: Opt[(Double, Double, Double, Double)] = (0.0, 0.0, 0.0, 1.0),
       shapes: Arr[Shape[?]] = Arr(),
+      layers: Arr[Layer[?]] = Arr(),
   ): Panel =
-    Panel(this, width, height, clearColor, shapes)
+    Panel(this, width, height, clearColor, shapes, layers)
 
   // =========================================================================
   // draw() — direct-to-canvas rendering
@@ -180,7 +252,16 @@ class Painter(
   // =========================================================================
 
   def paint(panel: Panel): Unit =
-    panel.ensureSize(width, height)
+    val w = width
+    val h = height
+    if w != prevCanvasWidth || h != prevCanvasHeight then
+      prevCanvasWidth = w
+      prevCanvasHeight = h
+      var k = 0
+      while k < resizeCallbacks.length do
+        resizeCallbacks(k)(w, h)
+        k += 1
+    panel.ensureSize(w, h)
     val encoder = device.createCommandEncoder()
 
     val colorAttachment =
@@ -207,6 +288,11 @@ class Painter(
     while i < panel.shapes.length do
       renderShapeOnPass(pass, panel.shapes(i))
       i += 1
+
+    var j = 0
+    while j < panel.layers.length do
+      renderLayerOnPass(pass, panel.layers(j))
+      j += 1
 
     pass.end()
     queue.submit(Arr(encoder.finish()))
@@ -250,7 +336,9 @@ class Painter(
   // =========================================================================
 
   private lazy val blitSampler: GPUSampler =
-    device.createSampler(Obj.literal(magFilter = "nearest", minFilter = "nearest"))
+    device.createSampler(
+      Obj.literal(magFilter = "nearest", minFilter = "nearest"),
+    )
 
   private lazy val blitBindGroupLayout: GPUBindGroupLayout =
     device.createBindGroupLayout(
@@ -292,7 +380,10 @@ class Painter(
   // Per-shape render pass helper (shared by draw() and paint())
   // =========================================================================
 
-  private def renderShapeOnPass(pass: GPURenderPassEncoder, shape: Shape[?]): Unit =
+  private def renderShapeOnPass(
+      pass: GPURenderPassEncoder,
+      shape: Shape[?],
+  ): Unit =
     val cacheKey = pipelineKeyStr(shape, preferredFormat)
     val pipeline =
       if js.DynamicImplicits.truthValue(
@@ -313,6 +404,71 @@ class Painter(
 
     pass.setVertexBuffer(0, shape.form.vertexBuffer)
     pass.draw(shape.form.vertexCount)
+
+  // =========================================================================
+  // Per-layer render pass helper
+  // =========================================================================
+
+  private def renderLayerOnPass(
+      pass: GPURenderPassEncoder,
+      layer: Layer[?],
+  ): Unit =
+    val cacheKey =
+      s"L|${layer.shade.id}|${layer.blendState.isEmpty}|$preferredFormat"
+    val pipeline =
+      if js.DynamicImplicits.truthValue(
+          pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(cacheKey),
+        )
+      then pipelineCache(cacheKey)
+      else
+        val p = createLayerPipeline(layer)
+        pipelineCache(cacheKey) = p
+        p
+
+    pass.setPipeline(pipeline)
+
+    if layer.bindings.length > 0 && layer.shade.valueBindGroupLayout != null
+    then
+      val entries = Arr[js.Dynamic]()
+      var i = 0
+      while i < layer.bindings.length do
+        val b = layer.bindings(i)
+        if b != null then
+          entries.push(
+            Obj.literal(
+              binding = i,
+              resource = Obj.literal(buffer = b.gpuBuffer),
+            ),
+          )
+        i += 1
+      val bindGroup = device.createBindGroup(
+        Obj.literal(
+          layout = layer.shade.valueBindGroupLayout,
+          entries = entries,
+        ),
+      )
+      pass.setBindGroup(0, bindGroup)
+
+    pass.draw(3)
+
+  private def createLayerPipeline(layer: Layer[?]): GPURenderPipeline =
+    val shade = layer.shade
+    val target: js.Dynamic =
+      if layer.blendState.isEmpty then Obj.literal(format = preferredFormat)
+      else Obj.literal(format = preferredFormat, blend = layer.blendState.safe)
+    device.createRenderPipeline(
+      Obj.literal(
+        layout = shade.pipelineLayout,
+        vertex =
+          Obj.literal(module = shade.shaderModule, entryPoint = "vs_main"),
+        fragment = Obj.literal(
+          module = shade.shaderModule,
+          entryPoint = "fs_main",
+          targets = Arr(target),
+        ),
+        primitive = Obj.literal(topology = "triangle-list"),
+      ),
+    )
 
   // =========================================================================
   // Pipeline creation + caching

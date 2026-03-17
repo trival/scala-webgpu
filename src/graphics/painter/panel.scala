@@ -9,6 +9,7 @@ class Panel(
     val specHeight: Int,
     var clearColor: Opt[(Double, Double, Double, Double)],
     val shapes: Arr[Shape[?]] = Arr(),
+    val layers: Arr[Layer[?]] = Arr(),
 ):
 
   private var _width: Int = 0
@@ -29,7 +30,8 @@ class Panel(
         Obj.literal(
           size = Obj.literal(width = targetW, height = targetH),
           format = painter.preferredFormat,
-          usage = GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+          usage =
+            GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
         ),
       )
       _texture = tex
