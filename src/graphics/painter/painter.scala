@@ -13,6 +13,31 @@ import webgpu.*
 import scala.compiletime.erasedValue
 import scala.scalajs.js
 
+private val BLIT_WGSL = """
+struct VsOut {
+  @builtin(position) pos: vec4f,
+  @location(0) uv: vec2f,
+}
+
+@vertex
+fn vs_main(@builtin(vertex_index) vi: u32) -> VsOut {
+  let x = f32((vi << 1u) & 2u) * 2.0 - 1.0;
+  let y = f32(vi & 2u) * 2.0 - 1.0;
+  var out: VsOut;
+  out.pos = vec4f(x, y, 0.0, 1.0);
+  out.uv = vec2f(x * 0.5 + 0.5, 0.5 - y * 0.5);
+  return out;
+}
+
+@group(0) @binding(0) var blit_texture: texture_2d<f32>;
+@group(0) @binding(1) var blit_sampler: sampler;
+
+@fragment
+fn fs_main(in: VsOut) -> @location(0) vec4f {
+  return textureSample(blit_texture, blit_sampler, in.uv);
+}
+"""
+
 class Painter(
     val device: GPUDevice,
     val queue: GPUQueue,
@@ -103,6 +128,18 @@ class Painter(
     Shape[U](form, shade, device, bindings, cullMode, blendState)
 
   // =========================================================================
+  // Panel factory
+  // =========================================================================
+
+  def panel(
+      width: Int = 0,
+      height: Int = 0,
+      clearColor: Opt[(Double, Double, Double, Double)] = (0.0, 0.0, 0.0, 1.0),
+      shapes: Arr[Shape[?]] = Arr(),
+  ): Panel =
+    Panel(this, width, height, clearColor, shapes)
+
+  // =========================================================================
   // draw() — direct-to-canvas rendering
   // =========================================================================
 
@@ -133,6 +170,129 @@ class Painter(
       Obj.literal(colorAttachments = Arr(colorAttachment)),
     )
 
+    renderShapeOnPass(pass, shape)
+    pass.end()
+
+    queue.submit(Arr(encoder.finish()))
+
+  // =========================================================================
+  // paint() / show() — Panel-based rendering
+  // =========================================================================
+
+  def paint(panel: Panel): Unit =
+    panel.ensureSize(width, height)
+    val encoder = device.createCommandEncoder()
+
+    val colorAttachment =
+      if !panel.clearColor.isEmpty then
+        val (r, g, b, a) = panel.clearColor.safe
+        Obj.literal(
+          view = panel.textureView,
+          loadOp = "clear",
+          storeOp = "store",
+          clearValue = Obj.literal(r = r, g = g, b = b, a = a),
+        )
+      else
+        Obj.literal(
+          view = panel.textureView,
+          loadOp = "load",
+          storeOp = "store",
+        )
+
+    val pass = encoder.beginRenderPass(
+      Obj.literal(colorAttachments = Arr(colorAttachment)),
+    )
+
+    var i = 0
+    while i < panel.shapes.length do
+      renderShapeOnPass(pass, panel.shapes(i))
+      i += 1
+
+    pass.end()
+    queue.submit(Arr(encoder.finish()))
+
+  def show(panel: Panel): Unit =
+    val encoder = device.createCommandEncoder()
+    val swapChainView = context.getCurrentTexture().createView()
+
+    val pass = encoder.beginRenderPass(
+      Obj.literal(
+        colorAttachments = Arr(
+          Obj.literal(
+            view = swapChainView,
+            loadOp = "clear",
+            storeOp = "store",
+            clearValue = Obj.literal(r = 0.0, g = 0.0, b = 0.0, a = 1.0),
+          ),
+        ),
+      ),
+    )
+
+    val bindGroup = device.createBindGroup(
+      Obj.literal(
+        layout = blitBindGroupLayout,
+        entries = Arr(
+          Obj.literal(binding = 0, resource = panel.textureView),
+          Obj.literal(binding = 1, resource = blitSampler),
+        ),
+      ),
+    )
+
+    pass.setPipeline(blitPipeline)
+    pass.setBindGroup(0, bindGroup)
+    pass.draw(3)
+    pass.end()
+
+    queue.submit(Arr(encoder.finish()))
+
+  // =========================================================================
+  // Blit pipeline — created lazily on first show()
+  // =========================================================================
+
+  private lazy val blitSampler: GPUSampler =
+    device.createSampler(Obj.literal(magFilter = "nearest", minFilter = "nearest"))
+
+  private lazy val blitBindGroupLayout: GPUBindGroupLayout =
+    device.createBindGroupLayout(
+      Obj.literal(
+        entries = Arr(
+          Obj.literal(
+            binding = 0,
+            visibility = GPUShaderStage.FRAGMENT,
+            texture = Obj.literal(),
+          ),
+          Obj.literal(
+            binding = 1,
+            visibility = GPUShaderStage.FRAGMENT,
+            sampler = Obj.literal(),
+          ),
+        ),
+      ),
+    )
+
+  private lazy val blitPipeline: GPURenderPipeline =
+    val module = device.createShaderModule(Obj.literal(code = BLIT_WGSL))
+    val pipelineLayout = device.createPipelineLayout(
+      Obj.literal(bindGroupLayouts = Arr(blitBindGroupLayout)),
+    )
+    device.createRenderPipeline(
+      Obj.literal(
+        layout = pipelineLayout,
+        vertex = Obj.literal(module = module, entryPoint = "vs_main"),
+        fragment = Obj.literal(
+          module = module,
+          entryPoint = "fs_main",
+          targets = Arr(Obj.literal(format = preferredFormat)),
+        ),
+        primitive = Obj.literal(topology = "triangle-list"),
+      ),
+    )
+
+  // =========================================================================
+  // Per-shape render pass helper (shared by draw() and paint())
+  // =========================================================================
+
+  private def renderShapeOnPass(pass: GPURenderPassEncoder, shape: Shape[?]): Unit =
     val cacheKey = pipelineKeyStr(shape, preferredFormat)
     val pipeline =
       if js.DynamicImplicits.truthValue(
@@ -153,9 +313,6 @@ class Painter(
 
     pass.setVertexBuffer(0, shape.form.vertexBuffer)
     pass.draw(shape.form.vertexCount)
-    pass.end()
-
-    queue.submit(Arr(encoder.finish()))
 
   // =========================================================================
   // Pipeline creation + caching

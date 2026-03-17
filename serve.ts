@@ -1,9 +1,10 @@
 import { serve } from "bun";
 import bufferTriangle from "./drafts/buffer_triangle/index.html";
 import index from "./drafts/index.html";
-import painterTriangle from "./drafts/painter_triangle/index.html";
 import painterDsl from "./drafts/painter_dsl/index.html";
+import painterTriangle from "./drafts/painter_triangle/index.html";
 import painterTypedBindings from "./drafts/painter_typed_bindings/index.html";
+import panelTriangle from "./drafts/panel_triangle/index.html";
 import simpleTriangle from "./drafts/simple_triangle/index.html";
 
 const server = serve({
@@ -15,6 +16,7 @@ const server = serve({
 		"/painter_triangle": painterTriangle,
 		"/painter_dsl": painterDsl,
 		"/painter_typed_bindings": painterTypedBindings,
+		"/panel_triangle": panelTriangle,
 		"/simple_triangle": simpleTriangle,
 	},
 

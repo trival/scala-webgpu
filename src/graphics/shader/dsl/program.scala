@@ -17,7 +17,7 @@ import scala.scalajs.js
 //       ctx.locals.rotated := ctx.bindings.rotation * ctx.in.position,
 //       ctx.out.position   := vec4(ctx.locals.rotated + ctx.bindings.translation, 0.0, 1.0),
 //     )
-//   program.frag[EmptyTuple]: ctx =>
+//   program.frag: ctx =>
 //     Block(
 //       ctx.out.color := vec4(ctx.bindings.color, 1.0),
 //     )
@@ -43,6 +43,10 @@ class Program[A, V, U]:
 
   def helperFnsStr: String = fnSrcs.mkString("\n\n")
 
+  /** Vertex shader with no typed locals. */
+  inline def vert(body: VertexCtx[A, V, U, EmptyTuple] => Block): Unit =
+    vert[EmptyTuple](body)
+
   /** Vertex shader with optional typed locals. */
   inline def vert[L](
       body: VertexCtx[A, V, U, L] => Block,
@@ -50,13 +54,17 @@ class Program[A, V, U]:
     val kinds = buildLocalKinds[L]
     val ctx = VertexCtx[A, V, U, L](
       in = TypedExprAccessor[NamedTuple.Map[A & AnyNamedTuple, ToExpr]]("in"),
-      out = TypedAssignAccessor[(position: AssignTarget)]("out"),
+      out = VertexOut[V]("out"),
       bindings =
         TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]](""),
       locals =
         TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]](kinds),
     )
     vertBody = body(ctx)
+
+  /** Fragment shader with no typed locals. */
+  inline def frag(body: FragmentCtx[V, U, EmptyTuple] => Block): Unit =
+    frag[EmptyTuple](body)
 
   /** Fragment shader with optional typed locals. */
   inline def frag[L](

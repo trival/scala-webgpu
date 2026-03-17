@@ -27,7 +27,9 @@ class Shape[U](
     var blendState: Opt[BlendState] = Opt.Null,
 ):
   def bind(slots: (Int, BufferBinding[?, ?])*): Shape[U] =
-    for (slot, binding) <- slots do bindings(slot) = binding
+    for (slot, binding) <- slots do
+      while bindings.length <= slot do bindings.push(null)
+      bindings(slot) = binding
     this
 
   inline def bind[N1 <: String & Singleton, V1](
@@ -73,6 +75,7 @@ class Shape[U](
     val idx = derive.uniformFieldIndex[N, U]
     inline value match
       case bb: BufferBinding[?, ?] =>
+        while bindings.length <= idx do bindings.push(null)
         bindings(idx) = bb
       case rawValue =>
         if idx < bindings.length && bindings(idx) != null then
@@ -81,4 +84,5 @@ class Shape[U](
           summonFrom:
             case uv: UniformValue[V, f] =>
               val bb = BufferBinding[V, f](device, rawValue)(using uv)
+              while bindings.length <= idx do bindings.push(null)
               bindings(idx) = bb

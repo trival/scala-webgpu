@@ -33,6 +33,9 @@ type UniformToExpr[T] = T match
   case FragmentUniform[t] => ToExpr[t]
   case _                  => ToExpr[T]
 
+/** Maps any type to AssignTarget — used for vertex varying output fields. */
+type ToAssign[T] = AssignTarget
+
 /** Maps GPU math types to Local/Var/Const opaque types for typed local
   * variables.
   */

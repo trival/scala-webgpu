@@ -40,6 +40,9 @@ trait GPUDevice extends js.Object:
     js.native
   def createPipelineLayout(descriptor: js.Dynamic): GPUPipelineLayout =
     js.native
+  def createTexture(descriptor: js.Dynamic): GPUTexture = js.native
+  def createSampler(): GPUSampler = js.native
+  def createSampler(descriptor: js.Dynamic): GPUSampler = js.native
 
 // =============================================================================
 // Queue
@@ -150,13 +153,24 @@ trait GPUCanvasContext extends js.Object:
 trait GPUTexture extends js.Object:
   def createView(): GPUTextureView = js.native
   def createView(descriptor: js.Dynamic): GPUTextureView = js.native
+  def destroy(): Unit = js.native
 
 @js.native
 trait GPUTextureView extends js.Object
 
+@js.native
+trait GPUSampler extends js.Object
+
 // =============================================================================
 // Constants
 // =============================================================================
+
+object GPUTextureUsage:
+  val COPY_SRC = 0x01
+  val COPY_DST = 0x02
+  val TEXTURE_BINDING = 0x04
+  val STORAGE_BINDING = 0x08
+  val RENDER_ATTACHMENT = 0x10
 
 object GPUBufferUsage:
   val MAP_READ = 0x0001

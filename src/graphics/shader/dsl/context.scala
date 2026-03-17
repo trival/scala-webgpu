@@ -63,10 +63,29 @@ class TypedLocalAccessor[F <: AnyNamedTuple](
 // Stage-Specific Context Types
 // ---------------------------------------------------------------------------
 
-/** Vertex shader context. */
+/** Vertex output accessor.
+  *
+  * - `out.position` — direct val, always available, no Selectable dispatch
+  * - `out.fieldName` — any varying field via Selectable (same mechanism as
+  *   `ctx.in` in `FragmentCtx`)
+  */
+class VertexOut[V](prefix: String) extends Selectable:
+  type Fields = NamedTuple.Map[V & AnyNamedTuple, ToAssign]
+  val position: AssignTarget = AssignTarget(s"$prefix.position")
+  def selectDynamic(name: String): AssignTarget =
+    AssignTarget(s"$prefix.$name")
+
+/** Vertex shader context.
+  *
+  * - `out.position` — built-in clip-space position output
+  * - `out.fieldName` — write a named varying passed to the fragment stage
+  * - `in.fieldName` — read a vertex attribute
+  * - `bindings.name` — read a uniform binding
+  * - `locals.name` — read/write a typed local variable
+  */
 class VertexCtx[A, V, U, L](
     val in: TypedExprAccessor[NamedTuple.Map[A & AnyNamedTuple, ToExpr]],
-    val out: TypedAssignAccessor[(position: AssignTarget)],
+    val out: VertexOut[V],
     val bindings: TypedExprAccessor[
       NamedTuple.Map[U & AnyNamedTuple, UniformToExpr],
     ],
