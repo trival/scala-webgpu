@@ -49,7 +49,7 @@ class Vec4f(
 
 object Vec4f extends Vec4ImmutableOps[Float, Vec4f]:
   inline def create(x: Float, y: Float, z: Float, w: Float) =
-    Vec4f(x, y, z, w)
+    new Vec4f(x, y, z, w)
   given Vec4ImmutableOps[Float, Vec4f] = Vec4f
 
   given Vec4Mutable[Float, Vec4f]:
@@ -106,7 +106,7 @@ class Vec4(
 
 object Vec4 extends Vec4ImmutableOps[Double, Vec4]:
   inline def create(x: Double, y: Double, z: Double, w: Double) =
-    Vec4(x, y, z, w)
+    new Vec4(x, y, z, w)
   given Vec4ImmutableOps[Double, Vec4] = Vec4
 
   given Vec4Mutable[Double, Vec4]:

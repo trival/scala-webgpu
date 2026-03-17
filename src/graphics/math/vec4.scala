@@ -35,6 +35,8 @@ trait Vec4ImmutableOps[Num: {NumExt, NumOps}, Vec]:
 
   def create(x: Num, y: Num, z: Num, w: Num): Vec
 
+  inline def apply(x: Num, y: Num, z: Num, w: Num): Vec = create(x, y, z, w)
+
   inline def apply[V3](xyz: V3, w: Num)(using Vec3Base[Num, V3]): Vec =
     create(xyz.x, xyz.y, xyz.z, w)
 
