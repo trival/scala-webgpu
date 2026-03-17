@@ -44,15 +44,17 @@ def main(): Unit =
           ),
         )
 
-    val layer = painter.layer(shade)
+    val time = painter.binding(0.0f)
+    val res = painter.binding[Vec2]
+
+    val layer = painter.layer(shade).bind("time" := time, "resolution" := res)
     val panel = painter.panel(layers = Arr(layer))
 
     painter.onResize: (w, h) =>
-      layer.bind("resolution" := Vec2(w.toDouble, h.toDouble))
+      res.set(Vec2(w, h))
 
-    var time = 0.0
     animate: tpf =>
-      time += tpf
-      layer.bind("time" := (time / 1000.0).toFloat)
+      time.set(time.get + tpf * 0.0005f)
+
       painter.paint(panel)
       painter.show(panel)
