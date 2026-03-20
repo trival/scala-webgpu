@@ -1,6 +1,7 @@
 import { serve } from "bun";
 import bufferTriangle from "./drafts/buffer_triangle/index.html";
 import index from "./drafts/index.html";
+import layerTex from "./drafts/layer_tex/index.html";
 import painterDsl from "./drafts/painter_dsl/index.html";
 import painterTriangle from "./drafts/painter_triangle/index.html";
 import painterTypedBindings from "./drafts/painter_typed_bindings/index.html";
@@ -14,6 +15,7 @@ const server = serve({
 	routes: {
 		"/": index,
 		"/buffer_triangle": bufferTriangle,
+		"/layer_tex": layerTex,
 		"/painter_triangle": painterTriangle,
 		"/painter_dsl": painterDsl,
 		"/painter_typed_bindings": painterTypedBindings,

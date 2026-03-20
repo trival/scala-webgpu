@@ -23,7 +23,7 @@ import scala.scalajs.js
 //     )
 // ---------------------------------------------------------------------------
 
-class Program[A, V, U]:
+class Program[A, V, U, P]:
   var vertBody: Block = Block.empty
   var fragBody: Block = Block.empty
   private val fnSrcs = Arr[String]()
@@ -32,7 +32,7 @@ class Program[A, V, U]:
   /** Register a helper function to be emitted before vs_main/fs_main.
     * Idempotent — registering the same name twice has no effect.
     */
-  def fn[P, R](f: WgslFn[P, R]): Unit =
+  def fn[FP, R](f: WgslFn[FP, R]): Unit =
     val data = f.asInstanceOf[WgslFnData]
     if !js.DynamicImplicits.truthValue(
         fnNames.asInstanceOf[js.Dynamic].hasOwnProperty(data.name),
@@ -44,34 +44,35 @@ class Program[A, V, U]:
   def helperFnsStr: String = fnSrcs.mkString("\n\n")
 
   /** Vertex shader with no typed locals. */
-  inline def vert(body: VertexCtx[A, V, U, EmptyTuple] => Block): Unit =
+  inline def vert(body: VertexCtx[A, V, U, EmptyTuple, P] => Block): Unit =
     vert[EmptyTuple](body)
 
   /** Vertex shader with optional typed locals. */
   inline def vert[L](
-      body: VertexCtx[A, V, U, L] => Block,
+      body: VertexCtx[A, V, U, L, P] => Block,
   ): Unit =
     val kinds = buildLocalKinds[L]
-    val ctx = VertexCtx[A, V, U, L](
+    val ctx = VertexCtx[A, V, U, L, P](
       in = TypedExprAccessor[NamedTuple.Map[A & AnyNamedTuple, ToExpr]]("in"),
       out = VertexOut[V]("out"),
       bindings =
         TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]](""),
       locals =
         TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]](kinds),
+      textures = TypedPanelAccessor[P](),
     )
     vertBody = body(ctx)
 
   /** Fragment shader with no typed locals. */
-  inline def frag(body: FragmentCtx[V, U, EmptyTuple] => Block): Unit =
+  inline def frag(body: FragmentCtx[V, U, EmptyTuple, P] => Block): Unit =
     frag[EmptyTuple](body)
 
   /** Fragment shader with optional typed locals. */
   inline def frag[L](
-      body: FragmentCtx[V, U, L] => Block,
+      body: FragmentCtx[V, U, L, P] => Block,
   ): Unit =
     val kinds = buildLocalKinds[L]
-    val ctx = FragmentCtx[V, U, L](
+    val ctx = FragmentCtx[V, U, L, P](
       in = TypedExprAccessor[
         NamedTuple.Map[V & AnyNamedTuple, ToExpr],
       ]("in"),
@@ -80,6 +81,7 @@ class Program[A, V, U]:
         TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]](""),
       locals =
         TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]](kinds),
+      textures = TypedPanelAccessor[P](),
     )
     fragBody = body(ctx)
 

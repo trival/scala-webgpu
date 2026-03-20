@@ -8,8 +8,8 @@ class Panel(
     val specWidth: Int,
     val specHeight: Int,
     var clearColor: Opt[(Double, Double, Double, Double)],
-    val shapes: Arr[Shape[?]] = Arr(),
-    val layers: Arr[Layer[?]] = Arr(),
+    val shapes: Arr[Shape[?, ?]] = Arr(),
+    val layers: Arr[Layer[?, ?]] = Arr(),
 ):
 
   private var _width: Int = 0

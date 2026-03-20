@@ -19,7 +19,7 @@ import scala.scalajs.js
   *     ctx.out.color := vec4(ctx.in.uv, 0.0, 1.0)
   * }}}
   */
-class LayerProgram[U]:
+class LayerProgram[U, P]:
   var fragBody: Block = Block.empty
   private val fnSrcs = Arr[String]()
   private val fnNames = Dict[Boolean]()
@@ -27,7 +27,7 @@ class LayerProgram[U]:
   /** Register a helper function. Idempotent — same name registered twice is a
     * no-op.
     */
-  def fn[P, R](f: WgslFn[P, R]): Unit =
+  def fn[FP, R](f: WgslFn[FP, R]): Unit =
     val data = f.asInstanceOf[WgslFnData]
     if !js.DynamicImplicits.truthValue(
         fnNames.asInstanceOf[js.Dynamic].hasOwnProperty(data.name),
@@ -42,21 +42,22 @@ class LayerProgram[U]:
     * coords (0..1).
     */
   inline def frag(
-      body: FragmentCtx[(uv: Vec2), U, EmptyTuple] => Block,
+      body: FragmentCtx[(uv: Vec2), U, EmptyTuple, P] => Block,
   ): Unit = frag[EmptyTuple](body)
 
   /** Fragment shader with typed locals. */
   inline def frag[L](
-      body: FragmentCtx[(uv: Vec2), U, L] => Block,
+      body: FragmentCtx[(uv: Vec2), U, L, P] => Block,
   ): Unit =
     val kinds = buildLocalKinds[L]
-    val ctx = FragmentCtx[(uv: Vec2), U, L](
+    val ctx = FragmentCtx[(uv: Vec2), U, L, P](
       in = TypedExprAccessor[NamedTuple.Map[(uv: Vec2) & AnyNamedTuple, ToExpr]]("in"),
       out = TypedAssignAccessor[(color: AssignTarget)]("out"),
       bindings =
         TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]](""),
       locals =
         TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]](kinds),
+      textures = TypedPanelAccessor[P](),
     )
     fragBody = body(ctx)
 

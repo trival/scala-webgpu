@@ -66,6 +66,15 @@ object Expr:
   opaque type BoolExpr <: Expr = Expr
   object BoolExpr { def apply(s: String): BoolExpr = new Expr(s) }
 
+  // GPU resource expression types — opaque wrappers used in shader DSL
+  // for texture and sampler bindings. No CPU-side representation.
+
+  opaque type Texture2D <: Expr = Expr
+  object Texture2D { def apply(s: String): Texture2D = new Expr(s) }
+
+  opaque type Sampler <: Expr = Expr
+  object Sampler { def apply(s: String): Sampler = new Expr(s) }
+
   // Local types — each <: its Expr type (for math ops) & LetExpr (for :=)
   // At runtime all are LetExpr instances, so selectDynamic returning
   // LetExpr(name) + asInstanceOf cast works safely.
@@ -120,6 +129,12 @@ object Expr:
   opaque type ConstVec4 <: Vec4Expr & ConstExpr = ConstExpr
   object ConstVec4 { def apply(s: String): ConstVec4 = new ConstExpr(s) }
 
+extension (tex: Expr.Texture2D)
+  def sample(uv: Expr.Vec2Expr, sampler: Expr.Sampler): Expr.Vec4Expr =
+    Expr.Vec4Expr(s"textureSample(${tex.wgsl}, ${sampler.wgsl}, ${uv.wgsl})")
+  def apply(uv: Expr.Vec2Expr, sampler: Expr.Sampler): Expr.Vec4Expr =
+    Expr.Vec4Expr(s"textureSample(${tex.wgsl}, ${sampler.wgsl}, ${uv.wgsl})")
+
 export Expr.{
   FloatExpr,
   Vec2Expr,
@@ -129,6 +144,8 @@ export Expr.{
   Mat3Expr,
   Mat4Expr,
   BoolExpr,
+  Texture2D,
+  Sampler,
   LetFloat,
   LetVec2,
   LetVec3,

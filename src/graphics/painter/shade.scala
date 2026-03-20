@@ -1,13 +1,15 @@
 package graphics.painter
 
-import scala.scalajs.js
 import webgpu.*
 
-class Shade[U](
+import scala.scalajs.js
+
+class Shade[U, P](
     val id: Int,
     val shaderModule: GPUShaderModule,
     val vertexBufferLayout: js.Dynamic | Null,
     val valueBindGroupLayout: GPUBindGroupLayout | Null,
+    val panelBindGroupLayout: GPUBindGroupLayout | Null,
     val pipelineLayout: GPUPipelineLayout,
     val isLayer: Boolean,
 )

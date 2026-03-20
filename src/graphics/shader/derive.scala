@@ -3,6 +3,7 @@ package graphics.shader
 import scala.compiletime.*
 import scala.NamedTuple.AnyNamedTuple
 import graphics.buffers.BufferBinding
+import graphics.math.gpu.Expr.Sampler
 import trivalibs.utils.js.Arr
 
 /** Utilities for deriving WGSL code from Scala types at compile time */
@@ -286,6 +287,98 @@ object derive:
       .zip(types)
       .zipWithIndex
       .map { case ((name, typ), bindingIdx) =>
-        s"@group($groupIdx) @binding($bindingIdx) var<uniform> $name: $typ;"
+        if typ == "sampler" then
+          s"@group($groupIdx) @binding($bindingIdx) var $name: sampler;"
+        else
+          s"@group($groupIdx) @binding($bindingIdx) var<uniform> $name: $typ;"
       }
       .mkString("\n")
+
+  // ===========================================================================
+  // Panel Type Helpers
+  // ===========================================================================
+
+  /** Check at compile time if name N exists as a field in named tuple T. */
+  inline def containsName[N <: String & Singleton, T]: Boolean =
+    inline erasedValue[T] match
+      case _: EmptyTuple    => false
+      case _: AnyNamedTuple =>
+        containsNameImpl[N, NamedTuple.Names[T & AnyNamedTuple]]
+      case _ => false
+
+  private inline def containsNameImpl[N <: String & Singleton, Names <: Tuple]
+      : Boolean =
+    inline erasedValue[Names] match
+      case _: EmptyTuple     => false
+      case _: (name *: rest) =>
+        inline constValue[name] match
+          case _: N => true
+          case _    => containsNameImpl[N, rest]
+
+  /** Resolve a panel field name to its binding index. */
+  inline def panelFieldIndex[Name <: String, P]: Int =
+    inline erasedValue[P] match
+      case _: AnyNamedTuple =>
+        uniformFieldIndexImpl[
+          Name,
+          NamedTuple.Names[P & AnyNamedTuple],
+          0,
+        ]
+
+  /** Generate @group(1) WGSL declarations for all panel texture fields. */
+  inline def generatePanelDeclarations[P]: String =
+    inline erasedValue[P] match
+      case _: EmptyTuple    => ""
+      case _: AnyNamedTuple =>
+        generatePanelDeclsImpl[
+          NamedTuple.Names[P & AnyNamedTuple],
+          NamedTuple.DropNames[P & AnyNamedTuple],
+        ](0)
+      case _ => ""
+
+  private inline def generatePanelDeclsImpl[
+      Names <: Tuple,
+      Types <: Tuple,
+  ](bindingIdx: Int): String =
+    inline (erasedValue[Names], erasedValue[Types]) match
+      case (_: EmptyTuple, _: EmptyTuple) => ""
+      case (_: (name *: namesRest), _: (head *: typesRest)) =>
+        val fieldName = constValue[name].asInstanceOf[String]
+        val decl =
+          s"@group(1) @binding($bindingIdx) var $fieldName: texture_2d<f32>;"
+        val rest = generatePanelDeclsImpl[namesRest, typesRest](bindingIdx + 1)
+        if rest.isEmpty then decl else s"$decl\n$rest"
+
+  /** Compile-time check that field Name in U is a Sampler uniform.
+    * Used in processEntry when binding a GPUSampler.
+    */
+  inline def checkSamplerFieldType[Name <: String, U]: Unit =
+    inline erasedValue[U] match
+      case _: AnyNamedTuple =>
+        checkSamplerFieldImpl[
+          Name,
+          NamedTuple.Names[U & AnyNamedTuple],
+          NamedTuple.DropNames[U & AnyNamedTuple],
+        ]
+
+  private inline def checkSamplerFieldImpl[
+      Name <: String,
+      Names <: Tuple,
+      Types <: Tuple,
+  ]: Unit =
+    inline (erasedValue[Names], erasedValue[Types]) match
+      case (_: EmptyTuple, _) =>
+        error("Field not found in Uniforms type")
+      case (_: (name *: namesRest), _: (head *: typesRest)) =>
+        inline constValue[name] match
+          case _: Name =>
+            inline erasedValue[head] match
+              case _: VertexUniform[Sampler]   => ()
+              case _: FragmentUniform[Sampler] => ()
+              case _: SharedUniform[Sampler]   => ()
+              case _ =>
+                error(
+                  "This uniform field is not a Sampler — bind GPUSampler only to Sampler fields",
+                )
+          case _ =>
+            checkSamplerFieldImpl[Name, namesRest, typesRest]

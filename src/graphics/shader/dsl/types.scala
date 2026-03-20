@@ -3,6 +3,7 @@ package graphics.shader.dsl
 import graphics.math.cpu.*
 import graphics.math.gpu.*
 import graphics.shader.FragmentUniform
+import graphics.shader.SharedUniform
 import graphics.shader.VertexUniform
 import trivalibs.utils.js.Dict
 import scala.NamedTuple
@@ -17,21 +18,27 @@ class Const[T]
 
 /** Maps GPU math types to their DSL expression equivalents. */
 type ToExpr[T] = T match
-  case Float   => FloatExpr
-  case Double  => FloatExpr
-  case Boolean => BoolExpr
-  case Vec2    => Vec2Expr
-  case Vec3    => Vec3Expr
-  case Vec4    => Vec4Expr
-  case Mat2    => Mat2Expr
-  case Mat3    => Mat3Expr
-  case Mat4    => Mat4Expr
+  case Texture2D => Texture2D
+  case Sampler   => Sampler
+  case Float     => FloatExpr
+  case Double    => FloatExpr
+  case Boolean   => BoolExpr
+  case Vec2      => Vec2Expr
+  case Vec3      => Vec3Expr
+  case Vec4      => Vec4Expr
+  case Mat2      => Mat2Expr
+  case Mat3      => Mat3Expr
+  case Mat4      => Mat4Expr
 
 /** Unwraps uniform wrapper types and maps to Expr. */
 type UniformToExpr[T] = T match
-  case VertexUniform[t]   => ToExpr[t]
-  case FragmentUniform[t] => ToExpr[t]
-  case _                  => ToExpr[T]
+  case VertexUniform[Sampler]   => Sampler
+  case FragmentUniform[Sampler] => Sampler
+  case SharedUniform[Sampler]   => Sampler
+  case VertexUniform[t]         => ToExpr[t]
+  case FragmentUniform[t]       => ToExpr[t]
+  case SharedUniform[t]         => ToExpr[t]
+  case _                        => ToExpr[T]
 
 /** Maps any type to AssignTarget — used for vertex varying output fields. */
 type ToAssign[T] = AssignTarget

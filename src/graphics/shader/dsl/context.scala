@@ -8,6 +8,23 @@ import scala.NamedTuple.AnyNamedTuple
 import scala.scalajs.js
 
 // ---------------------------------------------------------------------------
+// TypedPanelAccessor[P] — returns Texture2D for every panel field
+// ---------------------------------------------------------------------------
+
+/** Maps all panel wrapper types to Texture2D */
+type PanelToTexture2D[T] = T match
+  case graphics.shader.FragmentPanel => Texture2D
+  case graphics.shader.VertexPanel   => Texture2D
+  case graphics.shader.SharedPanel   => Texture2D
+
+/** Read-only accessor for panel texture bindings (group 1).
+  * Each field returns a Texture2D expression.
+  */
+class TypedPanelAccessor[P] extends Selectable:
+  type Fields = NamedTuple.Map[P & AnyNamedTuple, PanelToTexture2D]
+  def selectDynamic(name: String): Texture2D = Texture2D(name)
+
+// ---------------------------------------------------------------------------
 // Typed Selectable Accessors — compile-time field checking via named tuples
 // ---------------------------------------------------------------------------
 
@@ -82,22 +99,25 @@ class VertexOut[V](prefix: String) extends Selectable:
   * - `in.fieldName` — read a vertex attribute
   * - `bindings.name` — read a uniform binding
   * - `locals.name` — read/write a typed local variable
+  * - `textures.name` — read a panel texture binding (group 1)
   */
-class VertexCtx[A, V, U, L](
+class VertexCtx[A, V, U, L, P](
     val in: TypedExprAccessor[NamedTuple.Map[A & AnyNamedTuple, ToExpr]],
     val out: VertexOut[V],
     val bindings: TypedExprAccessor[
       NamedTuple.Map[U & AnyNamedTuple, UniformToExpr],
     ],
     val locals: TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]],
+    val textures: TypedPanelAccessor[P],
 )
 
 /** Fragment shader context. Fragment output is always `color: Vec4`. */
-class FragmentCtx[V, U, L](
+class FragmentCtx[V, U, L, P](
     val in: TypedExprAccessor[NamedTuple.Map[V & AnyNamedTuple, ToExpr]],
     val out: TypedAssignAccessor[(color: AssignTarget)],
     val bindings: TypedExprAccessor[
       NamedTuple.Map[U & AnyNamedTuple, UniformToExpr],
     ],
     val locals: TypedLocalAccessor[NamedTuple.Map[L & AnyNamedTuple, ToLocal]],
+    val textures: TypedPanelAccessor[P],
 )

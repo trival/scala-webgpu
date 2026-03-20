@@ -1,6 +1,7 @@
 package graphics.shader
 
 import graphics.math.cpu.*
+import graphics.math.gpu.Expr.{Texture2D, Sampler}
 import trivalibs.bufferdata.F32
 
 import scala.compiletime.*
@@ -11,6 +12,7 @@ trait WGSLType[T]:
   def byteSize: Int
   def alignment: Int
   def vertexFormat: String
+  def isSampler: Boolean = false
   type AttribBuffer <: Tuple
   type UniformBuffer <: Tuple
 
@@ -139,6 +141,7 @@ object VertexUniform:
     def byteSize = inner.byteSize
     def alignment = inner.alignment
     def vertexFormat = inner.vertexFormat
+    override def isSampler = inner.isSampler
     type AttribBuffer = inner.AttribBuffer
     type UniformBuffer = inner.UniformBuffer
 
@@ -151,6 +154,7 @@ object FragmentUniform:
     def byteSize = inner.byteSize
     def alignment = inner.alignment
     def vertexFormat = inner.vertexFormat
+    override def isSampler = inner.isSampler
     type AttribBuffer = inner.AttribBuffer
     type UniformBuffer = inner.UniformBuffer
 
@@ -163,5 +167,40 @@ object SharedUniform:
     def byteSize = inner.byteSize
     def alignment = inner.alignment
     def vertexFormat = inner.vertexFormat
+    override def isSampler = inner.isSampler
     type AttribBuffer = inner.AttribBuffer
     type UniformBuffer = inner.UniformBuffer
+
+// =============================================================================
+// GPU Resource Types (Texture2D, Sampler) — used in shader DSL, no CPU side
+// =============================================================================
+
+given WGSLType[Texture2D]:
+  def wgslName = "texture_2d<f32>"
+  def byteSize = 0
+  def alignment = 0
+  def vertexFormat = ""
+  type AttribBuffer = EmptyTuple
+  type UniformBuffer = EmptyTuple
+
+given WGSLType[Sampler]:
+  def wgslName = "sampler"
+  def byteSize = 0
+  def alignment = 0
+  def vertexFormat = ""
+  override def isSampler = true
+  type AttribBuffer = EmptyTuple
+  type UniformBuffer = EmptyTuple
+
+// =============================================================================
+// Panel Visibility Wrappers (Group 1 texture bindings)
+// =============================================================================
+
+/** Panel texture visible only in the fragment shader */
+sealed trait FragmentPanel
+
+/** Panel texture visible only in the vertex shader */
+sealed trait VertexPanel
+
+/** Panel texture visible in both vertex and fragment shaders */
+sealed trait SharedPanel

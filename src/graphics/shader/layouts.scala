@@ -1,5 +1,6 @@
 package graphics.shader
 
+import graphics.math.gpu.Expr.Sampler
 import trivalibs.utils.js.Arr
 import trivalibs.utils.js.Obj
 import webgpu.GPUBindGroupLayout
@@ -126,13 +127,31 @@ object layouts:
     inline erasedValue[T] match
       case _: EmptyTuple     => Arr()
       case _: (head *: rest) =>
-        val entry = Obj.literal(
-          binding = bindingIdx,
-          visibility = visibilityFlags[head],
-          buffer = Obj.literal(
-            `type` = "uniform"
-          )
-        )
+        val entry = inline erasedValue[head] match
+          case _: VertexUniform[Sampler] =>
+            Obj.literal(
+              binding = bindingIdx,
+              visibility = GPUShaderStage.VERTEX,
+              sampler = Obj.literal(),
+            )
+          case _: FragmentUniform[Sampler] =>
+            Obj.literal(
+              binding = bindingIdx,
+              visibility = GPUShaderStage.FRAGMENT,
+              sampler = Obj.literal(),
+            )
+          case _: SharedUniform[Sampler] =>
+            Obj.literal(
+              binding = bindingIdx,
+              visibility = GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+              sampler = Obj.literal(),
+            )
+          case _ =>
+            Obj.literal(
+              binding = bindingIdx,
+              visibility = visibilityFlags[head],
+              buffer = Obj.literal(`type` = "uniform"),
+            )
         Arr(entry) ++ bindGroupEntriesImpl[rest](bindingIdx + 1)
 
   /** Derive all bind group layout descriptors from the full Uniforms type.
@@ -182,3 +201,47 @@ object layouts:
     val bgLayouts = createBindGroupLayouts[Uniforms](device)
     val pipelineLayout = createPipelineLayout(device, bgLayouts)
     (bgLayouts, pipelineLayout)
+
+  // ===========================================================================
+  // Panel Bind Group Layout (Group 1)
+  // ===========================================================================
+
+  /** Derive visibility flags from a panel wrapper type */
+  private inline def panelVisibilityFlags[T]: Int =
+    inline erasedValue[T] match
+      case _: FragmentPanel => GPUShaderStage.FRAGMENT
+      case _: VertexPanel   => GPUShaderStage.VERTEX
+      case _: SharedPanel   => GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT
+      case _                => GPUShaderStage.FRAGMENT
+
+  private inline def panelBindGroupEntries[P]: Arr[js.Dynamic] =
+    inline erasedValue[P] match
+      case _: EmptyTuple    => Arr()
+      case _: AnyNamedTuple =>
+        panelBindGroupEntriesImpl[NamedTuple.DropNames[P & AnyNamedTuple]](0)
+      case _ => Arr()
+
+  private inline def panelBindGroupEntriesImpl[T <: Tuple](
+      bindingIdx: Int
+  ): Arr[js.Dynamic] =
+    inline erasedValue[T] match
+      case _: EmptyTuple     => Arr()
+      case _: (head *: rest) =>
+        val entry = Obj.literal(
+          binding = bindingIdx,
+          visibility = panelVisibilityFlags[head],
+          texture = Obj.literal(),
+        )
+        Arr(entry) ++ panelBindGroupEntriesImpl[rest](bindingIdx + 1)
+
+  /** Create the group 1 bind group layout for panel texture bindings.
+    * Returns null when P = EmptyTuple.
+    */
+  inline def createPanelBindGroupLayout[P](
+      device: GPUDevice
+  ): GPUBindGroupLayout | Null =
+    inline erasedValue[P] match
+      case _: EmptyTuple => null
+      case _ =>
+        val entries = panelBindGroupEntries[P]
+        device.createBindGroupLayout(Obj.literal(entries = entries))
