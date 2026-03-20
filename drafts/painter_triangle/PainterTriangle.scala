@@ -21,7 +21,7 @@ def main(): Unit =
   val canvas =
     document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
 
-  initPainter(canvas): painter =>
+  Painter.init(canvas): painter =>
     type Attribs = (position: Vec2, color: Vec3)
     type Varyings = (color: Vec3)
     type Uniforms = (tintColor: Vec3)

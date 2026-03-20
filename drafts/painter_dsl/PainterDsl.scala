@@ -23,7 +23,7 @@ def main(): Unit =
   val canvas =
     document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
 
-  initPainter(canvas): painter =>
+  Painter.init(canvas): painter =>
     type Attribs = (position: Vec2)
     type Varyings = EmptyTuple
     type Uniforms = (

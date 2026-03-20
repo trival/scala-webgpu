@@ -19,7 +19,7 @@ def main(): Unit =
   val canvas =
     document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
 
-  initPainter(canvas): painter =>
+  Painter.init(canvas): painter =>
     type Uniforms = (
         time: FragmentUniform[Float],
         res: FragmentUniform[Vec2],
