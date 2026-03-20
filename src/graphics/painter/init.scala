@@ -34,20 +34,6 @@ def initPainter(canvas: HTMLCanvasElement)(
 
       val painter = Painter(device, queue, canvas, context, format)
 
-      // Set up ResizeObserver — updates canvas dimensions and painter's size
-      val observer = js.Dynamic
-        .newInstance(js.Dynamic.global.ResizeObserver)(
-          ((entries: js.Array[js.Dynamic]) =>
-            val entry = entries(0)
-            val w = entry.contentRect.width.asInstanceOf[Int]
-            val h = entry.contentRect.height.asInstanceOf[Int]
-            if w > 0 && h > 0 then
-              canvas.width = w
-              canvas.height = h
-          ): js.Function1[js.Array[js.Dynamic], Unit],
-        )
-      observer.observe(canvas)
-
       // Set initial canvas size
       val w = canvas.clientWidth
       val h = canvas.clientHeight
@@ -55,3 +41,18 @@ def initPainter(canvas: HTMLCanvasElement)(
       canvas.height = h
 
       init(painter)
+
+      // Set up ResizeObserver — updates canvas dimensions and fires painter callbacks
+      val observer = js.Dynamic
+        .newInstance(js.Dynamic.global.ResizeObserver)(
+          ((entries: js.Array[js.Dynamic]) =>
+            val entry = entries(0)
+            val rw = entry.contentRect.width.asInstanceOf[Int]
+            val rh = entry.contentRect.height.asInstanceOf[Int]
+            if rw > 0 && rh > 0 then
+              canvas.width = rw
+              canvas.height = rh
+              painter.fireResize(rw, rh)
+          ): js.Function1[js.Array[js.Dynamic], Unit],
+        )
+      observer.observe(canvas)

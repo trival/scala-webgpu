@@ -55,11 +55,17 @@ class Painter(
 ):
   private val pipelineCache = Dict[GPURenderPipeline]()
   private var nextShadeId = 0
-  private var prevCanvasWidth = 0
-  private var prevCanvasHeight = 0
   private val resizeCallbacks = Arr[(Int, Int) => Unit]()
 
-  def onResize(cb: (Int, Int) => Unit): Unit = resizeCallbacks.push(cb)
+  def onResize(cb: (Int, Int) => Unit): Unit =
+    resizeCallbacks.push(cb)
+    cb(canvas.width, canvas.height)
+
+  private[painter] def fireResize(w: Int, h: Int): Unit =
+    var k = 0
+    while k < resizeCallbacks.length do
+      resizeCallbacks(k)(w, h)
+      k += 1
 
   def width: Int = canvas.width
   def height: Int = canvas.height
@@ -254,13 +260,6 @@ class Painter(
   def paint(panel: Panel): Unit =
     val w = width
     val h = height
-    if w != prevCanvasWidth || h != prevCanvasHeight then
-      prevCanvasWidth = w
-      prevCanvasHeight = h
-      var k = 0
-      while k < resizeCallbacks.length do
-        resizeCallbacks(k)(w, h)
-        k += 1
     panel.ensureSize(w, h)
     val encoder = device.createCommandEncoder()
 
