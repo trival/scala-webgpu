@@ -10,6 +10,7 @@ infrastructure from Feature 1.
 
 1. [Texture & Sampler API Reference](#1-texture--sampler-api-reference)
 2. [Feature 1: Panel Texture Bindings + MSAA (panel_tex draft)](#2-feature-1-panel-texture-bindings--msaa)
+   2b. [Feature 1b: Depth Buffer](#2b-feature-1b-depth-buffer)
 3. [Feature 2: Post-Processing Stack / Ping-Pong (blur port)](#3-feature-2-post-processing-stack--ping-pong)
 4. [Open Questions](#4-open-questions)
 5. [Implementation Status](#5-implementation-status)
@@ -23,12 +24,13 @@ infrastructure from Feature 1.
 `Texture2D` and `Sampler` are unified GPU resource types — they serve double
 duty as both the **type used in declarations** (shader contracts, `WgslFn`
 parameter types) and the **DSL expression type** returned from context accessors
-(`ctx.textures.*`, `ctx.bindings.*`). Unlike `Vec2`, `Float`, etc., they have
-no CPU-side representation.
+(`ctx.textures.*`, `ctx.bindings.*`). Unlike `Vec2`, `Float`, etc., they have no
+CPU-side representation.
 
 At runtime both are opaque string-wrapping types (like all `*Expr` types), where
-`toString` yields the WGSL variable name. `WGSLType[Texture2D].wgslName =
-"texture_2d<f32>"`, `WGSLType[Sampler].wgslName = "sampler"`.
+`toString` yields the WGSL variable name.
+`WGSLType[Texture2D].wgslName = "texture_2d<f32>"`,
+`WGSLType[Sampler].wgslName = "sampler"`.
 
 ### 1.2 Sampler Bindings (Group 0)
 
@@ -120,8 +122,8 @@ ctx.bindings.texSampler   // Sampler
 
 ### 1.5 Texture2D Methods
 
-`Texture2D` exposes sampling as dot-methods, matching the project's existing
-DSL style (`vec.mix(other, t)`, etc.):
+`Texture2D` exposes sampling as dot-methods, matching the project's existing DSL
+style (`vec.mix(other, t)`, etc.):
 
 ```scala
 // Primary method — explicit name
@@ -167,8 +169,8 @@ val texShade = painter.shade[Attribs, Varyings, Uniforms, Panels]: program =>
 
 ### 1.7 WgslFn with Texture2D and Sampler Parameters
 
-`Texture2D` and `Sampler` are valid `WgslFn` parameter types. The generated
-WGSL function signature uses `texture_2d<f32>` and `sampler` respectively.
+`Texture2D` and `Sampler` are valid `WgslFn` parameter types. The generated WGSL
+function signature uses `texture_2d<f32>` and `sampler` respectively.
 
 **`WgslFn.raw`** — raw WGSL body, typed Scala call site:
 
@@ -238,10 +240,10 @@ val msaaPanel = painter.panel(
 ### 1.9 Post-Processing Layers
 
 For layers in a post-processing stack, `P` is declared the same way as for
-shapes. When a layer does **not** manually bind slot 0, the painter automatically
-injects the previous render result there — enabling the ping-pong chain. If a
-layer **does** bind slot 0 explicitly, that binding is respected and no
-ping-pong swap occurs for that layer:
+shapes. When a layer does **not** manually bind slot 0, the painter
+automatically injects the previous render result there — enabling the ping-pong
+chain. If a layer **does** bind slot 0 explicitly, that binding is respected and
+no ping-pong swap occurs for that layer:
 
 ```scala
 type LayerUniforms = (blurSampler: FragmentUniform[Sampler], ...)
@@ -267,8 +269,8 @@ val fixedLayer = painter.layer(blurShade)
   .bind("source" := someFixedPanel, "blurSampler" := painter.samplerLinear)
 ```
 
-Layers without `P` (procedural effects, plasma, etc.) are unaffected —
-rendered in-place with no ping-pong:
+Layers without `P` (procedural effects, plasma, etc.) are unaffected — rendered
+in-place with no ping-pong:
 
 ```scala
 val plasmaShade = painter.layerShade[PlasmaUniforms]: program =>   // P = EmptyTuple
@@ -353,8 +355,8 @@ lazy val samplerLinear: GPUSampler
 
 #### 2.2.2 Group 1: Panel Texture Declarations
 
-A new type parameter `P` on `Shade` represents panel textures in group 1.
-`P` is a named tuple of `FragmentPanel` / `VertexPanel` / `SharedPanel` fields.
+A new type parameter `P` on `Shade` represents panel textures in group 1. `P` is
+a named tuple of `FragmentPanel` / `VertexPanel` / `SharedPanel` fields.
 
 `Shade[U, P = EmptyTuple]` gains `panelBindGroupLayout`:
 
@@ -378,16 +380,16 @@ class Shade[U, P = EmptyTuple](
    entry per field with visibility from the wrapper type
 
 `Texture2D` serves both as the declared field type in `WgslFn` params and as the
-DSL expression returned by `ctx.textures.*`. `WGSLType[Texture2D].wgslName =
-"texture_2d<f32>"`.
+DSL expression returned by `ctx.textures.*`.
+`WGSLType[Texture2D].wgslName = "texture_2d<f32>"`.
 
 #### 2.2.3 Shape[U, P] and Layer[U, P]
 
-Both classes gain `panelBindings: Arr[Panel | Null]` as internal storage.
-There is no separate `bindPanels` method — panel bindings go through the same
-`bind` method as uniforms and samplers. `processEntry` resolves the name at
-compile time: if found in `U`, it routes to `bindings`; if found in `P`, it
-routes to `panelBindings`. A name absent from both is a compile error.
+Both classes gain `panelBindings: Arr[Panel | Null]` as internal storage. There
+is no separate `bindPanels` method — panel bindings go through the same `bind`
+method as uniforms and samplers. `processEntry` resolves the name at compile
+time: if found in `U`, it routes to `bindings`; if found in `P`, it routes to
+`panelBindings`. A name absent from both is a compile error.
 
 ```scala
 class Shape[U, P = EmptyTuple](
@@ -522,8 +524,9 @@ existing shaders.
 
 #### 2.2.8 Backward Compatibility
 
-`Shade[U, P = EmptyTuple]`, `Shape[U, P = EmptyTuple]`, `Layer[U, P = EmptyTuple]`
-— default type parameters mean all existing code compiles unchanged.
+`Shade[U, P = EmptyTuple]`, `Shape[U, P = EmptyTuple]`,
+`Layer[U, P = EmptyTuple]` — default type parameters mean all existing code
+compiles unchanged.
 
 ### 2.3 Implementation Steps
 
@@ -547,7 +550,8 @@ existing shaders.
 
 **Step 2 — Panel bind group (group 1)**
 
-- Add `sealed trait FragmentPanel`, `VertexPanel`, `SharedPanel` to `types.scala`
+- Add `sealed trait FragmentPanel`, `VertexPanel`, `SharedPanel` to
+  `types.scala`
 - Add `generatePanelDeclarations[P]` to `derive.scala`
 - Add `createPanelBindGroupLayout[P]` to `layouts.scala`
 - Update `ShaderDef.generateWGSL` to append panel declarations
@@ -604,6 +608,97 @@ struct FragmentOutput { @location(0) color: vec4<f32> }
   return out;
 }
 ```
+
+---
+
+## 2b. Feature 1b: Depth Buffer
+
+**Goal**: Allow panels to render 3D geometry with correct depth sorting.
+Required for the `panel_tex` 3D upgrade (shapes with perspective projection and
+Y-axis rotation will overlap and need depth testing). Depth is orthogonal to
+both texture sampling (Feature 1) and post-processing (Feature 2) — it is a
+property of the render target, not the shader.
+
+**Prerequisite**: Feature 1 (panel texture sampling) should be stable first, but
+Feature 1b can be implemented independently of Feature 2.
+
+### 2b.1 Design
+
+`Panel` gains an optional depth texture. When `depthTest = true` the painter
+allocates a matching `depth24plus` texture alongside the color texture and
+attaches it to the render pass. Shapes and layers rendered into that panel
+automatically use a depth-testing pipeline.
+
+```scala
+class Panel(
+  ...,
+  val depthTest: Boolean = false,   // NEW — allocate + attach depth texture
+):
+  private var _depthTexture: GPUTexture | Null     = null
+  private var _depthView:    GPUTextureView | Null = null
+```
+
+No WGSL changes needed — depth testing is fully handled by the pipeline and
+render pass descriptors, not the shader.
+
+### 2b.2 Implementation Steps
+
+**Step 1 — Panel depth texture allocation**
+
+- Add `depthTest: Boolean = false` parameter to `Panel` and `painter.panel`
+- In `Panel.ensureSize`: when `depthTest = true`, create a `depth24plus` texture
+  at the same size as the color texture; store as `_depthTexture` / `_depthView`
+- On resize, destroy the old depth texture before allocating the new one
+
+**Step 2 — Render pass depth attachment**
+
+- In `paint(panel)` / `beginRenderPass`: when `panel.depthTest`, attach
+  `depthStencilAttachment`:
+  ```js
+  {
+    view:           panel.depthView,
+    depthLoadOp:    "clear",
+    depthStoreOp:   "store",
+    depthClearValue: 1.0,
+  }
+  ```
+
+**Step 3 — Pipeline depth state**
+
+- In `createPipeline` / `createLayerPipeline`: when the target panel has
+  `depthTest = true`, include:
+  ```js
+  depthStencil: {
+    format:            "depth24plus",
+    depthWriteEnabled: true,
+    depthCompare:      "less",
+  }
+  ```
+- The pipeline cache key gains a `|depth` suffix to keep depth-enabled pipelines
+  separate from non-depth ones for the same shade.
+- The panel must be known at pipeline-creation time. Pass a `depthTest: Boolean`
+  flag into `renderShapeOnPass` / `renderLayerOnPass` so it can be forwarded to
+  the pipeline cache lookup.
+
+**Step 4 — panel_tex 3D draft**
+
+- Enable `depthTest = true` on the two intermediate panels (`trianglePanel`,
+  `quadPanel`) once their shapes use perspective projection
+- The canvas panel (flat textured quads/triangles) does not need depth testing
+- Update `panel_tex` draft to use `PerspectiveCamera` + `Transform` once the
+  `graphics.scene` layer is implemented
+
+### 2b.3 WGSL Impact
+
+None. Depth is implicit — the rasterizer writes and tests fragment depth
+automatically when a `depthStencil` attachment is present in the pipeline. The
+shader does not need to output a depth value unless overriding the default (not
+needed here).
+
+### 2b.4 Implementation Status
+
+⏭ Not yet started. Prerequisite: Feature 1 build errors fixed + `panel_tex`
+draft compiling cleanly.
 
 ---
 
@@ -861,12 +956,12 @@ val gaussianBlur9: WgslFn[(tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir:
    in `painter.scala` (`inline erasedValue[P]` etc.). Default type parameters in
    `inline` + `erasedValue` context may require explicit attention.
 
-2. **Sampler variant in `generateUniformGroupFromLists`**: The existing generator
-   emits `var<uniform> name: type;` for every field. Sampler fields need `var
-   name: sampler;` (no address space qualifier). The simplest fix is to check
-   `WGSLType[T]` for a `isSampler` flag (or just match on `wgslName ==
-   "sampler"`) and emit the appropriate line. Binding indices stay consecutive
-   across both kinds, so no index-consistency problem arises.
+2. **Sampler variant in `generateUniformGroupFromLists`**: The existing
+   generator emits `var<uniform> name: type;` for every field. Sampler fields
+   need `var name: sampler;` (no address space qualifier). The simplest fix is
+   to check `WGSLType[T]` for a `isSampler` flag (or just match on
+   `wgslName == "sampler"`) and emit the appropriate line. Binding indices stay
+   consecutive across both kinds, so no index-consistency problem arises.
 
 3. **MSAA + panel texture sampling**: When `color_quad_layer` uses MSAA, its
    resolved `textureView` (not the MSAA view) is what gets bound in group 1. The
@@ -880,8 +975,8 @@ val gaussianBlur9: WgslFn[(tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir:
 
 5. **Plasma example with Feature 2**: Plasma uses `P = EmptyTuple` layers, so
    they render in-place without ping-pong. No backward-compat issue. If the user
-   later adds a `P`-typed layer after a plasma layer, the ping-pong path kicks in
-   with the plasma's output as the source.
+   later adds a `P`-typed layer after a plasma layer, the ping-pong path kicks
+   in with the plasma's output as the source.
 
 ---
 
@@ -926,14 +1021,14 @@ val gaussianBlur9: WgslFn[(tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir:
 
 - `Shape[U, P]` and `Layer[U, P]` carry `panelBindings: Arr[Panel | Null]`
 - `processEntry` dispatches via `inline if derive.containsName[N, U]` /
-  `inline if derive.containsName[N, P]` at compile time; `GPUSampler` arm
-  added for group-0 sampler slots
+  `inline if derive.containsName[N, P]` at compile time; `GPUSampler` arm added
+  for group-0 sampler slots
 - `TypedPanelAccessor[P]` with `Selectable` and `PanelToTexture2D` match type
   added to `shader/dsl/context.scala`
 - `VertexCtx` and `FragmentCtx` gain `textures: TypedPanelAccessor[P]`
 - `Program[A,V,U,P]` and `LayerProgram[U,P]` updated to pass the accessor
-- `renderShapeOnPass` / `renderLayerOnPass` set group 1 when `panelBindings`
-  is non-empty
+- `renderShapeOnPass` / `renderLayerOnPass` set group 1 when `panelBindings` is
+  non-empty
 
 **Step 4 — MSAA** ⏭ Deferred
 
@@ -965,6 +1060,11 @@ remain before the draft compiles cleanly:
   `inline erasedValue[head] match { case _: *Uniform[Sampler] => ... }` in
   `derive.scala` — compile-time dispatch, not a runtime `.isSampler` flag check
   (which cannot be used as an `inline if` condition).
+
+### Feature 1b (Depth Buffer)
+
+Not yet started. Prerequisite: Feature 1 build errors resolved + `panel_tex`
+compiling cleanly. See §2b for the full design.
 
 ### Feature 2 (Post-Processing / Ping-Pong)
 
