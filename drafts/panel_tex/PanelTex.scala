@@ -1,4 +1,4 @@
-package layer_tex
+package panel_tex
 
 import graphics.buffers.*
 import graphics.math.cpu.{*, given}
@@ -40,7 +40,7 @@ type TexUniforms = (
 )
 type TexPanels = (colorTex: FragmentPanel)
 
-@JSExportTopLevel("main", moduleID = "layer_tex")
+@JSExportTopLevel("main", moduleID = "panel_tex")
 def main(): Unit =
   val canvas =
     document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]

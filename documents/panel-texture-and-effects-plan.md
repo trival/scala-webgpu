@@ -9,9 +9,10 @@ infrastructure from Feature 1.
 ## Table of Contents
 
 1. [Texture & Sampler API Reference](#1-texture--sampler-api-reference)
-2. [Feature 1: Panel Texture Bindings + MSAA (layer_tex port)](#2-feature-1-panel-texture-bindings--msaa)
+2. [Feature 1: Panel Texture Bindings + MSAA (panel_tex draft)](#2-feature-1-panel-texture-bindings--msaa)
 3. [Feature 2: Post-Processing Stack / Ping-Pong (blur port)](#3-feature-2-post-processing-stack--ping-pong)
 4. [Open Questions](#4-open-questions)
+5. [Implementation Status](#5-implementation-status)
 
 ---
 
@@ -281,7 +282,7 @@ val plasmaShade = painter.layerShade[PlasmaUniforms]: program =>   // P = EmptyT
 
 **Goal**: Allow shapes (and layers) to sample another Panel's render output as a
 texture. Also implement MSAA on panels so the Rust `layer_tex` example can be
-fully ported. The target draft is `drafts/layer_tex/`: two intermediate panels
+fully ported. The target draft is `drafts/panel_tex/`: two intermediate panels
 render colored shapes, a third panel's shapes sample those textures.
 
 ### 2.1 What the Rust Example Does
@@ -573,9 +574,9 @@ existing shaders.
 - `createPipeline` / `createLayerPipeline`: `multisample = { count: 4 }` + cache
   key update
 
-**Step 5 — layer_tex draft**
+**Step 5 — panel_tex draft**
 
-- Create `drafts/layer_tex/`
+- Create `drafts/panel_tex/`
 - `trianglePanel` — red triangle (Mat4 MVP uniform), yellow clear, 800×800
 - `quadPanel` — blue quad (Mat4 MVP uniform), green clear, 800×800, MSAA
 - `canvasPanel` — two shapes using `texShade`:
@@ -881,3 +882,91 @@ val gaussianBlur9: WgslFn[(tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir:
    they render in-place without ping-pong. No backward-compat issue. If the user
    later adds a `P`-typed layer after a plasma layer, the ping-pong path kicks in
    with the plasma's output as the source.
+
+---
+
+## 5. Implementation Status
+
+### Feature 1 (Panel Texture Bindings)
+
+**Step 1 — Texture2D + Sampler types** ✅ Done
+
+- `opaque type Texture2D <: Expr` and `opaque type Sampler <: Expr` added to
+  `expr.scala` with `.sample()` / `.apply()` extension methods
+- `WGSLType[Texture2D]` and `WGSLType[Sampler]` added to `shader/types.scala`
+- `ToExpr` and `UniformToExpr` cases added to `shader/dsl/types.scala`
+- `derive.scala` / `generateUniformGroupFromLists` emits `var name: sampler;`
+  for sampler fields (no address space qualifier) vs `var<uniform>` for buffers,
+  using `inline erasedValue[head] match` (not a runtime `.isSampler` check)
+- `layouts.scala` / `bindGroupEntriesImpl` emits `sampler = Obj.literal()`
+  instead of `buffer = Obj.literal(type = "uniform")` for sampler entries
+- `BindingSlots = Arr[BufferBinding[?,?] | GPUSampler | Null]`
+- `painter.samplerNearest` and `painter.samplerLinear` lazy vals added
+
+**Step 2 — Panel bind group (group 1)** ✅ Done
+
+- `sealed trait FragmentPanel`, `VertexPanel`, `SharedPanel` added to
+  `shader/types.scala`
+- `derive.generatePanelDeclarations[P]`, `derive.panelFieldIndex[N, P]`,
+  `derive.containsName[N, T]` added to `derive.scala`
+- `layouts.createPanelBindGroupLayout[P]` added to `layouts.scala`
+- `Shade[U, P]` gains `panelBindGroupLayout: GPUBindGroupLayout | Null`
+
+  > **Note**: `class Shade[U, P = EmptyTuple]` is not supported in Scala 3.8.2
+  > (class-level type parameter defaults are a parse error). The class is
+  > `Shade[U, P]` with no default; all call sites specify both type params
+  > explicitly.
+
+- `painter.shade[A,V,U,P]` and `painter.layerShade[U,P]` overloads added;
+  private helpers `shadeFromWgsl` / `layerShadeFromWgsl` generate panel
+  declarations and include the panel BGL in the pipeline layout when `P` is
+  non-empty
+
+**Step 3 — Shape / Layer / render path** ✅ Done
+
+- `Shape[U, P]` and `Layer[U, P]` carry `panelBindings: Arr[Panel | Null]`
+- `processEntry` dispatches via `inline if derive.containsName[N, U]` /
+  `inline if derive.containsName[N, P]` at compile time; `GPUSampler` arm
+  added for group-0 sampler slots
+- `TypedPanelAccessor[P]` with `Selectable` and `PanelToTexture2D` match type
+  added to `shader/dsl/context.scala`
+- `VertexCtx` and `FragmentCtx` gain `textures: TypedPanelAccessor[P]`
+- `Program[A,V,U,P]` and `LayerProgram[U,P]` updated to pass the accessor
+- `renderShapeOnPass` / `renderLayerOnPass` set group 1 when `panelBindings`
+  is non-empty
+
+**Step 4 — MSAA** ⏭ Deferred
+
+Intentionally skipped for now. The `panel_tex` draft runs without MSAA. Will be
+implemented as a follow-up once the texture-sampling path is stable.
+
+**Step 5 — panel_tex draft** 🔧 In progress
+
+Draft created at `drafts/panel_tex/`. Core logic is written; two build errors
+remain before the draft compiles cleanly:
+
+1. `src/graphics/painter/panel.scala` still stores `Arr[Shape[?]]` and
+   `Arr[Layer[?]]` (one type param). Must be updated to `Arr[Shape[?,?]]` and
+   `Arr[Layer[?,?]]`. This also fixes the type mismatch in `painter.scala:275`
+   and the `Shape[?]` vs `Shape[?,?]` errors at lines 345/350.
+
+2. `drafts/panel_tex/PanelTex.scala` uses named-field access on `StructRef`
+   (`.position.set(...)`, `.uv.set(...)`) which is not supported. Must use
+   positional setters `.set0()`, `.set1()` as in all existing drafts.
+
+### Open Questions — Resolved
+
+- **Q1 (class type param defaults)**: `class Shade[U, P = EmptyTuple]` fails to
+  parse in Scala 3.8.2. Resolution: no default; all factories specify `P`
+  explicitly. Scala 3 only supports default type params on `type` aliases and
+  `given`/`def` type params, not `class`.
+
+- **Q2 (sampler in generateUniformGroupFromLists)**: Resolved by using
+  `inline erasedValue[head] match { case _: *Uniform[Sampler] => ... }` in
+  `derive.scala` — compile-time dispatch, not a runtime `.isSampler` flag check
+  (which cannot be used as an `inline if` condition).
+
+### Feature 2 (Post-Processing / Ping-Pong)
+
+Not yet started. Prerequisite: Feature 1 must be fully working (panel_tex
+compiling and running). See §3 for the complete design.
