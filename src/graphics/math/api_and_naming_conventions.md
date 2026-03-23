@@ -32,8 +32,6 @@ Each vector/matrix type is supported by a set of traits:
   `length_squared`, `length` for vectors; `determinant` for matrices)
 - `Vec*Mutable` / `Mat*Mutable` — extends Base, adds field setters (`x_=`,
   `m00_=`, …)
-- `Mat*SharedOps` — matrix-only scalar operations (e.g. `determinant`); not
-  needed for vectors since their scalar ops live directly in `Vec*Base`
 - `Vec*ImmutableOps` / `Mat*ImmutableOps` — operations that return a new
   instance via `create`
 - `Vec*MutableOps` / `Mat*MutableOps` — operations that write into an existing

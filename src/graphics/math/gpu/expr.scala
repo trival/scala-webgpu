@@ -530,6 +530,8 @@ given Mat2Base[FloatExpr, Mat2Expr] =
       def m01: FloatExpr = FloatExpr(s"${m.wgsl}[0][1]")
       def m10: FloatExpr = FloatExpr(s"${m.wgsl}[1][0]")
       def m11: FloatExpr = FloatExpr(s"${m.wgsl}[1][1]")
+      override def determinant(using NumOps[FloatExpr]): FloatExpr =
+        FloatExpr(s"determinant(${m.wgsl})")
 
 given Mat2ImmutableOps[FloatExpr, Mat2Expr]:
   def create(
@@ -567,6 +569,8 @@ given Mat3Base[FloatExpr, Mat3Expr] =
       def m20: FloatExpr = FloatExpr(s"${m.wgsl}[2][0]")
       def m21: FloatExpr = FloatExpr(s"${m.wgsl}[2][1]")
       def m22: FloatExpr = FloatExpr(s"${m.wgsl}[2][2]")
+      override def determinant(using NumOps[FloatExpr]): FloatExpr =
+        FloatExpr(s"determinant(${m.wgsl})")
 
 given Mat3ImmutableOps[FloatExpr, Mat3Expr]:
   def create(
@@ -618,6 +622,8 @@ given Mat4Base[FloatExpr, Mat4Expr] =
       def m31: FloatExpr = FloatExpr(s"${m.wgsl}[3][1]")
       def m32: FloatExpr = FloatExpr(s"${m.wgsl}[3][2]");
       def m33: FloatExpr = FloatExpr(s"${m.wgsl}[3][3]")
+      override def determinant(using NumOps[FloatExpr]): FloatExpr =
+        FloatExpr(s"determinant(${m.wgsl})")
 
 // format: off
 given Mat4ImmutableOps[FloatExpr, Mat4Expr]:

@@ -38,6 +38,18 @@ trait Mat4Base[Num, Mat]:
     inline def row2: (Num, Num, Num, Num) = (m02, m12, m22, m32)
     inline def row3: (Num, Num, Num, Num) = (m03, m13, m23, m33)
 
+    // format: off
+    def determinant(using NumOps[Num]): Num =
+      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02; val a03 = m.m03
+      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12; val a13 = m.m13
+      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22; val a23 = m.m23
+      val a30 = m.m30; val a31 = m.m31; val a32 = m.m32; val a33 = m.m33
+      a00 * (a11 * (a22 * a33 - a23 * a32) - a21 * (a12 * a33 - a13 * a32) + a31 * (a12 * a23 - a13 * a22)) -
+        a10 * (a01 * (a22 * a33 - a23 * a32) - a21 * (a02 * a33 - a03 * a32) + a31 * (a02 * a23 - a03 * a22)) +
+        a20 * (a01 * (a12 * a33 - a13 * a32) - a11 * (a02 * a33 - a03 * a32) + a31 * (a02 * a13 - a03 * a12)) -
+        a30 * (a01 * (a12 * a23 - a13 * a22) - a11 * (a02 * a23 - a03 * a22) + a21 * (a02 * a13 - a03 * a12))
+    // format: on
+
 trait Mat4Mutable[Num, Mat] extends Mat4Base[Num, Mat]:
   extension (m: Mat)
     def m00_=(v: Num): Unit
@@ -78,21 +90,6 @@ trait Mat4Mutable[Num, Mat] extends Mat4Base[Num, Mat]:
       m.m03 = r._1; m.m13 = r._2; m.m23 = r._3; m.m33 = r._4
 
 // format: off
-trait Mat4SharedOps[Num: NumOps, Mat]:
-
-
-  extension (m: Mat)(using Mat4Base[Num, Mat])
-    def determinant: Num =
-      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02; val a03 = m.m03
-      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12; val a13 = m.m13
-      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22; val a23 = m.m23
-      val a30 = m.m30; val a31 = m.m31; val a32 = m.m32; val a33 = m.m33
-
-      a00 * (a11 * (a22 * a33 - a23 * a32) - a21 * (a12 * a33 - a13 * a32) + a31 * (a12 * a23 - a13 * a22)) -
-        a10 * (a01 * (a22 * a33 - a23 * a32) - a21 * (a02 * a33 - a03 * a32) + a31 * (a02 * a23 - a03 * a22)) +
-        a20 * (a01 * (a12 * a33 - a13 * a32) - a11 * (a02 * a33 - a03 * a32) + a31 * (a02 * a13 - a03 * a12)) -
-        a30 * (a01 * (a12 * a23 - a13 * a22) - a11 * (a02 * a23 - a03 * a22) + a21 * (a02 * a13 - a03 * a12))
-
 trait Mat4ImmutableOps[Num: NumOps, Mat]:
 
 

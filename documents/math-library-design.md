@@ -79,7 +79,7 @@ Vec*ImmutableOps[Num, Vec]  — allocating ops returning a new instance (via abs
 Vec*MutableOps[Num, Vec]    — in-place ops writing into a target: *Self, *To(out), +=/-=
 
 Mat*Base[Num, Mat]          — read-only accessors (.mColRow, col/row getters) + scalar-returning ops
-                               (.determinant); formerly also carried by Mat*SharedOps — now merged here
+                               (.determinant)
 Mat*Mutable[Num, Mat]       — extends Base, adds field setters, col/row setters
 Mat*ImmutableOps[Num, Mat]  — allocating ops: arithmetic operators, transpose, constructors, etc.
 Mat*MutableOps[Num, Mat]    — in-place ops: *Self, *To(out), +=/-=
@@ -88,11 +88,6 @@ QuatImmutableOps[Num, Q]    — quat ops returning a new instance (quatMul, quat
 QuatMutableOps[Num, Q]      — quat ops writing into a target (quatMulSelf, conjugateSelf, setFrom*, …)
                                Quat base accessors are provided by Vec4Base[Num, Q] (same layout)
 ```
-
-> **Note on `Mat*SharedOps`**: This trait was removed. The ops it held
-> (`.determinant`) have no separate return-type issue with `create` — they
-> return scalars. They now live in `Mat*Base` alongside other scalar-returning
-> accessors. GPU expr overrides via extension methods in `expr.scala` as usual.
 
 ### 1.5 Column-Major Convention
 
@@ -533,7 +528,7 @@ pattern is uncommon. Tracked as P6 in §8.2.
 - **Vec2, Vec3, Vec4** — all CPU types (mutable class, tuple, F32 buffer), full
   `Base`, `ImmutableOps`, `MutableOps` trait instances ✅
 - **Mat2, Mat3, Mat4** — all CPU types (mutable class, tuple, F32 buffer), full
-  `Base`, `SharedOps`, `ImmutableOps`, `MutableOps` trait instances ✅
+  `Base` (incl. `determinant`), `ImmutableOps`, `MutableOps` trait instances ✅
 - **Mat4 per-axis rotation constructors** — `fromRotationX/Y/Z`, `identity` ✅
 - **Mat4 apply-transform methods** — `rotateX/Y/Z` (immutable + mutable) ✅
 - **GPU DSL expression types** — `FloatExpr`, `Vec*Expr`, `Mat*Expr`,
@@ -620,9 +615,9 @@ Tracked separately in `panel-texture-and-effects-plan.md`. Requires:
 | `src/graphics/math/vec2.scala`                    | `Vec2Base`, `Vec2Mutable`, `Vec2ImmutableOps`, `Vec2MutableOps` |
 | `src/graphics/math/vec3.scala`                    | `Vec3Base`, …                                                   |
 | `src/graphics/math/vec4.scala`                    | `Vec4Base`, …                                                   |
-| `src/graphics/math/mat2.scala`                    | `Mat2Base`, `Mat2SharedOps`, …                                  |
-| `src/graphics/math/mat3.scala`                    | `Mat3Base`, `Mat3SharedOps`, …                                  |
-| `src/graphics/math/mat4.scala`                    | `Mat4Base`, `Mat4SharedOps`, … **← add new constructors here**  |
+| `src/graphics/math/mat2.scala`                    | `Mat2Base`, `Mat2Mutable`, `Mat2ImmutableOps`, `Mat2MutableOps` |
+| `src/graphics/math/mat3.scala`                    | `Mat3Base`, …                                                   |
+| `src/graphics/math/mat4.scala`                    | `Mat4Base`, … **← add new constructors here**                   |
 | `src/graphics/math/cpu/vec*.scala`                | Concrete CPU types (`Vec2`, `Vec2Tuple`, `Vec2Buffer`, …)       |
 | `src/graphics/math/cpu/mat*.scala`                | Concrete CPU types (`Mat4`, `Mat4Tuple`, `Mat4Buffer`, …)       |
 | `src/graphics/math/cpu/quat.scala`                | _planned_ `QuatImmutableOps`, `QuatMutableOps`, `class Quat`    |

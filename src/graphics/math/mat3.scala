@@ -29,6 +29,11 @@ trait Mat3Base[Num, Mat]:
     inline def row1: (Num, Num, Num) = (m01, m11, m21)
     inline def row2: (Num, Num, Num) = (m02, m12, m22)
 
+    def determinant(using NumOps[Num]): Num =
+      m.m00 * (m.m11 * m.m22 - m.m12 * m.m21) -
+        m.m10 * (m.m01 * m.m22 - m.m02 * m.m21) +
+        m.m20 * (m.m01 * m.m12 - m.m02 * m.m11)
+
 trait Mat3Mutable[Num, Mat] extends Mat3Base[Num, Mat]:
   extension (m: Mat)
     def m00_=(v: Num): Unit
@@ -58,19 +63,6 @@ trait Mat3Mutable[Num, Mat] extends Mat3Base[Num, Mat]:
       m.m02 = r._1; m.m12 = r._2; m.m22 = r._3
 
 // format: off
-trait Mat3SharedOps[Num: NumOps, Mat]:
-
-
-  extension (m: Mat)(using Mat3Base[Num, Mat])
-    def determinant: Num =
-      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
-      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
-      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
-
-      a00 * (a11 * a22 - a12 * a21) -
-        a10 * (a01 * a22 - a02 * a21) +
-        a20 * (a01 * a12 - a02 * a11)
-
 trait Mat3ImmutableOps[Num: NumOps, Mat]:
 
 

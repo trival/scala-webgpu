@@ -3,7 +3,6 @@ package graphics.math.cpu
 import graphics.math.*
 import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.StructRef
-import trivalibs.utils.numbers.NumOps
 
 // === implementations for common matrix types ===
 // Note: Mat4Buffer uses F32 by default (for GPU upload)
@@ -53,9 +52,6 @@ object Mat4Buffer:
       inline def m32_=(v: Float) = m.setAt(14)(v)
       inline def m33_=(v: Float) = m.setAt(15)(v)
 
-  given Mat4SharedOps[Float, StructRef[Mat4Buffer]] =
-    new Mat4SharedOps[Float, StructRef[Mat4Buffer]] {}
-
   given Mat4MutableOps[Float, StructRef[Mat4Buffer]] =
     new Mat4MutableOps[Float, StructRef[Mat4Buffer]] {}
 
@@ -88,8 +84,6 @@ object Mat4Tuple extends Mat4ImmutableOps[Double, Mat4Tuple]:
       inline def m30 = m._13; inline def m31 = m._14; inline def m32 = m._15; inline def m33 = m._16
       // format: on
 
-  given Mat4SharedOps[Double, Mat4Tuple] =
-    new Mat4SharedOps[Double, Mat4Tuple] {}
 
 // format: off
 class Mat4(
@@ -148,4 +142,3 @@ object Mat4 extends Mat4ImmutableOps[Double, Mat4]:
 
   given Mat4MutableOps[Double, Mat4] = new Mat4MutableOps[Double, Mat4] {}
 
-  given Mat4SharedOps[Double, Mat4] = new Mat4SharedOps[Double, Mat4] {}

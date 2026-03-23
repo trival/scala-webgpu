@@ -3,7 +3,6 @@ package graphics.math.cpu
 import graphics.math.*
 import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.StructRef
-import trivalibs.utils.numbers.NumOps
 
 // === implementations for common matrix types ===
 // Note: Mat3Buffer / Mat3PaddedBuffer use F32 by default (for GPU upload)
@@ -31,9 +30,6 @@ object Mat3Buffer:
       inline def m20_=(v: Float) = m.setAt(6)(v)
       inline def m21_=(v: Float) = m.setAt(7)(v)
       inline def m22_=(v: Float) = m.setAt(8)(v)
-
-  given mat3SharedOpsBuffer: Mat3SharedOps[Float, StructRef[Mat3Buffer]] =
-    new Mat3SharedOps[Float, StructRef[Mat3Buffer]] {}
 
   given mat3MutableOpsBuffer: Mat3MutableOps[Float, StructRef[Mat3Buffer]] =
     new Mat3MutableOps[Float, StructRef[Mat3Buffer]] {}
@@ -66,10 +62,6 @@ object Mat3PaddedBuffer:
       inline def m21_=(v: Float) = m.setAt(9)(v)
       inline def m22_=(v: Float) = m.setAt(10)(v)
 
-  given mat3SharedOpsPaddedBuffer
-      : Mat3SharedOps[Float, StructRef[Mat3PaddedBuffer]] =
-    new Mat3SharedOps[Float, StructRef[Mat3PaddedBuffer]] {}
-
   given mat3MutableOpsPaddedBuffer
       : Mat3MutableOps[Float, StructRef[Mat3PaddedBuffer]] =
     new Mat3MutableOps[Float, StructRef[Mat3PaddedBuffer]] {}
@@ -100,8 +92,6 @@ object Mat3Tuple extends Mat3ImmutableOps[Double, Mat3Tuple]:
       inline def m20 = m._7; inline def m21 = m._8; inline def m22 = m._9
       // format: on
 
-  given Mat3SharedOps[Double, Mat3Tuple] =
-    new Mat3SharedOps[Double, Mat3Tuple] {}
 
 // format: off
 class Mat3(
@@ -144,4 +134,3 @@ object Mat3 extends Mat3ImmutableOps[Double, Mat3]:
 
   given Mat3MutableOps[Double, Mat3] = new Mat3MutableOps[Double, Mat3] {}
 
-  given Mat3SharedOps[Double, Mat3] = new Mat3SharedOps[Double, Mat3] {}

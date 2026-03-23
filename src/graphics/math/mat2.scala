@@ -22,6 +22,9 @@ trait Mat2Base[Num, Mat]:
     inline def row0: (Num, Num) = (m00, m10)
     inline def row1: (Num, Num) = (m01, m11)
 
+    def determinant(using NumOps[Num]): Num =
+      m.m00 * m.m11 - m.m10 * m.m01
+
 trait Mat2Mutable[Num, Mat] extends Mat2Base[Num, Mat]:
   extension (m: Mat)
     def m00_=(v: Num): Unit
@@ -42,12 +45,6 @@ trait Mat2Mutable[Num, Mat] extends Mat2Base[Num, Mat]:
       m.m01 = r._1; m.m11 = r._2
 
 // format: off
-trait Mat2SharedOps[Num: NumOps, Mat]:
-
-  extension (m: Mat)(using Mat2Base[Num, Mat])
-    def determinant: Num =
-      m.m00 * m.m11 - m.m10 * m.m01
-
 trait Mat2ImmutableOps[Num: NumOps, Mat]:
 
   def create(m00: Num, m01: Num, m10: Num, m11: Num): Mat
