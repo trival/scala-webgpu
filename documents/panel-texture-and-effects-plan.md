@@ -697,8 +697,7 @@ needed here).
 
 ### 2b.4 Implementation Status
 
-⏭ Not yet started. Prerequisite: Feature 1 build errors fixed + `panel_tex`
-draft compiling cleanly.
+✅ Ready to start. Feature 1 prerequisite met.
 
 ---
 
@@ -1035,19 +1034,16 @@ val gaussianBlur9: WgslFn[(tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir:
 Intentionally skipped for now. The `panel_tex` draft runs without MSAA. Will be
 implemented as a follow-up once the texture-sampling path is stable.
 
-**Step 5 — panel_tex draft** 🔧 In progress
+**Step 5 — panel_tex draft** ✅ Done
 
-Draft created at `drafts/panel_tex/`. Core logic is written; two build errors
-remain before the draft compiles cleanly:
+Draft at `drafts/panel_tex/PanelTex.scala` compiles cleanly and renders
+correctly. Both build errors resolved:
 
-1. `src/graphics/painter/panel.scala` still stores `Arr[Shape[?]]` and
-   `Arr[Layer[?]]` (one type param). Must be updated to `Arr[Shape[?,?]]` and
-   `Arr[Layer[?,?]]`. This also fixes the type mismatch in `painter.scala:275`
-   and the `Shape[?]` vs `Shape[?,?]` errors at lines 345/350.
+1. `src/graphics/painter/panel.scala` updated to `Arr[Shape[?,?]]` /
+   `Arr[Layer[?,?]]` — type-param mismatch in `painter.scala` fixed.
 
-2. `drafts/panel_tex/PanelTex.scala` uses named-field access on `StructRef`
-   (`.position.set(...)`, `.uv.set(...)`) which is not supported. Must use
-   positional setters `.set0()`, `.set1()` as in all existing drafts.
+2. `PanelTex.scala` updated to positional setters `.set0()` / `.set1()`
+   matching the pattern used in all other drafts.
 
 ### Open Questions — Resolved
 
@@ -1063,10 +1059,25 @@ remain before the draft compiles cleanly:
 
 ### Feature 1b (Depth Buffer)
 
-Not yet started. Prerequisite: Feature 1 build errors resolved + `panel_tex`
-compiling cleanly. See §2b for the full design.
+✅ Ready to start. Feature 1 prerequisite met (`panel_tex` compiling and
+rendering correctly). See §2b for the full design.
+
+### 3D Math Track (parallel to Feature 1b)
+
+✅ Ready to start in parallel with Feature 1b. Both tracks are independent and
+together will enable full 3D rendering in `panel_tex`.
+
+Planned work in order:
+
+1. **P1 — Mat4 constructors**: `fromTranslation`, `fromScale`,
+   `fromTranslationRotationScale`, `perspective`, `lookAt`
+2. **P2 — Quat class**: `QuatImmutableOps`, `QuatMutableOps`, CPU `Quat`
+   implementation
+3. **Scene layer**: `Transform`, `PerspectiveCamera`, `SceneObject` in
+   `graphics.scene`
 
 ### Feature 2 (Post-Processing / Ping-Pong)
 
-Not yet started. Prerequisite: Feature 1 must be fully working (panel_tex
-compiling and running). See §3 for the complete design.
+Not yet started. Prerequisite: Feature 1 fully working — now met. Lower
+priority; begin after Feature 1b and at least P1 math are in place. See §3 for
+the complete design.

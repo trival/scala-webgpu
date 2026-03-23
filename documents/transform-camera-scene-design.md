@@ -26,7 +26,7 @@ plan must be implemented first. See `documents/math-library-design.md`.
 Keep the same minimal philosophy as the Rust original:
 
 - **Transform stores TRS separately** — translation, rotation (Quat), scale as
-  independent fields. A matrix is only computed on demand via `computeMatrix()`.
+  independent fields. A matrix is only computed on demand via `toMatrix()`.
   This keeps rotation interpolation and composition cheap.
 - **No scene graph / ECS** — no retained tree of scene nodes. `SceneObject` is a
   trait that anything with a `Transform` can implement. Hierarchies are computed
@@ -60,7 +60,7 @@ Stored separately so that:
 
 - Rotation can be composed via quaternion multiplication (cheap, no drift)
 - Translation and scale are trivial to read and set independently
-- `computeMatrix()` is computed once per frame when needed, not speculatively
+- `toMatrix()` is computed once per frame when needed, not speculatively
 
 ### 2.2 Constructors (companion object)
 
@@ -89,13 +89,12 @@ object Transform:
 ```scala
 extension (t: Transform)
   // Compute the full TRS model matrix in one step — no intermediate allocations
-  def computeMatrix(): Mat4 =
+  def toMatrix(): Mat4 =
     Mat4.fromTranslationRotationScale(t.translation, t.rotation, t.scale)
 ```
 
 Column-major, right-handed. Translation in column 3. `fromTranslationRotationScale`
-avoids the three-matrix multiply chain `T * R * S` and computes the TRS matrix
-directly from components.
+computes the TRS matrix directly from components without intermediate allocations.
 
 ### 2.4 Directional Vectors
 
@@ -118,12 +117,13 @@ These derive the local axes from the rotation quaternion:
 ### 2.5 Rotation Operations
 
 ```scala
-  // Post-multiply: apply additional rotation on top of current rotation
+  // Apply additional rotation on top of current rotation: q applied first
   def rotate(q: Quat): Transform =
     Transform(t.translation, q * t.rotation, t.scale)
 
+  // Mutable: t.rotation *= q is defined as q * t.rotation (pre-multiply convention)
   def rotateSelf(q: Quat): Unit =
-    t.rotation = q * t.rotation
+    t.rotation *= q
 
   def rotateX(angle: Double): Transform = t.rotate(Quat.fromRotationX(angle))
   def rotateY(angle: Double): Transform = t.rotate(Quat.fromRotationY(angle))
@@ -131,15 +131,12 @@ These derive the local axes from the rotation quaternion:
   def rotateXSelf(angle: Double): Unit  = t.rotateSelf(Quat.fromRotationX(angle))
   def rotateYSelf(angle: Double): Unit  = t.rotateSelf(Quat.fromRotationY(angle))
   def rotateZSelf(angle: Double): Unit  = t.rotateSelf(Quat.fromRotationZ(angle))
-
-  // Rotate in local space (pre-multiply)
-  def rotateLocal(q: Quat): Transform =
-    Transform(t.translation, t.rotation * q, t.scale)
-
-  def rotateLocalX(angle: Double): Transform = t.rotateLocal(Quat.fromRotationX(angle))
-  def rotateLocalY(angle: Double): Transform = t.rotateLocal(Quat.fromRotationY(angle))
-  def rotateLocalZ(angle: Double): Transform = t.rotateLocal(Quat.fromRotationZ(angle))
 ```
+
+> **Note on Quat `*=` order**: `t.rotation *= q` is defined as `t.rotation = q * t.rotation`
+> (pre-multiply — new rotation applied first). This is the reverse of the standard scalar
+> `*=` convention but matches the intuitive "apply q on top of current rotation" semantics
+> used by `rotateSelf`. See `math-library-design.md §6.3`.
 
 ### 2.6 Look-At
 
@@ -170,19 +167,22 @@ These derive the local axes from the rotation quaternion:
       scale       = t.scale * other.scale,
     )
 
-  // Apply transform to a point (same as computeMatrix() * Vec4(v, 1))
+  // Apply transform to a point (same as toMatrix() * Vec4(v, 1))
   def transformPoint(v: Vec3): Vec3 =
     t.rotation * (t.scale * v) + t.translation
 ```
 
-### 2.8 Orbit Operations
+### 2.8 Translate and Orbit Operations
 
 ```scala
-  // Translate around a pivot, keeping rotation
-  def translateAround(pivot: Vec3, delta: Vec3): Transform =
+  // Translate by delta, keeping rotation and scale
+  def translate(delta: Vec3): Transform =
     Transform(t.translation + delta, t.rotation, t.scale)
 
-  // Rotate around a pivot point
+  def translateSelf(delta: Vec3): Unit =
+    t.translation += delta
+
+  // Rotate around an arbitrary pivot point in world space
   def rotateAround(pivot: Vec3, q: Quat): Transform =
     val newTranslation = pivot + q * (t.translation - pivot)
     Transform(newTranslation, q * t.rotation, t.scale)
@@ -194,10 +194,10 @@ These derive the local axes from the rotation quaternion:
 
 ### 3.1 Data Model
 
-Stores projection parameters and a simplified FPS-style orientation (horizontal
-
-- vertical angles) rather than a full quaternion. This makes FPS-style camera
-  control trivial and avoids gimbal lock for standard flythrough cameras.
+Stores projection parameters and a simplified FPS-style orientation
+(horizontal - vertical angles) rather than a full quaternion. This makes
+FPS-style camera control trivial and avoids gimbal lock for standard flythrough
+cameras.
 
 ```scala
 package graphics.scene
@@ -273,7 +273,7 @@ class PerspectiveCamera(
 ```scala
   def projectionMat(): Mat4 = _proj
 
-  def viewMat(): Mat4 = transform().computeMatrix().inverse
+  def viewMat(): Mat4 = transform().toMatrix().inverse
 
   def viewProjMat(): Mat4 = projectionMat() * viewMat()
 ```
@@ -363,12 +363,13 @@ trait SceneObject:
   def parent: Opt[SceneObject]
 
   def modelMat(): Mat4 =
-    var mat = transform.computeMatrix()
+    // Compose transforms cheaply in TRS space; call toMatrix() only once at the end
+    var t = transform
     var p = parent
     while p.nonEmpty do
-      mat = p.get.transform.computeMatrix() * mat
+      t = p.get.transform * t
       p = p.get.parent
-    mat
+    t.toMatrix()
 
   def modelViewMat(cam: PerspectiveCamera): Mat4 =
     cam.viewMat() * modelMat()
@@ -442,9 +443,10 @@ import graphics.scene.{*, given}
 
 1. `Mat4.fromTranslation(v: Vec3)` — needed by misc helpers
 2. `Mat4.fromScale(v: Vec3)` — needed by misc helpers
-3. `Mat4.fromTranslationRotationScale(t, r, s)` — primary constructor for `computeMatrix()`
-3. `Mat4.perspective(fov, aspect, near, far)` — needed by `PerspectiveCamera`
-4. `Quat` class with: `identity`, `fromRotationX/Y/Z`, `fromAxisAngle`,
+3. `Mat4.fromTranslationRotationScale(t, r, s)` — primary constructor for
+   `toMatrix()`
+4. `Mat4.perspective(fov, aspect, near, far)` — needed by `PerspectiveCamera`
+5. `Quat` class with: `identity`, `fromRotationX/Y/Z`, `fromAxisAngle`,
    `fromLookRotation`, `*` (compose), `* Vec3` (rotate vector), `toMat4`,
    `normalize`
 6. `Mat3.fromUpperLeft(m: Mat4)` — needed by `normalMat()`
@@ -452,8 +454,9 @@ import graphics.scene.{*, given}
 
 **Step 1 — Math prerequisites (P1 from math-library-design.md)**
 
-- Add `Mat4.fromTranslation`, `Mat4.fromScale`, `Mat4.fromTranslationRotationScale`,
-  `Mat4.perspective`, `Mat4.lookAt` to `src/graphics/math/mat4.scala`
+- Add `Mat4.fromTranslation`, `Mat4.fromScale`,
+  `Mat4.fromTranslationRotationScale`, `Mat4.perspective`, `Mat4.lookAt` to
+  `src/graphics/math/mat4.scala`
 - Add mutable variants to `Mat4MutableOps`
 
 **Step 2 — Quat (P2 from math-library-design.md)**
@@ -471,7 +474,7 @@ import graphics.scene.{*, given}
 **Step 4 — Transform**
 
 - Create `src/graphics/scene/transform.scala`
-- Implement constructor, `computeMatrix()`, directional vectors, rotation ops,
+- Implement constructor, `toMatrix()`, directional vectors, rotation ops,
   look-at, `*` composition, `transformPoint`, orbit helpers
 
 **Step 5 — PerspectiveCamera**
@@ -513,6 +516,6 @@ import graphics.scene.{*, given}
 
 4. **Column vs row convention in `*` for Transform**: The composition
    `parent * child` matches the Rust implementation (child applied first). The
-   `computeMatrix()` produces T×R×S, so parent.computeMatrix() ×
-   child.computeMatrix() gives the correct world transform. Verify this against
+   `toMatrix()` produces T×R×S, so parent.toMatrix() ×
+   child.toMatrix() gives the correct world transform. Verify this against
    WebGPU's column-major, right-handed coordinate system.

@@ -375,7 +375,8 @@ equivalent — CPU only, no GPU DSL entry.
 ```scala
 trait QuatMutableOps[Num, Q]:
   extension (q: Q)(using Vec4Mutable[Num, Q])
-    def quatMulSelf(p: Q): Unit                                        // Hamilton product, in-place
+    def quatMulSelf(p: Q): Unit   // self = p * self  (pre-multiply — p applied first)
+    def *=(p: Q): Unit = quatMulSelf(p)  // operator alias, same pre-multiply semantics
     def conjugateSelf: Unit                                            // (−x, −y, −z, w) in-place
     def inverseSelf: Unit                                              // conjugate/|q|² in-place
     def setFromAxisAngle[V](axis: V, angle: Num)(using Vec3Base[Num, V]): Unit
@@ -384,6 +385,11 @@ trait QuatMutableOps[Num, Q]:
     def setFromRotationZ(angle: Num): Unit
     def setFromLookRotation[V](fwd: V, up: V)(using Vec3Base[Num, V]): Unit
 ```
+
+> **`*=` order**: `q *= p` means `q = p * q` (pre-multiply — `p` applied first,
+> then `q`). This is reversed from the standard scalar `*=` convention but
+> matches the "apply additional rotation on top" semantics:
+> `transform.rotation *= deltaQ` reads as "apply deltaQ on top".
 
 `normalizeSelf` is already in `Vec4MutableOps` and applies to quaternions
 unchanged — not duplicated here.
@@ -545,7 +551,7 @@ pattern is uncommon. Tracked as P6 in §8.2.
 1. `Mat4.fromTranslation(v: Vec3): Mat4`
 2. `Mat4.fromScale(v: Vec3): Mat4` and `Mat4.fromScale(s: Double): Mat4`
 3. `Mat4.fromTranslationRotationScale(t: Vec3, r: Quat, s: Vec3): Mat4` —
-   single-call TRS constructor, used by `Transform.computeMatrix()`
+   single-call TRS constructor, used by `Transform.toMatrix()`
 4. `Mat4.perspective(fovY: Double, aspect: Double, near: Double, far: Double): Mat4`
    — reversed-Z WebGPU convention (`near → 1`, infinite far → `0`)
 5. `Mat4.lookAt(eye: Vec3, center: Vec3, up: Vec3): Mat4`
