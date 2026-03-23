@@ -273,10 +273,11 @@ class Painter(
       width: Int = 0,
       height: Int = 0,
       clearColor: Opt[(Double, Double, Double, Double)] = (0.0, 0.0, 0.0, 1.0),
+      depthTest: Boolean = false,
       shapes: Arr[Shape[?, ?]] = Arr(),
       layers: Arr[Layer[?, ?]] = Arr(),
   ): Panel =
-    Panel(this, width, height, clearColor, shapes, layers)
+    Panel(this, width, height, clearColor, depthTest, shapes, layers)
 
   // =========================================================================
   // draw() — direct-to-canvas rendering
@@ -340,18 +341,24 @@ class Painter(
           storeOp = "store",
         )
 
-    val pass = encoder.beginRenderPass(
-      Obj.literal(colorAttachments = Arr(colorAttachment)),
-    )
+    val passDesc: js.Dynamic = Obj.literal(colorAttachments = Arr(colorAttachment))
+    if panel.depthTest then
+      passDesc.depthStencilAttachment = Obj.literal(
+        view = panel.depthView,
+        depthLoadOp = "clear",
+        depthStoreOp = "store",
+        depthClearValue = 1.0,
+      )
+    val pass = encoder.beginRenderPass(passDesc)
 
     var i = 0
     while i < panel.shapes.length do
-      renderShapeOnPass(pass, panel.shapes(i))
+      renderShapeOnPass(pass, panel.shapes(i), panel.depthTest)
       i += 1
 
     var j = 0
     while j < panel.layers.length do
-      renderLayerOnPass(pass, panel.layers(j))
+      renderLayerOnPass(pass, panel.layers(j), panel.depthTest)
       j += 1
 
     pass.end()
@@ -443,15 +450,16 @@ class Painter(
   private def renderShapeOnPass(
       pass: GPURenderPassEncoder,
       shape: Shape[?, ?],
+      depthTest: Boolean = false,
   ): Unit =
-    val cacheKey = pipelineKeyStr(shape, preferredFormat)
+    val cacheKey = pipelineKeyStr(shape, preferredFormat, depthTest)
     val pipeline =
       if js.DynamicImplicits.truthValue(
           pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(cacheKey),
         )
       then pipelineCache(cacheKey)
       else
-        val p = createPipeline(shape)
+        val p = createPipeline(shape, depthTest)
         pipelineCache(cacheKey) = p
         p
 
@@ -480,16 +488,17 @@ class Painter(
   private def renderLayerOnPass(
       pass: GPURenderPassEncoder,
       layer: Layer[?, ?],
+      depthTest: Boolean = false,
   ): Unit =
     val cacheKey =
-      s"L|${layer.shade.id}|${layer.blendState.isEmpty}|$preferredFormat"
+      s"L|${layer.shade.id}|${layer.blendState.isEmpty}|$preferredFormat|$depthTest"
     val pipeline =
       if js.DynamicImplicits.truthValue(
           pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(cacheKey),
         )
       then pipelineCache(cacheKey)
       else
-        val p = createLayerPipeline(layer)
+        val p = createLayerPipeline(layer, depthTest)
         pipelineCache(cacheKey) = p
         p
 
@@ -522,36 +531,42 @@ class Painter(
 
     pass.draw(3)
 
-  private def createLayerPipeline(layer: Layer[?, ?]): GPURenderPipeline =
+  private def createLayerPipeline(layer: Layer[?, ?], depthTest: Boolean = false): GPURenderPipeline =
     val shade = layer.shade
     val target: js.Dynamic =
       if layer.blendState.isEmpty then Obj.literal(format = preferredFormat)
       else Obj.literal(format = preferredFormat, blend = layer.blendState.safe)
-    device.createRenderPipeline(
-      Obj.literal(
-        layout = shade.pipelineLayout,
-        vertex =
-          Obj.literal(module = shade.shaderModule, entryPoint = "vs_main"),
-        fragment = Obj.literal(
-          module = shade.shaderModule,
-          entryPoint = "fs_main",
-          targets = Arr(target),
-        ),
-        primitive = Obj.literal(topology = "triangle-list"),
+    val desc = Obj.literal(
+      layout = shade.pipelineLayout,
+      vertex =
+        Obj.literal(module = shade.shaderModule, entryPoint = "vs_main"),
+      fragment = Obj.literal(
+        module = shade.shaderModule,
+        entryPoint = "fs_main",
+        targets = Arr(target),
       ),
+      primitive = Obj.literal(topology = "triangle-list"),
     )
+    if depthTest then
+      desc.depthStencil = Obj.literal(
+        format = "depth24plus",
+        depthWriteEnabled = true,
+        depthCompare = "less",
+      )
+    device.createRenderPipeline(desc)
 
   // =========================================================================
   // Pipeline creation + caching
   // =========================================================================
 
-  private def pipelineKeyStr(shape: Shape[?, ?], format: String): String =
+  private def pipelineKeyStr(shape: Shape[?, ?], format: String, depthTest: Boolean): String =
     val s = shape.shade
     val f = shape.form
-    s"${s.id}|${shape.blendState.isEmpty}|${shape.cullMode}|${f.topology}|${f.frontFace}|${format}"
+    s"${s.id}|${shape.blendState.isEmpty}|${shape.cullMode}|${f.topology}|${f.frontFace}|${format}|${depthTest}"
 
   private def createPipeline(
       shape: Shape[?, ?],
+      depthTest: Boolean = false,
   ): GPURenderPipeline =
     val shade = shape.shade
 
@@ -572,22 +587,27 @@ class Painter(
           entryPoint = "vs_main",
         )
 
-    device.createRenderPipeline(
-      Obj.literal(
-        layout = shade.pipelineLayout,
-        vertex = vertexDescriptor,
-        fragment = Obj.literal(
-          module = shade.shaderModule,
-          entryPoint = "fs_main",
-          targets = Arr(target),
-        ),
-        primitive = Obj.literal(
-          topology = shape.form.topology.toJs,
-          cullMode = shape.cullMode.toJs,
-          frontFace = shape.form.frontFace.toJs,
-        ),
+    val desc = Obj.literal(
+      layout = shade.pipelineLayout,
+      vertex = vertexDescriptor,
+      fragment = Obj.literal(
+        module = shade.shaderModule,
+        entryPoint = "fs_main",
+        targets = Arr(target),
+      ),
+      primitive = Obj.literal(
+        topology = shape.form.topology.toJs,
+        cullMode = shape.cullMode.toJs,
+        frontFace = shape.form.frontFace.toJs,
       ),
     )
+    if depthTest then
+      desc.depthStencil = Obj.literal(
+        format = "depth24plus",
+        depthWriteEnabled = true,
+        depthCompare = "less",
+      )
+    device.createRenderPipeline(desc)
 
   // =========================================================================
   // Bind group creation
