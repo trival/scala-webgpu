@@ -697,7 +697,21 @@ needed here).
 
 ### 2b.4 Implementation Status
 
-✅ Ready to start. Feature 1 prerequisite met.
+✅ Done. Steps 1–3 implemented in `src/graphics/painter/panel.scala` and
+`src/graphics/painter/painter.scala`:
+
+- `Panel` gains `depthTest: Boolean = false`; `ensureSize` allocates/destroys a
+  `depth24plus` texture alongside the color texture on resize
+- `paint()` attaches `depthStencilAttachment` (clear to 1.0, store) when
+  `panel.depthTest`
+- `createPipeline` / `createLayerPipeline` conditionally include
+  `depthStencil: { format: depth24plus, depthWriteEnabled: true, depthCompare: less }`
+- Pipeline cache key includes `|$depthTest` suffix to keep depth/non-depth
+  variants separate
+
+Step 4 (`panel_tex` 3D upgrade) is deferred until the 3D math track
+(`fromTranslationRotationScale`, `Quat`, `Transform`, `PerspectiveCamera`) is
+in place.
 
 ---
 
@@ -1059,8 +1073,9 @@ correctly. Both build errors resolved:
 
 ### Feature 1b (Depth Buffer)
 
-✅ Ready to start. Feature 1 prerequisite met (`panel_tex` compiling and
-rendering correctly). See §2b for the full design.
+✅ Done (Steps 1–3). `Panel.depthTest`, depth texture allocation, render pass
+attachment, and pipeline depth state all implemented. Step 4 (`panel_tex` 3D
+upgrade) deferred until 3D math track is complete. See §2b.4 for details.
 
 ### 3D Math Track (parallel to Feature 1b)
 
