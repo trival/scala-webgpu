@@ -88,14 +88,14 @@ object Transform:
 
 ```scala
 extension (t: Transform)
-  // Compute the full TRS model matrix: T * R * S
+  // Compute the full TRS model matrix in one step — no intermediate allocations
   def computeMatrix(): Mat4 =
-    Mat4.fromTranslation(t.translation) *
-    t.rotation.toMat4 *
-    Mat4.fromScale(t.scale)
+    Mat4.fromTranslationRotationScale(t.translation, t.rotation, t.scale)
 ```
 
-Column-major, right-handed. Translation in column 3.
+Column-major, right-handed. Translation in column 3. `fromTranslationRotationScale`
+avoids the three-matrix multiply chain `T * R * S` and computes the TRS matrix
+directly from components.
 
 ### 2.4 Directional Vectors
 
@@ -440,19 +440,20 @@ import graphics.scene.{*, given}
 
 **Prerequisites (from math-library-design.md):**
 
-1. `Mat4.fromTranslation(v: Vec3)` — needed by `computeMatrix()`
-2. `Mat4.fromScale(v: Vec3)` — needed by `computeMatrix()`
+1. `Mat4.fromTranslation(v: Vec3)` — needed by misc helpers
+2. `Mat4.fromScale(v: Vec3)` — needed by misc helpers
+3. `Mat4.fromTranslationRotationScale(t, r, s)` — primary constructor for `computeMatrix()`
 3. `Mat4.perspective(fov, aspect, near, far)` — needed by `PerspectiveCamera`
 4. `Quat` class with: `identity`, `fromRotationX/Y/Z`, `fromAxisAngle`,
    `fromLookRotation`, `*` (compose), `* Vec3` (rotate vector), `toMat4`,
    `normalize`
-5. `Mat3.fromUpperLeft(m: Mat4)` — needed by `normalMat()`
-6. `Mat4.projectPoint3(v: Vec3): Vec3` — needed by `worldToNdc()`
+6. `Mat3.fromUpperLeft(m: Mat4)` — needed by `normalMat()`
+7. `Mat4.projectPoint3(v: Vec3): Vec3` — needed by `worldToNdc()`
 
 **Step 1 — Math prerequisites (P1 from math-library-design.md)**
 
-- Add `Mat4.fromTranslation`, `Mat4.fromScale`, `Mat4.perspective`,
-  `Mat4.lookAt` to `src/graphics/math/mat4.scala`
+- Add `Mat4.fromTranslation`, `Mat4.fromScale`, `Mat4.fromTranslationRotationScale`,
+  `Mat4.perspective`, `Mat4.lookAt` to `src/graphics/math/mat4.scala`
 - Add mutable variants to `Mat4MutableOps`
 
 **Step 2 — Quat (P2 from math-library-design.md)**
