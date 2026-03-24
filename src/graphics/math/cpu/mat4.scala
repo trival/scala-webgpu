@@ -102,8 +102,27 @@ object Mat4 extends Mat4ImmutableOps[Double, Mat4]:
       m20: Double, m21: Double, m22: Double, m23: Double,
       m30: Double, m31: Double, m32: Double, m33: Double,
   ) = new Mat4(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33)
+
   given Mat4ImmutableOps[Double, Mat4] = Mat4
-// format: on
+
+  def fromTranslation(t: Vec3): Mat4 = fromTranslation(t.x, t.y, t.z)
+  def fromScale(s: Vec3): Mat4       = fromScale(s.x, s.y, s.z)
+
+  /** Build a TRS model matrix directly from translation, rotation (Quat), and scale. */
+  // format: off
+  def fromTranslationRotationScale(t: Vec3, r: Quat, s: Vec3): Mat4 =
+    val x = r.x; val y = r.y; val z = r.z; val w = r.w
+    val x2 = x+x; val y2 = y+y; val z2 = z+z
+    val xx = x*x2; val xy = x*y2; val xz = x*z2
+    val yy = y*y2; val yz = y*z2; val zz = z*z2
+    val wx = w*x2; val wy = w*y2; val wz = w*z2
+    create(
+      (1-(yy+zz))*s.x, (xy+wz)*s.x,     (xz-wy)*s.x,     0.0,
+      (xy-wz)*s.y,     (1-(xx+zz))*s.y, (yz+wx)*s.y,     0.0,
+      (xz+wy)*s.z,     (yz-wx)*s.z,     (1-(xx+yy))*s.z, 0.0,
+      t.x,             t.y,             t.z,             1.0,
+    )
+  // format: on
 
   given Mat4Mutable[Double, Mat4]:
     extension (m: Mat4)
@@ -141,4 +160,3 @@ object Mat4 extends Mat4ImmutableOps[Double, Mat4]:
       inline def m33_=(v: Double) = m.m33 = v
 
   given Mat4MutableOps[Double, Mat4] = new Mat4MutableOps[Double, Mat4] {}
-

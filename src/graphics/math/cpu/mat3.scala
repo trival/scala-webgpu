@@ -109,6 +109,10 @@ object Mat3 extends Mat3ImmutableOps[Double, Mat3]:
       m20: Double, m21: Double, m22: Double,
   ) = new Mat3(m00, m01, m02, m10, m11, m12, m20, m21, m22)
   given Mat3ImmutableOps[Double, Mat3] = Mat3
+
+  /** Extract the upper-left 3×3 of a Mat4 (rotation + scale, drops translation). */
+  def fromUpperLeft(m: Mat4): Mat3 =
+    create(m.m00, m.m01, m.m02, m.m10, m.m11, m.m12, m.m20, m.m21, m.m22)
 // format: on
 
   given Mat3Mutable[Double, Mat3]:

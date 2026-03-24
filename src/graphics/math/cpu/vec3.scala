@@ -30,6 +30,10 @@ type Vec3fTuple = (Float, Float, Float)
 object Vec3fTuple extends Vec3ImmutableOps[Float, Vec3fTuple]:
   inline def create(x: Float, y: Float, z: Float) = (x, y, z)
   given Vec3ImmutableOps[Float, Vec3fTuple] = Vec3fTuple
+  val zero: Vec3fTuple = (0f, 0f, 0f)
+  val X: Vec3fTuple = (1f, 0f, 0f)
+  val Y: Vec3fTuple = (0f, 1f, 0f)
+  val Z: Vec3fTuple = (0f, 0f, 1f)
 
   given Vec3Base[Float, Vec3fTuple]:
     extension (v: Vec3fTuple)
@@ -42,6 +46,10 @@ class Vec3f(var x: Float = 0f, var y: Float = 0f, var z: Float = 0f)
 object Vec3f extends Vec3ImmutableOps[Float, Vec3f]:
   inline def create(x: Float, y: Float, z: Float) = new Vec3f(x, y, z)
   given Vec3ImmutableOps[Float, Vec3f] = Vec3f
+  def zero: Vec3f = new Vec3f(0f, 0f, 0f)
+  def X: Vec3f = new Vec3f(1f, 0f, 0f)
+  def Y: Vec3f = new Vec3f(0f, 1f, 0f)
+  def Z: Vec3f = new Vec3f(0f, 0f, 1f)
 
   given Vec3Mutable[Float, Vec3f]:
     extension (v: Vec3f)
@@ -76,6 +84,10 @@ type Vec3Tuple = (Double, Double, Double)
 object Vec3Tuple extends Vec3ImmutableOps[Double, Vec3Tuple]:
   inline def create(x: Double, y: Double, z: Double) = (x, y, z)
   given Vec3ImmutableOps[Double, Vec3Tuple] = Vec3Tuple
+  val zero: Vec3Tuple = (0.0, 0.0, 0.0)
+  val X: Vec3Tuple = (1.0, 0.0, 0.0)
+  val Y: Vec3Tuple = (0.0, 1.0, 0.0)
+  val Z: Vec3Tuple = (0.0, 0.0, 1.0)
 
   given Vec3Base[Double, Vec3Tuple]:
     extension (v: Vec3Tuple)
@@ -88,6 +100,10 @@ class Vec3(var x: Double = 0.0, var y: Double = 0.0, var z: Double = 0.0)
 object Vec3 extends Vec3ImmutableOps[Double, Vec3]:
   inline def create(x: Double, y: Double, z: Double) = new Vec3(x, y, z)
   given Vec3ImmutableOps[Double, Vec3] = Vec3
+  def zero: Vec3 = new Vec3(0.0, 0.0, 0.0)
+  def X: Vec3 = new Vec3(1.0, 0.0, 0.0)
+  def Y: Vec3 = new Vec3(0.0, 1.0, 0.0)
+  def Z: Vec3 = new Vec3(0.0, 0.0, 1.0)
 
   given Vec3Mutable[Double, Vec3]:
     extension (v: Vec3)

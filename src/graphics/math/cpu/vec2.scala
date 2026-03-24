@@ -28,6 +28,9 @@ type Vec2fTuple = (Float, Float)
 object Vec2fTuple extends Vec2ImmutableOps[Float, Vec2fTuple]:
   inline def create(x: Float, y: Float) = (x, y)
   given Vec2ImmutableOps[Float, Vec2fTuple] = Vec2fTuple
+  val zero: Vec2fTuple = (0f, 0f)
+  val X: Vec2fTuple = (1f, 0f)
+  val Y: Vec2fTuple = (0f, 1f)
 
   given Vec2Base[Float, Vec2fTuple]:
     extension (v: Vec2fTuple)
@@ -39,6 +42,9 @@ class Vec2f(var x: Float = 0f, var y: Float = 0f)
 object Vec2f extends Vec2ImmutableOps[Float, Vec2f]:
   inline def create(x: Float, y: Float) = new Vec2f(x, y)
   given Vec2ImmutableOps[Float, Vec2f] = Vec2f
+  def zero: Vec2f = new Vec2f(0f, 0f)
+  def X: Vec2f = new Vec2f(1f, 0f)
+  def Y: Vec2f = new Vec2f(0f, 1f)
 
   given Vec2Mutable[Float, Vec2f]:
     extension (v: Vec2f)
@@ -69,6 +75,9 @@ type Vec2Tuple = (Double, Double)
 object Vec2Tuple extends Vec2ImmutableOps[Double, Vec2Tuple]:
   inline def create(x: Double, y: Double) = (x, y)
   given Vec2ImmutableOps[Double, Vec2Tuple] = Vec2Tuple
+  val zero: Vec2Tuple = (0.0, 0.0)
+  val X: Vec2Tuple = (1.0, 0.0)
+  val Y: Vec2Tuple = (0.0, 1.0)
 
   given Vec2Base[Double, Vec2Tuple]:
     extension (v: Vec2Tuple)
@@ -80,6 +89,9 @@ class Vec2(var x: Double = 0.0, var y: Double = 0.0)
 object Vec2 extends Vec2ImmutableOps[Double, Vec2]:
   inline def create(x: Double, y: Double) = new Vec2(x, y)
   given Vec2ImmutableOps[Double, Vec2] = Vec2
+  def zero: Vec2 = new Vec2(0.0, 0.0)
+  def X: Vec2 = new Vec2(1.0, 0.0)
+  def Y: Vec2 = new Vec2(0.0, 1.0)
 
   given Vec2Mutable[Double, Vec2]:
     extension (v: Vec2)

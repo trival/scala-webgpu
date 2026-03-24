@@ -133,6 +133,56 @@ trait Mat4ImmutableOps[Num: NumOps, Mat]:
     val o = summon[NumOps[Num]].one
     create(o, z, z, z, z, o, z, z, z, z, o, z, z, z, z, o)
 
+  def fromTranslation(tx: Double, ty: Double, tz: Double)(using Conversion[Double, Num]): Mat =
+    val z = summon[NumOps[Num]].zero; val o = summon[NumOps[Num]].one
+    create(o, z, z, z, z, o, z, z, z, z, o, z, tx, ty, tz, o)
+
+  def fromScale(sx: Double, sy: Double, sz: Double)(using Conversion[Double, Num]): Mat =
+    val z = summon[NumOps[Num]].zero; val o = summon[NumOps[Num]].one
+    create(sx, z, z, z, z, sy, z, z, z, z, sz, z, z, z, z, o)
+
+  /** Perspective projection for WebGPU clip-space depth [0, 1], right-handed.
+    * @param fovY vertical field of view in radians
+    */
+  // format: off
+  def perspective(fovY: Double, aspect: Double, near: Double, far: Double)(using Conversion[Double, Num]): Mat =
+    val f    = 1.0 / math.tan(fovY * 0.5)
+    val rInv = 1.0 / (near - far)
+    val z    = summon[NumOps[Num]].zero
+    create(
+      f / aspect, z,          z,                  z,
+      z,          f,          z,                  z,
+      z,          z,          far * rInv,         -1.0,
+      z,          z,          near * far * rInv,  z,
+    )
+  // format: on
+
+  /** View matrix — right-handed lookAt. Eye position and target given as xyz components. */
+  // format: off
+  def lookAt(
+      ex: Double, ey: Double, ez: Double,
+      cx: Double, cy: Double, cz: Double,
+      upX: Double, upY: Double, upZ: Double,
+  )(using Conversion[Double, Num]): Mat =
+    // forward = normalize(center - eye)
+    var fx = cx - ex; var fy = cy - ey; var fz = cz - ez
+    val fl = math.sqrt(fx*fx + fy*fy + fz*fz)
+    fx /= fl; fy /= fl; fz /= fl
+    // right = normalize(forward × up)
+    var rx = fy*upZ - fz*upY; var ry = fz*upX - fx*upZ; var rz = fx*upY - fy*upX
+    val rl = math.sqrt(rx*rx + ry*ry + rz*rz)
+    rx /= rl; ry /= rl; rz /= rl
+    // recomputed up = right × forward
+    val ux = ry*fz - rz*fy; val uy = rz*fx - rx*fz; val uz = rx*fy - ry*fx
+    val z  = summon[NumOps[Num]].zero
+    create(
+      rx,                    ux,                    -fx,                  z,
+      ry,                    uy,                    -fy,                  z,
+      rz,                    uz,                    -fz,                  z,
+      -(rx*ex+ry*ey+rz*ez),  -(ux*ex+uy*ey+uz*ez),  fx*ex+fy*ey+fz*ez,  1.0,
+    )
+  // format: on
+
   extension (m: Mat)(using Mat4Base[Num, Mat])
     def +(other: Mat): Mat = create(
       m.m00 + other.m00, m.m01 + other.m01, m.m02 + other.m02, m.m03 + other.m03,

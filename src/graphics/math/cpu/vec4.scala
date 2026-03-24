@@ -32,6 +32,11 @@ type Vec4fTuple = (Float, Float, Float, Float)
 object Vec4fTuple extends Vec4ImmutableOps[Float, Vec4fTuple]:
   inline def create(x: Float, y: Float, z: Float, w: Float) = (x, y, z, w)
   given Vec4ImmutableOps[Float, Vec4fTuple] = Vec4fTuple
+  val zero: Vec4fTuple = (0f, 0f, 0f, 0f)
+  val X: Vec4fTuple = (1f, 0f, 0f, 0f)
+  val Y: Vec4fTuple = (0f, 1f, 0f, 0f)
+  val Z: Vec4fTuple = (0f, 0f, 1f, 0f)
+  val W: Vec4fTuple = (0f, 0f, 0f, 1f)
 
   given Vec4Base[Float, Vec4fTuple]:
     extension (v: Vec4fTuple)
@@ -51,6 +56,11 @@ object Vec4f extends Vec4ImmutableOps[Float, Vec4f]:
   inline def create(x: Float, y: Float, z: Float, w: Float) =
     new Vec4f(x, y, z, w)
   given Vec4ImmutableOps[Float, Vec4f] = Vec4f
+  def zero: Vec4f = new Vec4f(0f, 0f, 0f, 0f)
+  def X: Vec4f = new Vec4f(1f, 0f, 0f, 0f)
+  def Y: Vec4f = new Vec4f(0f, 1f, 0f, 0f)
+  def Z: Vec4f = new Vec4f(0f, 0f, 1f, 0f)
+  def W: Vec4f = new Vec4f(0f, 0f, 0f, 1f)
 
   given Vec4Mutable[Float, Vec4f]:
     extension (v: Vec4f)
@@ -89,6 +99,11 @@ type Vec4Tuple = (Double, Double, Double, Double)
 object Vec4Tuple extends Vec4ImmutableOps[Double, Vec4Tuple]:
   inline def create(x: Double, y: Double, z: Double, w: Double) = (x, y, z, w)
   given Vec4ImmutableOps[Double, Vec4Tuple] = Vec4Tuple
+  val zero: Vec4Tuple = (0.0, 0.0, 0.0, 0.0)
+  val X: Vec4Tuple = (1.0, 0.0, 0.0, 0.0)
+  val Y: Vec4Tuple = (0.0, 1.0, 0.0, 0.0)
+  val Z: Vec4Tuple = (0.0, 0.0, 1.0, 0.0)
+  val W: Vec4Tuple = (0.0, 0.0, 0.0, 1.0)
 
   given Vec4Base[Double, Vec4Tuple]:
     extension (v: Vec4Tuple)
@@ -108,6 +123,11 @@ object Vec4 extends Vec4ImmutableOps[Double, Vec4]:
   inline def create(x: Double, y: Double, z: Double, w: Double) =
     new Vec4(x, y, z, w)
   given Vec4ImmutableOps[Double, Vec4] = Vec4
+  def zero: Vec4 = new Vec4(0.0, 0.0, 0.0, 0.0)
+  def X: Vec4 = new Vec4(1.0, 0.0, 0.0, 0.0)
+  def Y: Vec4 = new Vec4(0.0, 1.0, 0.0, 0.0)
+  def Z: Vec4 = new Vec4(0.0, 0.0, 1.0, 0.0)
+  def W: Vec4 = new Vec4(0.0, 0.0, 0.0, 1.0)
 
   given Vec4Mutable[Double, Vec4]:
     extension (v: Vec4)

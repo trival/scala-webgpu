@@ -4,6 +4,7 @@ import graphics.buffers.*
 import graphics.math.cpu.{*, given}
 import graphics.math.gpu.{*, given}
 import graphics.painter.*
+import graphics.scene.*
 import graphics.shader.dsl.{*, given}
 import graphics.shader.{*, given}
 import graphics.utils.animation.animate
@@ -20,20 +21,15 @@ import scala.scalajs.js.annotation.*
 // Vertex attribute layouts
 // ---------------------------------------------------------------------------
 
-// For the colored shapes in the two intermediate panels
 type ColorAttribs = (position: Vec3, color: Vec3)
-
-// For the texture-sampling shapes in the canvas panel
 type TexAttribs = (position: Vec3, uv: Vec2)
 
 // ---------------------------------------------------------------------------
 // Uniform types
 // ---------------------------------------------------------------------------
 
-// Used by both color shape shaders
 type MvpUniforms = (mvp: VertexUniform[Mat4])
 
-// Used by the texture-sampling shader: MVP + sampler + panel texture
 type TexUniforms = (
     mvp: VertexUniform[Mat4],
     texSampler: FragmentUniform[Sampler],
@@ -47,7 +43,7 @@ def main(): Unit =
 
   Painter.init(canvas): painter =>
     // -----------------------------------------------------------------------
-    // Color shade — vertex color passed through to fragment
+    // Shaders
     // -----------------------------------------------------------------------
     val colorShade = painter.shade[ColorAttribs, (color: Vec3), MvpUniforms]:
       program =>
@@ -59,9 +55,6 @@ def main(): Unit =
         program.frag: ctx =>
           ctx.out.color := vec4(ctx.in.color, 1.0)
 
-    // -----------------------------------------------------------------------
-    // Texture shade — samples a panel texture using UV coordinates
-    // -----------------------------------------------------------------------
     val texShade =
       painter.shade[TexAttribs, (uv: Vec2), TexUniforms, TexPanels]: program =>
         program.vert: ctx =>
@@ -74,92 +67,65 @@ def main(): Unit =
             ctx.textures.colorTex(ctx.in.uv, ctx.bindings.texSampler)
 
     // -----------------------------------------------------------------------
-    // Geometry — colored triangle for trianglePanel
+    // Geometry — 3D colored shapes (world-space, in XY plane, unit-ish)
     // -----------------------------------------------------------------------
+
+    // Red triangle (equilateral, radius ~1)
     val triVerts = allocateAttribs[ColorAttribs](3)
-    triVerts(0).set0(0.0, 0.6, 0.0)
-    triVerts(0).set1(1.0, 0.2, 0.2) // red
-    triVerts(1).set0(-0.6, -0.5, 0.0)
-    triVerts(1).set1(1.0, 0.2, 0.2)
-    triVerts(2).set0(0.6, -0.5, 0.0)
-    triVerts(2).set1(1.0, 0.2, 0.2)
+    triVerts(0).set0(0.0, 1.0, 0.0); triVerts(0).set1(1.0, 0.2, 0.2)
+    triVerts(1).set0(-0.87, -0.5, 0.0); triVerts(1).set1(0.9, 0.45, 0.1)
+    triVerts(2).set0(0.87, -0.5, 0.0); triVerts(2).set1(1.0, 0.8, 0.15)
     val triForm = painter.form(triVerts)
 
-    // Colored quad for quadPanel (two triangles)
-    val quadColorVerts = allocateAttribs[ColorAttribs](6)
-    quadColorVerts(0).set0(-0.7, -0.7, 0.0)
-    quadColorVerts(0).set1(0.2, 0.4, 1.0) // blue
-    quadColorVerts(1).set0(0.7, -0.7, 0.0)
-    quadColorVerts(1).set1(0.2, 0.4, 1.0)
-    quadColorVerts(2).set0(0.7, 0.7, 0.0)
-    quadColorVerts(2).set1(0.2, 0.4, 1.0)
-    quadColorVerts(3).set0(-0.7, -0.7, 0.0)
-    quadColorVerts(3).set1(0.2, 0.4, 1.0)
-    quadColorVerts(4).set0(0.7, 0.7, 0.0)
-    quadColorVerts(4).set1(0.2, 0.4, 1.0)
-    quadColorVerts(5).set0(-0.7, 0.7, 0.0)
-    quadColorVerts(5).set1(0.2, 0.4, 1.0)
-    val quadColorForm = painter.form(quadColorVerts)
+    // Blue quad (square, ±0.8)
+    val quadVerts = allocateAttribs[ColorAttribs](6)
+    quadVerts(0).set0(-0.8, -0.8, 0.0); quadVerts(0).set1(0.1, 0.3, 1.0)
+    quadVerts(1).set0(0.8, -0.8, 0.0); quadVerts(1).set1(0.2, 0.55, 1.0)
+    quadVerts(2).set0(0.8, 0.8, 0.0); quadVerts(2).set1(0.5, 0.8, 1.0)
+    quadVerts(3).set0(-0.8, -0.8, 0.0); quadVerts(3).set1(0.1, 0.3, 1.0)
+    quadVerts(4).set0(0.8, 0.8, 0.0); quadVerts(4).set1(0.5, 0.8, 1.0)
+    quadVerts(5).set0(-0.8, 0.8, 0.0); quadVerts(5).set1(0.25, 0.5, 1.0)
+    val quadForm = painter.form(quadVerts)
 
     // -----------------------------------------------------------------------
-    // Geometry — textured shapes for canvas panel
+    // Geometry — textured 3D quads for the canvas (local space, centered at
+    // origin, ±0.85 — positioned and rotated by Transform at render time)
     // -----------------------------------------------------------------------
 
-    // A quad (two triangles) that samples trianglePanel
-    val texQuadVerts = allocateAttribs[TexAttribs](6)
-    texQuadVerts(0).set0(-0.95, -0.95, 0.0)
-    texQuadVerts(0).set1(0.0, 1.0)
-    texQuadVerts(1).set0(0.0, -0.95, 0.0)
-    texQuadVerts(1).set1(1.0, 1.0)
-    texQuadVerts(2).set0(0.0, 0.95, 0.0)
-    texQuadVerts(2).set1(1.0, 0.0)
-    texQuadVerts(3).set0(-0.95, -0.95, 0.0)
-    texQuadVerts(3).set1(0.0, 1.0)
-    texQuadVerts(4).set0(0.0, 0.95, 0.0)
-    texQuadVerts(4).set1(1.0, 0.0)
-    texQuadVerts(5).set0(-0.95, 0.95, 0.0)
-    texQuadVerts(5).set1(0.0, 0.0)
-    val texQuadForm = painter.form(texQuadVerts)
+    def makeTexQuadVerts() =
+      val v = allocateAttribs[TexAttribs](6)
+      v(0).set0(-0.85, -0.85, 0.0); v(0).set1(0.0, 1.0)
+      v(1).set0(0.85, -0.85, 0.0); v(1).set1(1.0, 1.0)
+      v(2).set0(0.85, 0.85, 0.0); v(2).set1(1.0, 0.0)
+      v(3).set0(-0.85, -0.85, 0.0); v(3).set1(0.0, 1.0)
+      v(4).set0(0.85, 0.85, 0.0); v(4).set1(1.0, 0.0)
+      v(5).set0(-0.85, 0.85, 0.0); v(5).set1(0.0, 0.0)
+      v
 
-    // A triangle that samples quadPanel
-    val texTriVerts = allocateAttribs[TexAttribs](3)
-    texTriVerts(0).set0(0.05, 0.95, 0.0)
-    texTriVerts(0).set1(0.5, 0.0)
-    texTriVerts(1).set0(0.95, -0.95, 0.0)
-    texTriVerts(1).set1(1.0, 1.0)
-    texTriVerts(2).set0(0.05, -0.95, 0.0)
-    texTriVerts(2).set1(0.0, 1.0)
-    val texTriForm = painter.form(texTriVerts)
+    val leftTexForm = painter.form(makeTexQuadVerts())
+    val rightTexForm = painter.form(makeTexQuadVerts())
 
     // -----------------------------------------------------------------------
-    // MVP bindings — one per rotating shape (managed BufferBindings)
+    // MVP bindings
     // -----------------------------------------------------------------------
     val triMvp = painter.binding[Mat4]
     val quadMvp = painter.binding[Mat4]
-    val texQuadMvp = painter.binding[Mat4]
-    val texTriMvp = painter.binding[Mat4]
+    val leftMvp = painter.binding[Mat4]
+    val rightMvp = painter.binding[Mat4]
 
     // -----------------------------------------------------------------------
     // Shapes
     // -----------------------------------------------------------------------
     val triShape = painter.shape(triForm, colorShade).bind("mvp" := triMvp)
+    val quadShape = painter.shape(quadForm, colorShade).bind("mvp" := quadMvp)
 
-    val quadColorShape =
-      painter.shape(quadColorForm, colorShade).bind("mvp" := quadMvp)
+    val leftTexShape = painter
+      .shape(leftTexForm, texShade)
+      .bind("mvp" := leftMvp, "texSampler" := painter.samplerLinear)
 
-    val texQuadShape = painter
-      .shape(texQuadForm, texShade)
-      .bind(
-        "mvp" := texQuadMvp,
-        "texSampler" := painter.samplerNearest,
-      )
-
-    val texTriShape = painter
-      .shape(texTriForm, texShade)
-      .bind(
-        "mvp" := texTriMvp,
-        "texSampler" := painter.samplerLinear,
-      )
+    val rightTexShape = painter
+      .shape(rightTexForm, texShade)
+      .bind("mvp" := rightMvp, "texSampler" := painter.samplerLinear)
 
     // -----------------------------------------------------------------------
     // Panels
@@ -167,65 +133,88 @@ def main(): Unit =
     val trianglePanel = painter.panel(
       width = 800,
       height = 800,
-      clearColor = (1.0, 0.9, 0.1, 1.0), // yellow background
+      clearColor = (0.04, 0.04, 0.06, 1.0),
+      depthTest = true,
       shapes = Arr(triShape),
     )
 
     val quadPanel = painter.panel(
       width = 800,
       height = 800,
-      clearColor = (0.1, 0.6, 0.1, 1.0), // green background
-      shapes = Arr(quadColorShape),
+      clearColor = (0.04, 0.06, 0.04, 1.0),
+      depthTest = true,
+      shapes = Arr(quadShape),
     )
 
-    // Bind the two intermediate panels as textures
-    texQuadShape.bind("colorTex" := trianglePanel)
-    texTriShape.bind("colorTex" := quadPanel)
+    // Bind intermediate panels as textures to canvas shapes
+    leftTexShape.bind("colorTex" := trianglePanel)
+    rightTexShape.bind("colorTex" := quadPanel)
 
     val canvasPanel = painter.panel(
-      clearColor = (0.05, 0.05, 0.1, 1.0),
-      shapes = Arr(texQuadShape, texTriShape),
+      clearColor = (0.03, 0.03, 0.05, 1.0),
+      depthTest = true,
+      shapes = Arr(leftTexShape, rightTexShape),
     )
 
     // -----------------------------------------------------------------------
-    // Animation — rotating MVPs
+    // Cameras
+    // -----------------------------------------------------------------------
+
+    // Camera for the colored 3D shapes inside the intermediate panels (square)
+    val shapeCam = PerspectiveCamera(
+      fov = math.Pi / 3.0,
+      aspect = 1.0,
+      near = 0.1,
+      far = 100.0,
+    )
+    shapeCam.resetTransform(Vec3(0.0, 1.2, 3.2), 0.0, -0.3)
+
+    // Camera for the canvas (sees both floating textured quads side by side)
+    val aspect =
+      canvas.clientWidth.toDouble / math.max(canvas.clientHeight.toDouble, 1.0)
+    val canvasCam = PerspectiveCamera(
+      fov = math.Pi / 3.5,
+      aspect = aspect,
+      near = 0.1,
+      far = 100.0,
+    )
+    canvasCam.resetTransform(Vec3(0.0, 0.4, 3.8), 0.0, -0.08)
+
+    // -----------------------------------------------------------------------
+    // Transforms for 3D shapes (world-space, rotated each frame)
+    // -----------------------------------------------------------------------
+    val triTransform = Transform.identity // red triangle in trianglePanel
+    val quadTransform = Transform.identity // blue quad in quadPanel
+
+    // Canvas textured quads: overlapping at center, perpendicular to each other
+    val leftTransform = Transform.identity
+    val rightTransform = Transform.fromRotationY(math.Pi * 0.5)
+
+    // -----------------------------------------------------------------------
+    // Animation
     // -----------------------------------------------------------------------
     var t = 0.0
 
-    def makeMvp(angle: Double, tx: Double, ty: Double, scale: Double): Mat4 =
-      val c = math.cos(angle)
-      val s = math.sin(angle)
-      Mat4(
-        scale * c,
-        -scale * s,
-        0.0,
-        0.0,
-        scale * s,
-        scale * c,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-        0.0,
-        tx,
-        ty,
-        0.0,
-        1.0,
-      )
-
     animate: tpf =>
-      t += tpf * 0.0005
+      t += tpf * 0.0006
 
-      triMvp.set(makeMvp(t, 0.0, 0.0, 0.8))
-      quadMvp.set(makeMvp(-t * 0.7, 0.0, 0.0, 0.85))
-      texQuadMvp.set(makeMvp(t * 0.3, 0.0, 0.0, 1.0))
-      texTriMvp.set(makeMvp(-t * 0.5, 0.0, 0.0, 1.0))
+      // Intermediate shapes: counter-rotating around Y
+      triTransform.rotation.setFromRotationY(t)
+      quadTransform.rotation.setFromRotationY(-t * 0.75)
 
-      // Render intermediate panels
+      // Canvas quads: slower rotation, opposite phases
+      leftTransform.rotation.setFromRotationY(t * 0.38)
+      rightTransform.rotation.setFromRotationY(-(t * 0.42) - math.Pi * 0.15)
+
+      val shapePV = shapeCam.viewProjMat
+      val canvasPV = canvasCam.viewProjMat
+
+      triMvp.set(shapePV * triTransform.toMatrix)
+      quadMvp.set(shapePV * quadTransform.toMatrix)
+      leftMvp.set(canvasPV * leftTransform.toMatrix)
+      rightMvp.set(canvasPV * rightTransform.toMatrix)
+
       painter.paint(trianglePanel)
       painter.paint(quadPanel)
-
-      // Render final canvas panel and display
       painter.paint(canvasPanel)
       painter.show(canvasPanel)

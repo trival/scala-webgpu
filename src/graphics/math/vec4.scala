@@ -58,6 +58,8 @@ trait Vec4ImmutableOps[Num: {NumExt, NumOps}, Vec]:
     @scala.annotation.targetName("addScalar")
     def +(scalar: Num): Vec =
       create(v.x + scalar, v.y + scalar, v.z + scalar, v.w + scalar)
+    @scala.annotation.targetName("negateVec")
+    def unary_- : Vec = create(-v.x, -v.y, -v.z, -v.w)
     @scala.annotation.targetName("subVec")
     def -(other: Vec): Vec =
       create(v.x - other.x, v.y - other.y, v.z - other.z, v.w - other.w)
