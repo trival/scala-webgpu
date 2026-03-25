@@ -41,34 +41,18 @@ object UniformValue:
       ref := value
     inline def read(ref: StructRef[Vec2Buffer]): Vec2 = Vec2.from(ref)
 
-  given UniformValue[Vec2f, Vec2Buffer]:
-    inline def write(ref: StructRef[Vec2Buffer], value: Vec2f): Unit =
-      ref := value
-    inline def read(ref: StructRef[Vec2Buffer]): Vec2f = Vec2f.from(ref)
-
   // --- Vec3 — uses Vec4Buffer for std140 padding; w component ignored ---
   given UniformValue[Vec3, Vec4Buffer]:
     inline def write(ref: StructRef[Vec4Buffer], value: Vec3): Unit =
-      ref.x = value.x.toFloat; ref.y = value.y.toFloat; ref.z = value.z.toFloat
+      ref.x = value.x; ref.y = value.y; ref.z = value.z
     inline def read(ref: StructRef[Vec4Buffer]): Vec3 =
       Vec3(ref.x, ref.y, ref.z)
-
-  given UniformValue[Vec3f, Vec4Buffer]:
-    inline def write(ref: StructRef[Vec4Buffer], value: Vec3f): Unit =
-      ref.x = value.x; ref.y = value.y; ref.z = value.z
-    inline def read(ref: StructRef[Vec4Buffer]): Vec3f =
-      Vec3f(ref.x, ref.y, ref.z)
 
   // --- Vec4 ---
   given UniformValue[Vec4, Vec4Buffer]:
     inline def write(ref: StructRef[Vec4Buffer], value: Vec4): Unit =
       ref := value
     inline def read(ref: StructRef[Vec4Buffer]): Vec4 = Vec4.from(ref)
-
-  given UniformValue[Vec4f, Vec4Buffer]:
-    inline def write(ref: StructRef[Vec4Buffer], value: Vec4f): Unit =
-      ref := value
-    inline def read(ref: StructRef[Vec4Buffer]): Vec4f = Vec4f.from(ref)
 
   // --- Mat2 ---
   given UniformValue[Mat2, Mat2Buffer]:

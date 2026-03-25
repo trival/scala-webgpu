@@ -10,29 +10,29 @@ import trivalibs.bufferdata.StructRef
 type Mat2Buffer = (F32, F32, F32, F32)
 
 object Mat2Buffer:
-  given Mat2Mutable[Float, StructRef[Mat2Buffer]]:
+  given Mat2Mutable[StructRef[Mat2Buffer]]:
     extension (m: StructRef[Mat2Buffer])
-      inline def m00 = m.getAt(0)
-      inline def m01 = m.getAt(1)
-      inline def m10 = m.getAt(2)
-      inline def m11 = m.getAt(3)
-      inline def m00_=(v: Float) = m.setAt(0)(v)
-      inline def m01_=(v: Float) = m.setAt(1)(v)
-      inline def m10_=(v: Float) = m.setAt(2)(v)
-      inline def m11_=(v: Float) = m.setAt(3)(v)
+      inline def m00 = m.getAt(0): Double
+      inline def m01 = m.getAt(1): Double
+      inline def m10 = m.getAt(2): Double
+      inline def m11 = m.getAt(3): Double
+      inline def m00_=(v: Double) = m.setAt(0)(v.toFloat)
+      inline def m01_=(v: Double) = m.setAt(1)(v.toFloat)
+      inline def m10_=(v: Double) = m.setAt(2)(v.toFloat)
+      inline def m11_=(v: Double) = m.setAt(3)(v.toFloat)
 
-  given Mat2MutableOps[Float, StructRef[Mat2Buffer]] =
-    new Mat2MutableOps[Float, StructRef[Mat2Buffer]] {}
+  given Mat2MutableOps[StructRef[Mat2Buffer]] =
+    new Mat2MutableOps[StructRef[Mat2Buffer]] {}
 
 type Mat2Tuple = (Double, Double, Double, Double)
 
 // format: off
-object Mat2Tuple extends Mat2ImmutableOps[Double, Mat2Tuple]:
+object Mat2Tuple extends Mat2ImmutableOps[Mat2Tuple]:
   inline def create(m00: Double, m01: Double, m10: Double, m11: Double) = (m00, m01, m10, m11)
-  given Mat2ImmutableOps[Double, Mat2Tuple] = Mat2Tuple
+  given Mat2ImmutableOps[Mat2Tuple] = Mat2Tuple
 // format: on
 
-  given Mat2Base[Double, Mat2Tuple]:
+  given Mat2Base[Mat2Tuple]:
     extension (m: Mat2Tuple)
       inline def m00 = m._1
       inline def m01 = m._2
@@ -48,12 +48,12 @@ class Mat2(
 // format: on
 
 // format: off
-object Mat2 extends Mat2ImmutableOps[Double, Mat2]:
-  inline def create(m00: Double, m01: Double, m10: Double, m11: Double) = new Mat2(m00, m01, m10, m11)
-  given Mat2ImmutableOps[Double, Mat2] = Mat2
+object Mat2 extends Mat2ImmutableOps[Mat2]:
+  inline def create(m00: Double, m01: Double, m10: Double, m11: Double) = Mat2(m00, m01, m10, m11)
+  given Mat2ImmutableOps[Mat2] = Mat2
 // format: on
 
-  given Mat2Mutable[Double, Mat2]:
+  given Mat2Mutable[Mat2]:
     extension (m: Mat2)
       inline def m00: Double = m.m00
       inline def m01: Double = m.m01
@@ -64,5 +64,4 @@ object Mat2 extends Mat2ImmutableOps[Double, Mat2]:
       inline def m10_=(v: Double) = m.m10 = v
       inline def m11_=(v: Double) = m.m11 = v
 
-  given Mat2MutableOps[Double, Mat2] = new Mat2MutableOps[Double, Mat2] {}
-
+  given Mat2MutableOps[Mat2] = new Mat2MutableOps[Mat2] {}

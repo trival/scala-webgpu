@@ -1,55 +1,119 @@
 package graphics.math
 
-import trivalibs.utils.numbers.NumExt
-import trivalibs.utils.numbers.NumOps
+import trivalibs.utils.numbers.NumExt.given
 
-trait Vec2Base[Num: {NumExt, NumOps}, Vec]:
+// ---------------------------------------------------------------------------
+// Generic variants — purely abstract shared contract between CPU and GPU.
+// ---------------------------------------------------------------------------
 
+trait Vec2BaseG[Num, Vec]:
   extension (v: Vec)
     def x: Num
     def y: Num
     inline def u: Num = x
     inline def v: Num = y
+    def dot(other: Vec): Num
+    def length_squared: Num
+    def length: Num
 
-    def dot(other: Vec): Num =
-      v.x * other.x + v.y * other.y
-    def length_squared: Num = v.dot(v)
-    def length: Num = v.length_squared.sqrt
-
-trait Vec2Mutable[Num: {NumExt, NumOps}, Vec] extends Vec2Base[Num, Vec]:
-  extension (v: Vec)
-    def x_=(value: Num): Unit
-    def y_=(value: Num): Unit
-    inline def u_=(value: Num): Unit = x_=(value)
-    inline def v_=(value: Num): Unit = y_=(value)
-
-trait Vec2ImmutableOps[Num: {NumExt, NumOps}, Vec]:
-
+trait Vec2ImmutableOpsG[Num, Vec]:
   def create(x: Num, y: Num): Vec
-  def from[Num2, Vec2](
-      other: Vec2,
-  )(using Vec2Base[Num2, Vec2], Conversion[Num2, Num]): Vec =
+
+  extension (v: Vec)(using Vec2BaseG[Num, Vec])
+    @scala.annotation.targetName("addVecG")
+    def +(other: Vec): Vec
+    @scala.annotation.targetName("addScalarG")
+    def +(scalar: Num): Vec
+    @scala.annotation.targetName("negateVecG")
+    def unary_- : Vec
+    @scala.annotation.targetName("subVecG")
+    def -(other: Vec): Vec
+    @scala.annotation.targetName("subScalarG")
+    def -(scalar: Num): Vec
+    @scala.annotation.targetName("mulVecG")
+    def *(other: Vec): Vec
+    @scala.annotation.targetName("mulScalarG")
+    def *(scalar: Num): Vec
+    @scala.annotation.targetName("divVecG")
+    def /(other: Vec): Vec
+    @scala.annotation.targetName("divScalarG")
+    def /(scalar: Num): Vec
+    def normalize: Vec
+
+    def abs: Vec
+    def sign: Vec
+    def floor: Vec
+    def ceil: Vec
+    def round: Vec
+    def fract: Vec
+    def exp: Vec
+    def log: Vec
+    def log2: Vec
+    def sqrt: Vec
+
+    def min(other: Vec): Vec
+    def max(other: Vec): Vec
+    def clamp(lo: Num, hi: Num): Vec
+    @scala.annotation.targetName("mixVecG")
+    def mix(b: Vec, t: Vec): Vec
+    @scala.annotation.targetName("mixScalarG")
+    def mix(b: Vec, t: Num): Vec
+    @scala.annotation.targetName("lerpVecG")
+    inline def lerp(b: Vec, t: Vec): Vec = v.mix(b, t)
+    @scala.annotation.targetName("lerpScalarG")
+    inline def lerp(b: Vec, t: Num): Vec = v.mix(b, t)
+    @scala.annotation.targetName("ltVecG")
+    def <(other: Vec): Vec
+    @scala.annotation.targetName("lteVecG")
+    def <=(other: Vec): Vec
+    @scala.annotation.targetName("gtVecG")
+    def >(other: Vec): Vec
+    @scala.annotation.targetName("gteVecG")
+    def >=(other: Vec): Vec
+    @scala.annotation.targetName("stepVecG")
+    def step(edge: Vec): Vec
+    @scala.annotation.targetName("stepScalarG")
+    def step(edge: Num): Vec
+    def smoothstep(edge0: Vec, edge1: Vec): Vec
+
+// ---------------------------------------------------------------------------
+// CPU-specific variants — concrete Double implementations + CPU-only ops.
+// ---------------------------------------------------------------------------
+
+trait Vec2Base[Vec] extends Vec2BaseG[Double, Vec]:
+  extension (v: Vec)
+    def dot(other: Vec): Double =
+      v.x * other.x + v.y * other.y
+    def length_squared: Double = v.dot(v)
+    def length: Double = v.length_squared.sqrt
+
+// format: off
+trait Vec2ImmutableOps[Vec]:
+
+  def create(x: Double, y: Double): Vec
+
+  def from[Vec2_](other: Vec2_)(using Vec2Base[Vec2_]): Vec =
     create(other.x, other.y)
 
-  extension (v: Vec)(using Vec2Base[Num, Vec])
+  extension (v: Vec)(using Vec2Base[Vec])
     @scala.annotation.targetName("addVec")
     def +(other: Vec): Vec = create(v.x + other.x, v.y + other.y)
     @scala.annotation.targetName("addScalar")
-    def +(scalar: Num): Vec = create(v.x + scalar, v.y + scalar)
+    def +(scalar: Double): Vec = create(v.x + scalar, v.y + scalar)
     @scala.annotation.targetName("negateVec")
     def unary_- : Vec = create(-v.x, -v.y)
     @scala.annotation.targetName("subVec")
     def -(other: Vec): Vec = create(v.x - other.x, v.y - other.y)
     @scala.annotation.targetName("subScalar")
-    def -(scalar: Num): Vec = create(v.x - scalar, v.y - scalar)
+    def -(scalar: Double): Vec = create(v.x - scalar, v.y - scalar)
     @scala.annotation.targetName("mulVec")
     def *(other: Vec): Vec = create(v.x * other.x, v.y * other.y)
     @scala.annotation.targetName("mulScalar")
-    def *(scalar: Num): Vec = create(v.x * scalar, v.y * scalar)
+    def *(scalar: Double): Vec = create(v.x * scalar, v.y * scalar)
     @scala.annotation.targetName("divVec")
     def /(other: Vec): Vec = create(v.x / other.x, v.y / other.y)
     @scala.annotation.targetName("divScalar")
-    def /(scalar: Num): Vec = create(v.x / scalar, v.y / scalar)
+    def /(scalar: Double): Vec = create(v.x / scalar, v.y / scalar)
     def normalize: Vec = v / v.length
 
     def abs: Vec = create(v.x.abs, v.y.abs)
@@ -65,18 +129,18 @@ trait Vec2ImmutableOps[Num: {NumExt, NumOps}, Vec]:
 
     def min(other: Vec): Vec = create(v.x.min(other.x), v.y.min(other.y))
     def max(other: Vec): Vec = create(v.x.max(other.x), v.y.max(other.y))
-    def clamp(lo: Num, hi: Num): Vec =
+    def clamp(lo: Double, hi: Double): Vec =
       create(v.x.clamp(lo, hi), v.y.clamp(lo, hi))
     @scala.annotation.targetName("mixVec")
     def mix(b: Vec, t: Vec): Vec =
       create(v.x.mix(b.x, t.x), v.y.mix(b.y, t.y))
     @scala.annotation.targetName("mixScalar")
-    def mix(b: Vec, t: Num): Vec =
+    def mix(b: Vec, t: Double): Vec =
       create(v.x.mix(b.x, t), v.y.mix(b.y, t))
     @scala.annotation.targetName("lerpVec")
     inline def lerp(b: Vec, t: Vec): Vec = v.mix(b, t)
     @scala.annotation.targetName("lerpScalar")
-    inline def lerp(b: Vec, t: Num): Vec = v.mix(b, t)
+    inline def lerp(b: Vec, t: Double): Vec = v.mix(b, t)
     @scala.annotation.targetName("ltVec")
     def <(other: Vec): Vec = create(v.x.lt(other.x), v.y.lt(other.y))
     @scala.annotation.targetName("lteVec")
@@ -88,20 +152,24 @@ trait Vec2ImmutableOps[Num: {NumExt, NumOps}, Vec]:
     @scala.annotation.targetName("stepVec")
     def step(edge: Vec): Vec = create(v.x.step(edge.x), v.y.step(edge.y))
     @scala.annotation.targetName("stepScalar")
-    def step(edge: Num): Vec = create(v.x.step(edge), v.y.step(edge))
+    def step(edge: Double): Vec = create(v.x.step(edge), v.y.step(edge))
     def smoothstep(edge0: Vec, edge1: Vec): Vec =
       create(v.x.smoothstep(edge0.x, edge1.x), v.y.smoothstep(edge0.y, edge1.y))
+// format: on
 
-trait Vec2MutableOps[Num: {NumExt, NumOps}, Vec]:
+trait Vec2Mutable[Vec] extends Vec2Base[Vec]:
+  extension (v: Vec)
+    def x_=(value: Double): Unit
+    def y_=(value: Double): Unit
+    inline def u_=(value: Double): Unit = x_=(value)
+    inline def v_=(value: Double): Unit = y_=(value)
 
-  extension (v: Vec)(using Vec2Mutable[Num, Vec])
-    def set[Num2, Vec2](
-        other: Vec2,
-    )(using Vec2Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
+trait Vec2MutableOps[Vec]:
+
+  extension (v: Vec)(using Vec2Mutable[Vec])
+    def set[Vec2_](other: Vec2_)(using Vec2Base[Vec2_]): Unit =
       v.x = other.x; v.y = other.y
-    def :=[Num2, Vec2](
-        other: Vec2,
-    )(using Vec2Base[Num2, Vec2], Conversion[Num2, Num]): Unit =
+    def :=[Vec2_](other: Vec2_)(using Vec2Base[Vec2_]): Unit =
       v.set(other)
 
     def add(other: Vec, out: Vec = v): Vec =
@@ -121,19 +189,19 @@ trait Vec2MutableOps[Num: {NumExt, NumOps}, Vec]:
       out.y = v.y / other.y
       out
 
-    def addS(scalar: Num, out: Vec = v): Vec =
+    def addS(scalar: Double, out: Vec = v): Vec =
       out.x = v.x + scalar
       out.y = v.y + scalar
       out
-    def subS(scalar: Num, out: Vec = v): Vec =
+    def subS(scalar: Double, out: Vec = v): Vec =
       out.x = v.x - scalar
       out.y = v.y - scalar
       out
-    def mulS(scalar: Num, out: Vec = v): Vec =
+    def mulS(scalar: Double, out: Vec = v): Vec =
       out.x = v.x * scalar
       out.y = v.y * scalar
       out
-    def divS(scalar: Num, out: Vec = v): Vec =
+    def divS(scalar: Double, out: Vec = v): Vec =
       out.x = v.x / scalar
       out.y = v.y / scalar
       out
@@ -142,19 +210,19 @@ trait Vec2MutableOps[Num: {NumExt, NumOps}, Vec]:
     def +=(other: Vec): Unit =
       v.add(other)
     @scala.annotation.targetName("addScalarAssign")
-    def +=(scalar: Num): Unit =
+    def +=(scalar: Double): Unit =
       v.addS(scalar)
     @scala.annotation.targetName("subVecAssign")
     def -=(other: Vec): Unit =
       v.sub(other)
     @scala.annotation.targetName("subScalarAssign")
-    def -=(scalar: Num): Unit =
+    def -=(scalar: Double): Unit =
       v.subS(scalar)
     @scala.annotation.targetName("mulScalarAssign")
-    def *=(scalar: Num): Unit =
+    def *=(scalar: Double): Unit =
       v.mulS(scalar)
     @scala.annotation.targetName("divScalarAssign")
-    def /=(scalar: Num): Unit =
+    def /=(scalar: Double): Unit =
       v.divS(scalar)
     @scala.annotation.targetName("mulComponentwiseAssign")
     def *=(other: Vec): Unit =

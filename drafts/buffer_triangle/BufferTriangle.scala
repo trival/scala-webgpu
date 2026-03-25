@@ -101,7 +101,7 @@ object BufferTriangle:
 
     // Vertex 0: top (red)
     vertices(0)(0) := Vec2(0.0, 0.5)
-    vertices(0)(1) := (1.0f, 0.0f, 0.0f, 1.0f)
+    vertices(0)(1) := (1.0, 0.0, 0.0, 1.0)
 
     // Vertex 1: bottom-left (green)
     vertices(1)(0) := (-0.5, -0.5)

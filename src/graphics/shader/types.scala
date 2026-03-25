@@ -40,7 +40,6 @@ given WGSLType[Double]:
   type AttribBuffer = F32 *: EmptyTuple
   type UniformBuffer = F32 *: EmptyTuple
 
-// Vec2 (Double, default) and Vec2f (Float) both map to vec2<f32> in WGSL
 given WGSLType[Vec2]:
   def wgslName = "vec2<f32>"
   def byteSize = 8
@@ -49,15 +48,6 @@ given WGSLType[Vec2]:
   type AttribBuffer = Vec2Buffer
   type UniformBuffer = Vec2Buffer
 
-given WGSLType[Vec2f]:
-  def wgslName = "vec2<f32>"
-  def byteSize = 8
-  def alignment = 8
-  def vertexFormat = "float32x2"
-  type AttribBuffer = Vec2Buffer
-  type UniformBuffer = Vec2Buffer
-
-// Vec3 (Double, default) and Vec3f (Float) both map to vec3<f32> in WGSL
 given WGSLType[Vec3]:
   def wgslName = "vec3<f32>"
   def byteSize = 12
@@ -66,24 +56,7 @@ given WGSLType[Vec3]:
   type AttribBuffer = Vec3Buffer
   type UniformBuffer = Vec4Buffer // padded to vec4 per WGSL std140
 
-given WGSLType[Vec3f]:
-  def wgslName = "vec3<f32>"
-  def byteSize = 12
-  def alignment = 16 // WGSL alignment rules
-  def vertexFormat = "float32x3"
-  type AttribBuffer = Vec3Buffer
-  type UniformBuffer = Vec4Buffer // padded to vec4 per WGSL std140
-
-// Vec4 (Double, default) and Vec4f (Float) both map to vec4<f32> in WGSL
 given WGSLType[Vec4]:
-  def wgslName = "vec4<f32>"
-  def byteSize = 16
-  def alignment = 16
-  def vertexFormat = "float32x4"
-  type AttribBuffer = Vec4Buffer
-  type UniformBuffer = Vec4Buffer
-
-given WGSLType[Vec4f]:
   def wgslName = "vec4<f32>"
   def byteSize = 16
   def alignment = 16

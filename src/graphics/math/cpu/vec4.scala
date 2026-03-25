@@ -7,105 +7,57 @@ import trivalibs.bufferdata.StructRef
 
 // === implementations for common vector types ===
 
-// ==== Float Vec4 types ====
-// Note: *Buffer types use F32 by default; Vec4dBuffer uses F64
+// ==== Buffer types ====
+// Note: Vec4Buffer uses F32 (for GPU upload), Vec4dBuffer uses F64
 
 type Vec4Buffer = (F32, F32, F32, F32)
 
 object Vec4Buffer:
-  given Vec4Mutable[Float, StructRef[Vec4Buffer]]:
+  given vec4MutableBuffer: Vec4Mutable[StructRef[Vec4Buffer]]:
     extension (v: StructRef[Vec4Buffer])
-      inline def x: Float = v.getAt(0)
-      inline def y: Float = v.getAt(1)
-      inline def z: Float = v.getAt(2)
-      inline def w: Float = v.getAt(3)
-      inline def x_=(value: Float): Unit = v.setAt(0)(value)
-      inline def y_=(value: Float): Unit = v.setAt(1)(value)
-      inline def z_=(value: Float): Unit = v.setAt(2)(value)
-      inline def w_=(value: Float): Unit = v.setAt(3)(value)
+      inline def x = v.getAt(0): Double
+      inline def y = v.getAt(1): Double
+      inline def z = v.getAt(2): Double
+      inline def w = v.getAt(3): Double
+      inline def x_=(value: Double) = v.setAt(0)(value.toFloat)
+      inline def y_=(value: Double) = v.setAt(1)(value.toFloat)
+      inline def z_=(value: Double) = v.setAt(2)(value.toFloat)
+      inline def w_=(value: Double) = v.setAt(3)(value.toFloat)
 
-  given Vec4MutableOps[Float, StructRef[Vec4Buffer]] =
-    new Vec4MutableOps[Float, StructRef[Vec4Buffer]] {}
-
-type Vec4fTuple = (Float, Float, Float, Float)
-
-object Vec4fTuple extends Vec4ImmutableOps[Float, Vec4fTuple]:
-  inline def create(x: Float, y: Float, z: Float, w: Float) = (x, y, z, w)
-  given Vec4ImmutableOps[Float, Vec4fTuple] = Vec4fTuple
-  val zero: Vec4fTuple = (0f, 0f, 0f, 0f)
-  val X: Vec4fTuple = (1f, 0f, 0f, 0f)
-  val Y: Vec4fTuple = (0f, 1f, 0f, 0f)
-  val Z: Vec4fTuple = (0f, 0f, 1f, 0f)
-  val W: Vec4fTuple = (0f, 0f, 0f, 1f)
-
-  given Vec4Base[Float, Vec4fTuple]:
-    extension (v: Vec4fTuple)
-      inline def x = v._1
-      inline def y = v._2
-      inline def z = v._3
-      inline def w = v._4
-
-class Vec4f(
-    var x: Float = 0f,
-    var y: Float = 0f,
-    var z: Float = 0f,
-    var w: Float = 0f,
-)
-
-object Vec4f extends Vec4ImmutableOps[Float, Vec4f]:
-  inline def create(x: Float, y: Float, z: Float, w: Float) =
-    new Vec4f(x, y, z, w)
-  given Vec4ImmutableOps[Float, Vec4f] = Vec4f
-  def zero: Vec4f = new Vec4f(0f, 0f, 0f, 0f)
-  def X: Vec4f = new Vec4f(1f, 0f, 0f, 0f)
-  def Y: Vec4f = new Vec4f(0f, 1f, 0f, 0f)
-  def Z: Vec4f = new Vec4f(0f, 0f, 1f, 0f)
-  def W: Vec4f = new Vec4f(0f, 0f, 0f, 1f)
-
-  given Vec4Mutable[Float, Vec4f]:
-    extension (v: Vec4f)
-      inline def x = v.x
-      inline def y = v.y
-      inline def z = v.z
-      inline def w = v.w
-      inline def x_=(value: Float) = v.x = value
-      inline def y_=(value: Float) = v.y = value
-      inline def z_=(value: Float) = v.z = value
-      inline def w_=(value: Float) = v.w = value
-
-  given Vec4MutableOps[Float, Vec4f] = new Vec4MutableOps[Float, Vec4f] {}
-
-// ===== Double Vec4 types (default) =====
+  given vec4MutableOpsBuffer: Vec4MutableOps[StructRef[Vec4Buffer]] =
+    new Vec4MutableOps[StructRef[Vec4Buffer]] {}
 
 type Vec4dBuffer = (F64, F64, F64, F64)
 
 object Vec4dBuffer:
-  given Vec4Mutable[Double, StructRef[Vec4dBuffer]]:
+  given vec4MutableDBuffer: Vec4Mutable[StructRef[Vec4dBuffer]]:
     extension (v: StructRef[Vec4dBuffer])
-      inline def x = v.getAt(0)
-      inline def y = v.getAt(1)
-      inline def z = v.getAt(2)
-      inline def w = v.getAt(3)
+      inline def x = v.getAt(0): Double
+      inline def y = v.getAt(1): Double
+      inline def z = v.getAt(2): Double
+      inline def w = v.getAt(3): Double
       inline def x_=(value: Double) = v.setAt(0)(value)
       inline def y_=(value: Double) = v.setAt(1)(value)
       inline def z_=(value: Double) = v.setAt(2)(value)
       inline def w_=(value: Double) = v.setAt(3)(value)
 
-  given Vec4MutableOps[Double, StructRef[Vec4dBuffer]] =
-    new Vec4MutableOps[Double, StructRef[Vec4dBuffer]] {}
+  given vec4MutableOpsDBuffer: Vec4MutableOps[StructRef[Vec4dBuffer]] =
+    new Vec4MutableOps[StructRef[Vec4dBuffer]] {}
+
+// ===== Tuple and class types =====
 
 type Vec4Tuple = (Double, Double, Double, Double)
 
-object Vec4Tuple extends Vec4ImmutableOps[Double, Vec4Tuple]:
+object Vec4Tuple extends Vec4ImmutableOps[Vec4Tuple]:
   inline def create(x: Double, y: Double, z: Double, w: Double) = (x, y, z, w)
-  given Vec4ImmutableOps[Double, Vec4Tuple] = Vec4Tuple
+  given Vec4ImmutableOps[Vec4Tuple] = Vec4Tuple
   val zero: Vec4Tuple = (0.0, 0.0, 0.0, 0.0)
   val X: Vec4Tuple = (1.0, 0.0, 0.0, 0.0)
   val Y: Vec4Tuple = (0.0, 1.0, 0.0, 0.0)
   val Z: Vec4Tuple = (0.0, 0.0, 1.0, 0.0)
   val W: Vec4Tuple = (0.0, 0.0, 0.0, 1.0)
 
-  given Vec4Base[Double, Vec4Tuple]:
+  given Vec4Base[Vec4Tuple]:
     extension (v: Vec4Tuple)
       inline def x = v._1
       inline def y = v._2
@@ -119,17 +71,17 @@ class Vec4(
     var w: Double = 0.0,
 )
 
-object Vec4 extends Vec4ImmutableOps[Double, Vec4]:
+object Vec4 extends Vec4ImmutableOps[Vec4]:
   inline def create(x: Double, y: Double, z: Double, w: Double) =
     new Vec4(x, y, z, w)
-  given Vec4ImmutableOps[Double, Vec4] = Vec4
+  given Vec4ImmutableOps[Vec4] = Vec4
   def zero: Vec4 = new Vec4(0.0, 0.0, 0.0, 0.0)
   def X: Vec4 = new Vec4(1.0, 0.0, 0.0, 0.0)
   def Y: Vec4 = new Vec4(0.0, 1.0, 0.0, 0.0)
   def Z: Vec4 = new Vec4(0.0, 0.0, 1.0, 0.0)
   def W: Vec4 = new Vec4(0.0, 0.0, 0.0, 1.0)
 
-  given Vec4Mutable[Double, Vec4]:
+  given Vec4Mutable[Vec4]:
     extension (v: Vec4)
       inline def x = v.x
       inline def y = v.y
@@ -140,4 +92,4 @@ object Vec4 extends Vec4ImmutableOps[Double, Vec4]:
       inline def z_=(value: Double) = v.z = value
       inline def w_=(value: Double) = v.w = value
 
-  given Vec4MutableOps[Double, Vec4] = new Vec4MutableOps[Double, Vec4] {}
+  given Vec4MutableOps[Vec4] = new Vec4MutableOps[Vec4] {}

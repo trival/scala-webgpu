@@ -7,97 +7,65 @@ import trivalibs.bufferdata.StructRef
 
 // === implementations for common vector types ===
 
-// ==== Float Vec2 types ====
-// Note: *Buffer types use F32 by default; Vec2dBuffer uses F64
+// ==== Buffer types ====
+// Note: Vec2Buffer uses F32 (for GPU upload), Vec2dBuffer uses F64
 
 type Vec2Buffer = (F32, F32)
 
 object Vec2Buffer:
-  given Vec2Mutable[Float, StructRef[Vec2Buffer]]:
+  given vec2MutableBuffer: Vec2Mutable[StructRef[Vec2Buffer]]:
     extension (v: StructRef[Vec2Buffer])
-      inline def x = v.getAt(0)
-      inline def y = v.getAt(1)
-      inline def x_=(value: Float) = v.setAt(0)(value)
-      inline def y_=(value: Float) = v.setAt(1)(value)
+      inline def x = v.getAt(0): Double
+      inline def y = v.getAt(1): Double
+      inline def x_=(value: Double) = v.setAt(0)(value.toFloat)
+      inline def y_=(value: Double) = v.setAt(1)(value.toFloat)
 
-  given Vec2MutableOps[Float, StructRef[Vec2Buffer]] =
-    new Vec2MutableOps[Float, StructRef[Vec2Buffer]] {}
-
-type Vec2fTuple = (Float, Float)
-
-object Vec2fTuple extends Vec2ImmutableOps[Float, Vec2fTuple]:
-  inline def create(x: Float, y: Float) = (x, y)
-  given Vec2ImmutableOps[Float, Vec2fTuple] = Vec2fTuple
-  val zero: Vec2fTuple = (0f, 0f)
-  val X: Vec2fTuple = (1f, 0f)
-  val Y: Vec2fTuple = (0f, 1f)
-
-  given Vec2Base[Float, Vec2fTuple]:
-    extension (v: Vec2fTuple)
-      inline def x = v._1
-      inline def y = v._2
-
-class Vec2f(var x: Float = 0f, var y: Float = 0f)
-
-object Vec2f extends Vec2ImmutableOps[Float, Vec2f]:
-  inline def create(x: Float, y: Float) = new Vec2f(x, y)
-  given Vec2ImmutableOps[Float, Vec2f] = Vec2f
-  def zero: Vec2f = new Vec2f(0f, 0f)
-  def X: Vec2f = new Vec2f(1f, 0f)
-  def Y: Vec2f = new Vec2f(0f, 1f)
-
-  given Vec2Mutable[Float, Vec2f]:
-    extension (v: Vec2f)
-      inline def x = v.x
-      inline def y = v.y
-      inline def x_=(value: Float) = v.x = value
-      inline def y_=(value: Float) = v.y = value
-
-  given Vec2MutableOps[Float, Vec2f] = new Vec2MutableOps[Float, Vec2f] {}
-
-// ===== Double Vec2 types (default) =====
+  given vec2MutableOpsBuffer: Vec2MutableOps[StructRef[Vec2Buffer]] =
+    new Vec2MutableOps[StructRef[Vec2Buffer]] {}
 
 type Vec2dBuffer = (F64, F64)
 
 object Vec2dBuffer:
-  given Vec2Mutable[Double, StructRef[Vec2dBuffer]]:
+  given vec2MutableDBuffer: Vec2Mutable[StructRef[Vec2dBuffer]]:
     extension (v: StructRef[Vec2dBuffer])
-      inline def x = v.getAt(0)
-      inline def y = v.getAt(1)
+      inline def x = v.getAt(0): Double
+      inline def y = v.getAt(1): Double
       inline def x_=(value: Double) = v.setAt(0)(value)
       inline def y_=(value: Double) = v.setAt(1)(value)
 
-  given Vec2MutableOps[Double, StructRef[Vec2dBuffer]] =
-    new Vec2MutableOps[Double, StructRef[Vec2dBuffer]] {}
+  given vec2MutableOpsDBuffer: Vec2MutableOps[StructRef[Vec2dBuffer]] =
+    new Vec2MutableOps[StructRef[Vec2dBuffer]] {}
+
+// ===== Tuple and class types =====
 
 type Vec2Tuple = (Double, Double)
 
-object Vec2Tuple extends Vec2ImmutableOps[Double, Vec2Tuple]:
+object Vec2Tuple extends Vec2ImmutableOps[Vec2Tuple]:
   inline def create(x: Double, y: Double) = (x, y)
-  given Vec2ImmutableOps[Double, Vec2Tuple] = Vec2Tuple
+  given Vec2ImmutableOps[Vec2Tuple] = Vec2Tuple
   val zero: Vec2Tuple = (0.0, 0.0)
   val X: Vec2Tuple = (1.0, 0.0)
   val Y: Vec2Tuple = (0.0, 1.0)
 
-  given Vec2Base[Double, Vec2Tuple]:
+  given Vec2Base[Vec2Tuple]:
     extension (v: Vec2Tuple)
       inline def x = v._1
       inline def y = v._2
 
 class Vec2(var x: Double = 0.0, var y: Double = 0.0)
 
-object Vec2 extends Vec2ImmutableOps[Double, Vec2]:
+object Vec2 extends Vec2ImmutableOps[Vec2]:
   inline def create(x: Double, y: Double) = new Vec2(x, y)
-  given Vec2ImmutableOps[Double, Vec2] = Vec2
+  given Vec2ImmutableOps[Vec2] = Vec2
   def zero: Vec2 = new Vec2(0.0, 0.0)
   def X: Vec2 = new Vec2(1.0, 0.0)
   def Y: Vec2 = new Vec2(0.0, 1.0)
 
-  given Vec2Mutable[Double, Vec2]:
+  given Vec2Mutable[Vec2]:
     extension (v: Vec2)
       inline def x = v.x
       inline def y = v.y
       inline def x_=(value: Double) = v.x = value
       inline def y_=(value: Double) = v.y = value
 
-  given Vec2MutableOps[Double, Vec2] = new Vec2MutableOps[Double, Vec2] {}
+  given Vec2MutableOps[Vec2] = new Vec2MutableOps[Vec2] {}

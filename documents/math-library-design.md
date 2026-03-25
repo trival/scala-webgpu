@@ -62,32 +62,47 @@ in-place mutation. MutableOps remain CPU-only.
 
 ### 1.3 Numeric Types
 
-- **`Double`** is the default for Scala-side math (native JS `number`).
-- **`Float`** is used only in GPU buffers (`Vec2Buffer`, `Mat4Buffer`) for
-  WebGPU upload.
-- Both `Vec2` (Double) and `Vec2f` (Float) map to `vec2<f32>` in WGSL — WGSL
-  does not support `f64`.
+- **`Double`** is the default for all Scala-side math (native JS `number`).
+- **`Float`** appears only in F32 buffer tuple types (`Vec2Buffer`,
+  `Mat4Buffer`) for WebGPU upload. Buffer type class instances use `Double` at
+  the trait level with `.toFloat` conversion in setters.
+- Float class types (`Vec2f`, `Vec3f`, `Vec4f`, `Vec*fTuple`) have been removed.
+  All CPU math is Double-only. WGSL does not support `f64`, so all types map to
+  `f32` on the GPU side.
 
 ### 1.4 Trait Structure
 
-```
-Vec*Base[Num, Vec]          — read-only accessors (.x/.y/…) + scalar-returning ops (.dot, .length,
-                               .determinant); no allocation, no abstract create — safe for all types
-Vec*Mutable[Num, Vec]       — extends Base, adds field setters
-Vec*ImmutableOps[Num, Vec]  — allocating ops returning a new instance (via abstract create):
-                               arithmetic operators (+,-,*,/), normalize, swizzles, etc.
-Vec*MutableOps[Num, Vec]    — in-place ops writing into a target: *Self, *To(out), +=/-=
+Traits are split into **generic** (`*G` suffix) and **CPU-specific** (no suffix)
+variants:
 
-Mat*Base[Num, Mat]          — read-only accessors (.mColRow, col/row getters) + scalar-returning ops
-                               (.determinant)
-Mat*Mutable[Num, Mat]       — extends Base, adds field setters, col/row setters
-Mat*ImmutableOps[Num, Mat]  — allocating ops: arithmetic operators, transpose, constructors, etc.
-Mat*MutableOps[Num, Mat]    — in-place ops: *Self, *To(out), +=/-=
-
-QuatImmutableOps[Num, Q]    — quat ops returning a new instance (quatMul, quatRotate, slerp, toMat4, …)
-QuatMutableOps[Num, Q]      — quat ops writing into a target (quatMulSelf, conjugateSelf, setFrom*, …)
-                               Quat base accessors are provided by Vec4Base[Num, Q] (same layout)
 ```
+Generic (CPU + GPU shared contract) — PURELY ABSTRACT, no implementations:
+  Vec*BaseG[Num, Vec]          — abstract: component accessors, dot, length_squared, length
+                                  inline aliases: u/v, r/g/b/a (delegate to abstract accessors)
+  Vec*ImmutableOpsG[Num, Vec]  — abstract: create, all WGSL-isomorphic ops (arithmetic,
+                                  normalize, unary_-, math fns, comparisons, cross for Vec3)
+  Mat*BaseG[Num, Mat]          — abstract: mNN accessors, determinant
+  Mat*ImmutableOpsG[Num, Mat]  — abstract: create, matMul, vecMul
+
+CPU-specific (Double) — concrete implementations:
+  Vec*Base[Vec]                — extends BaseG[Double, Vec], concrete: dot, length_squared, length
+  Vec*Mutable[Vec]             — extends Base, adds setters (Double)
+  Vec*ImmutableOps[Vec]        — concrete impls of all ImmutableOpsG ops + CPU-only: from
+  Vec*MutableOps[Vec]          — in-place ops (set, :=, +=, normalizeTo, etc.)
+  Mat*Base[Mat]                — extends BaseG[Double, Mat], concrete: determinant, col/row getters
+  Mat*Mutable[Mat]             — extends Base, adds setters + col/row setters (Double)
+  Mat*ImmutableOps[Mat]        — concrete matMul/vecMul + CPU-only: from, identity, inverse,
+                                  transpose, rotate*, constructors
+  Mat*MutableOps[Mat]          — in-place ops (set, :=, setIdentity, transposeTo, inverseTo,
+                                  rotateTo)
+```
+
+G traits are used by the GPU DSL (`expr.scala`) which implements them for
+expression types (`FloatExpr`, `Vec*Expr`, `Mat*Expr`). CPU traits fix
+`Num = Double` and provide concrete implementations.
+
+Quat traits (`QuatImmutableOps[Q]`, `QuatMutableOps[Q]`) are CPU-only with no
+generic variant — quaternions have no GPU correspondence.
 
 ### 1.5 Column-Major Convention
 
@@ -100,15 +115,18 @@ column 1, row 0. This matches WGSL and WebGPU conventions.
 
 ### CPU Types
 
-| Category   | Double (default)    | Float variant         | GPU buffer (F32) |
-| ---------- | ------------------- | --------------------- | ---------------- |
-| 2D vector  | `Vec2`, `Vec2Tuple` | `Vec2f`, `Vec2fTuple` | `Vec2Buffer`     |
-| 3D vector  | `Vec3`, `Vec3Tuple` | `Vec3f`, `Vec3fTuple` | `Vec3Buffer`     |
-| 4D vector  | `Vec4`, `Vec4Tuple` | `Vec4f`, `Vec4fTuple` | `Vec4Buffer`     |
-| 2×2 matrix | `Mat2`, `Mat2Tuple` | —                     | `Mat2Buffer`     |
-| 3×3 matrix | `Mat3`, `Mat3Tuple` | —                     | `Mat3Buffer`     |
-| 4×4 matrix | `Mat4`, `Mat4Tuple` | —                     | `Mat4Buffer`     |
-| Quaternion | `Quat` (planned)    | —                     | via `Vec4Buffer` |
+| Category   | Double (default)    | GPU buffer (F32) | F64 buffer    |
+| ---------- | ------------------- | ---------------- | ------------- |
+| 2D vector  | `Vec2`, `Vec2Tuple` | `Vec2Buffer`     | `Vec2dBuffer` |
+| 3D vector  | `Vec3`, `Vec3Tuple` | `Vec3Buffer`     | `Vec3dBuffer` |
+| 4D vector  | `Vec4`, `Vec4Tuple` | `Vec4Buffer`     | `Vec4dBuffer` |
+| 2×2 matrix | `Mat2`, `Mat2Tuple` | `Mat2Buffer`     | —             |
+| 3×3 matrix | `Mat3`, `Mat3Tuple` | `Mat3Buffer`     | —             |
+| 4×4 matrix | `Mat4`, `Mat4Tuple` | `Mat4Buffer`     | —             |
+| Quaternion | `Quat`              | via `Vec4Buffer` | —             |
+
+All buffer types use Double at the trait level. F32 buffer setters convert via
+`.toFloat`; F32 buffer getters widen via `: Double` type ascription.
 
 ### GPU DSL Expression Types (`src/graphics/math/gpu/expr.scala`)
 
@@ -261,14 +279,16 @@ CPU: `Mat*Base` (scalar-returning) and `Mat*ImmutableOps` (allocating). GPU:
 
 | CPU             | GPU             | WGSL Output      | Trait (CPU)    | Status                      |
 | --------------- | --------------- | ---------------- | -------------- | --------------------------- |
-| `m + n`         | `m + n`         | `(m + n)`        | `ImmutableOps` | ✅ Done                     |
-| `m - n`         | `m - n`         | `(m - n)`        | `ImmutableOps` | ✅ Done                     |
-| `m * s`         | `m * s`         | `(m * s)`        | `ImmutableOps` | ✅ Done                     |
 | `m * n`         | `m * n`         | `(m * n)`        | `ImmutableOps` | ✅ Done                     |
 | `m * v`         | `m * v`         | `(m * v)`        | `ImmutableOps` | ✅ Done                     |
 | `m.transpose`   | `m.transpose`   | `transpose(m)`   | `ImmutableOps` | ✅ Done                     |
 | `m.determinant` | `m.determinant` | `determinant(m)` | `Base`         | ✅ Done                     |
 | `m.inverse`     | —               | —                | `ImmutableOps` | CPU only (no WGSL built-in) |
+
+> **Removed**: Matrix `+`, `-`, and scalar `*` have been removed from CPU
+> traits. These operations are rarely meaningful in graphics (matrix addition is
+> not a standard transform operation). The GPU DSL retains them since WGSL
+> supports them natively.
 
 ### 5.2 Mat4 Constructors (in `Mat4ImmutableOps`)
 
@@ -280,16 +300,15 @@ These are static factory methods on the companion object:
 | `Mat4.fromRotationX(a)`                           | Rotation around X axis                                     | ✅ Done    |
 | `Mat4.fromRotationY(a)`                           | Rotation around Y axis                                     | ✅ Done    |
 | `Mat4.fromRotationZ(a)`                           | Rotation around Z axis                                     | ✅ Done    |
-| `Mat4.fromTranslation(v)`                         | Translation matrix from `Vec3`                             | 📋 Planned |
-| `Mat4.fromScale(v)`                               | Non-uniform scale from `Vec3`                              | 📋 Planned |
-| `Mat4.fromScale(s)`                               | Uniform scale from scalar                                  | 📋 Planned |
+| `Mat4.fromTranslation(v)`                         | Translation matrix from `Vec3`                             | ✅ Done    |
+| `Mat4.fromScale(v)`                               | Non-uniform scale from `Vec3`                              | ✅ Done    |
 | `Mat4.fromAxisAngle(axis, a)`                     | Rotation around arbitrary axis                             | 📋 Planned |
 | `Mat4.fromQuat(q)`                                | Build rotation matrix from quaternion                      | 📋 Planned |
-| `Mat4.fromTranslationRotationScale(t, r, s)`      | Full TRS matrix in one step (used by `Transform.toMatrix`) | 📋 Planned |
-| `Mat4.perspective(fov, aspect, near, far)`        | Perspective projection (reversed-Z, infinite far optional) | 📋 Planned |
-| `Mat4.lookAt(eye, center, up)`                    | View matrix                                                | 📋 Planned |
+| `Mat4.fromTranslationRotationScale(t, r, s)`      | Full TRS matrix in one step (used by `Transform.toMatrix`) | ✅ Done    |
+| `Mat4.perspective(fov, aspect, near, far)`        | Perspective projection (WebGPU [0,1] depth, right-handed)  | ✅ Done    |
+| `Mat4.lookAt(eye, center, up)`                    | View matrix (right-handed)                                 | ✅ Done    |
 | `Mat4.ortho(left, right, bottom, top, near, far)` | Orthographic projection                                    | 📋 Planned |
-| `Mat4.from[Num2,Mat2_](other)`                    | Convert from another Mat4 type                             | ✅ Done    |
+| `Mat4.from[Mat4_](other)`                         | Convert from another Mat4 type                             | ✅ Done    |
 
 ### 5.3 Mat4 Apply Transforms (in `Mat4ImmutableOps` — pre/post multiply)
 
@@ -339,51 +358,51 @@ Quaternion layout is `(x, y, z, w)` — identical to `Vec4`. Three storage forms
 already have the right layout. `Vec4` (mutable class) is **not** given quat ops
 — use `Quat` instead when quat semantics are needed on a mutable value.
 
-The base field accessors (`.x`, `.y`, `.z`, `.w`) come from `Vec4Base[Num, Q]`
-and `Vec4Mutable[Num, Q]` — no separate `QuatBase` trait is needed.
+The base field accessors (`.x`, `.y`, `.z`, `.w`) come from `Vec4Base[Q]` and
+`Vec4Mutable[Q]` — no separate `QuatBase` trait is needed.
 
 > **No WGSL type**: quaternions are CPU-only. Convert to `Mat4` before
 > uploading. No `QuatExpr` DSL type is planned.
 
-### 6.2 `QuatImmutableOps[Num, Q]` — Allocating Operations
+### 6.2 `QuatImmutableOps[Q]` — Allocating Operations
 
 All quat-specific operations use distinct `quat*`-prefixed names so that Vec4
 and quat operations can coexist on the same type (`Vec4Tuple`) without
-ambiguity. No operator overloads in the trait.
+ambiguity. No operator overloads in the trait. Quat traits are Double-only (no
+`Num` type parameter).
 
 ```scala
-trait QuatImmutableOps[Num, Q]:
-  extension (q: Q)(using Vec4Base[Num, Q])
-    def quatMul(p: Q): Q                                           // Hamilton product → new Q
-    def quatRotate[V](v: V)(using Vec3ImmutableOps[Num, V]): V    // rotate Vec3 → new V
-    def quatConjugate: Q                                           // (−x, −y, −z, w) → new Q
-    def quatInverse: Q                                             // conjugate / |q|² → new Q
-    def slerp(p: Q, t: Num): Q                                    // spherical linear interp
-    def toMat4: Mat4                                               // 4×4 rotation matrix
-    def toAxisAngle[V](using Vec3ImmutableOps[Num, V]): (V, Num)  // extract axis + angle
+trait QuatImmutableOps[Q]:
+  extension (q: Q)(using Vec4Base[Q])
+    def quatMul(p: Q): Q                                        // Hamilton product → new Q
+    def quatRotate[V](v: V)(using Vec3Base[V], Vec3ImmutableOps[V]): V  // rotate Vec3 → new V
+    def quatConjugate: Q                                        // (−x, −y, −z, w) → new Q
+    def quatInverse: Q                                          // conjugate / |q|² → new Q
+    def slerp(p: Q, t: Double): Q                               // spherical linear interp
+    def toMat4: Mat4                                            // 4×4 rotation matrix
 ```
 
 `normalize`, `length`, `dot` are **not** in `QuatImmutableOps` — they are
 already provided by `Vec4Base` / `Vec4ImmutableOps`. `slerp` gets no `quat`
 prefix because it has no Vec4 analogue (Vec4 uses `mix` for linear lerp).
 
-### 6.3 `QuatMutableOps[Num, Q]` — In-Place Operations
+### 6.3 `QuatMutableOps[Q]` — In-Place Operations
 
-In-place operations for mutable types (`Quat`, `StructRef[Vec4Buffer]`). No WGSL
-equivalent — CPU only, no GPU DSL entry.
+In-place operations for mutable types (`Quat`). No WGSL equivalent — CPU only,
+no GPU DSL entry.
 
 ```scala
-trait QuatMutableOps[Num, Q]:
-  extension (q: Q)(using Vec4Mutable[Num, Q])
+trait QuatMutableOps[Q]:
+  extension (q: Q)(using Vec4Mutable[Q])
     def quatMulSelf(p: Q): Unit   // self = p * self  (pre-multiply — p applied first)
-    def *=(p: Q): Unit = quatMulSelf(p)  // operator alias, same pre-multiply semantics
-    def conjugateSelf: Unit                                            // (−x, −y, −z, w) in-place
-    def inverseSelf: Unit                                              // conjugate/|q|² in-place
-    def setFromAxisAngle[V](axis: V, angle: Num)(using Vec3Base[Num, V]): Unit
-    def setFromRotationX(angle: Num): Unit
-    def setFromRotationY(angle: Num): Unit
-    def setFromRotationZ(angle: Num): Unit
-    def setFromLookRotation[V](fwd: V, up: V)(using Vec3Base[Num, V]): Unit
+    def conjugateSelf: Unit                                        // (−x, −y, −z, w) in-place
+    def inverseSelf: Unit                                          // conjugate/|q|² in-place
+    def normalizeSelf: Unit                                        // normalize in-place
+    def setFromAxisAngle[V](axis: V, angle: Double)(using Vec3Base[V]): Unit
+    def setFromRotationX(angle: Double): Unit
+    def setFromRotationY(angle: Double): Unit
+    def setFromRotationZ(angle: Double): Unit
+    def setFromLookRotation[V](fwd: V, up: V)(using Vec3Base[V]): Unit
 ```
 
 > **`*=` order**: `q *= p` means `q = p * q` (pre-multiply — `p` applied first,
@@ -410,9 +429,9 @@ class Quat(
 )
 
 object Quat:
-  given Vec4Mutable[Double, Quat]      = ...
-  given QuatImmutableOps[Double, Quat] = ...
-  given QuatMutableOps[Double, Quat]   = ...
+  given Vec4Mutable[Quat]      = ...
+  given QuatImmutableOps[Quat] = ...
+  given QuatMutableOps[Quat]   = ...
 ```
 
 Operator aliases on `Quat` — unambiguous since `Quat` is the dedicated type:
@@ -429,7 +448,7 @@ they have no meaningful quaternion interpretation.
 
 ### 6.5 Vec4Tuple and Vec4Buffer — Both Op Sets
 
-`Vec4Tuple` / `Vec4fTuple` get `QuatImmutableOps`; `StructRef[Vec4Buffer]` gets
+`Vec4Tuple` gets `QuatImmutableOps`; `StructRef[Vec4Buffer]` gets
 `QuatMutableOps`. Vec4 operators take priority on each type; quat operations are
 accessed via the `quat*` prefixed named methods:
 
@@ -447,11 +466,6 @@ q.setFromRotationX(0.3)                       // QuatMutableOps, reset
 val qt: Vec4Tuple = (0.0, 0.0, 0.0, 1.0)    // quaternion stored as tuple
 val rotated2 = qt.quatRotate(Vec3(1, 0, 0)) // QuatImmutableOps
 val scaled   = qt * 2.0                      // Vec4ImmutableOps (component-wise, not quat!)
-
-// StructRef[Vec4Buffer] — Vec4MutableOps and QuatMutableOps available
-myBuf.quatMulSelf(other)    // QuatMutableOps, in-place
-myBuf.setFromRotationY(0.5) // QuatMutableOps, reset
-myBuf.normalizeSelf         // Vec4MutableOps, in-place
 ```
 
 ### 6.6 Constructors — `object Quat`
@@ -472,14 +486,13 @@ Constructors return `Quat` (mutable), which can be copied into any storage:
 
 ```
 src/graphics/math/cpu/quat.scala
-  — trait QuatImmutableOps[Num, Q]
-  — trait QuatMutableOps[Num, Q]
+  — trait QuatImmutableOps[Q]
+  — trait QuatMutableOps[Q]
   — class Quat(x, y, z, w)
   — object Quat: constructors, given Vec4Mutable, given QuatImmutableOps,
       given QuatMutableOps, operator extensions (* Hamilton, * Vec3, unary -)
-  — given QuatImmutableOps[Double, Vec4Tuple]            // in Vec4Tuple companion
-  — given QuatImmutableOps[Float,  Vec4fTuple]           // in Vec4fTuple companion
-  — given QuatMutableOps[Float,  StructRef[Vec4Buffer]]  // in Vec4Buffer companion
+  — given QuatImmutableOps[Vec4Tuple]
+  — given QuatMutableOps[StructRef[Vec4Buffer]]
 ```
 
 ---
@@ -531,12 +544,20 @@ pattern is uncommon. Tracked as P6 in §8.2.
 
 ### 8.1 Completed
 
-- **Vec2, Vec3, Vec4** — all CPU types (mutable class, tuple, F32 buffer), full
-  `Base`, `ImmutableOps`, `MutableOps` trait instances ✅
+- **Trait separation** — all Vec/Mat traits split into generic (`*G`, purely
+  abstract) and CPU-specific (Double, concrete) variants. GPU DSL implements G
+  traits. ✅
+- **Float type removal** — `Vec2f`, `Vec3f`, `Vec4f`, `Vec*fTuple` removed. All
+  CPU math is Double-only. F32 buffer types use `.toFloat` in setters. ✅
+- **Vec2, Vec3, Vec4** — all CPU types (mutable class, tuple, F32/F64 buffer),
+  full `Base`, `ImmutableOps`, `MutableOps` trait instances ✅
 - **Mat2, Mat3, Mat4** — all CPU types (mutable class, tuple, F32 buffer), full
   `Base` (incl. `determinant`), `ImmutableOps`, `MutableOps` trait instances ✅
-- **Mat4 per-axis rotation constructors** — `fromRotationX/Y/Z`, `identity` ✅
+- **Mat4 constructors** — `fromRotationX/Y/Z`, `identity`, `fromTranslation`,
+  `fromScale`, `fromTranslationRotationScale`, `perspective`, `lookAt` ✅
 - **Mat4 apply-transform methods** — `rotateX/Y/Z` (immutable + mutable) ✅
+- **Quaternion** — `QuatImmutableOps[Q]`, `QuatMutableOps[Q]`, `class Quat`,
+  `object Quat` constructors, operator aliases, `given` for `Vec4Tuple` ✅
 - **GPU DSL expression types** — `FloatExpr`, `Vec*Expr`, `Mat*Expr`,
   `BoolExpr`, `Texture2D`, `Sampler` ✅
 - **GPU DSL scalar operations** — full `FloatExpr` extension set ✅
@@ -546,59 +567,34 @@ pattern is uncommon. Tracked as P6 in §8.2.
 
 ### 8.2 Planned — Math Library (Priority Order)
 
-**P1 — Needed for `panel_tex` 3D upgrade**
+**P1 — Remaining Mat4 convenience**
 
-1. `Mat4.fromTranslation(v: Vec3): Mat4`
-2. `Mat4.fromScale(v: Vec3): Mat4` and `Mat4.fromScale(s: Double): Mat4`
-3. `Mat4.fromTranslationRotationScale(t: Vec3, r: Quat, s: Vec3): Mat4` —
-   single-call TRS constructor, used by `Transform.toMatrix()`
-4. `Mat4.perspective(fovY: Double, aspect: Double, near: Double, far: Double): Mat4`
-   — reversed-Z WebGPU convention (`near → 1`, infinite far → `0`)
-5. `Mat4.lookAt(eye: Vec3, center: Vec3, up: Vec3): Mat4`
-6. `m.translate(v: Vec3)` and `m.scale(v: Vec3)` / `m.scale(s: Double)`
+1. `m.translate(v: Vec3)` and `m.scale(v: Vec3)` / `m.scale(s: Double)`
    apply-transform methods
-7. Corresponding mutable `*Self` / `*To(out)` variants for all of the above
+2. Corresponding mutable `*Self` / `*To(out)` variants for translate/scale
 
-**P2 — Quaternion (needed for smooth rotation in 3D scenes)**
+**P2 — Additional convenience constructors**
 
-7. `trait QuatImmutableOps[Num, Q]` — allocating ops: `quatMul`, `quatRotate`,
-   `quatConjugate`, `quatInverse`, `slerp`, `toMat4`, `toAxisAngle`
-8. `trait QuatMutableOps[Num, Q]` — in-place ops: `quatMulSelf`,
-   `conjugateSelf`, `inverseSelf`, `setFromAxisAngle`, `setFromRotationX/Y/Z`,
-   `setFromLookRotation`
-9. `class Quat` (mutable, dedicated type) + `object Quat` constructors:
-   `identity`, `fromRotationX/Y/Z`, `fromAxisAngle`, `fromLookRotation` — `Quat`
-   implements all: `Vec4Mutable`, `QuatImmutableOps`, `QuatMutableOps`, plus
-   operator aliases (`*` = Hamilton product, `* Vec3` = rotate, unary `-` =
-   conjugate)
-10. `given QuatImmutableOps` for `Vec4Tuple`, `Vec4fTuple` — named quat methods
-    alongside their existing Vec4 operators; no mutable ops (tuples are
-    immutable)
-11. `given QuatMutableOps` for `StructRef[Vec4Buffer]` — in-place quat ops
-    alongside existing Vec4 mutable ops; no immutable ops (allocation is
-    expensive)
+3. `Mat4.fromAxisAngle(axis: Vec3, angle: Double): Mat4`
+4. `Mat4.fromQuat(q: Quat): Mat4`
+5. `Mat4.ortho(left, right, bottom, top, near, far): Mat4`
+6. `Quat.fromMat4(m: Mat4): Quat`
+7. `Quat.toAxisAngle` — extract axis + angle from quaternion
 
-**P3 — Additional convenience constructors**
+**P3 — NumExt parity (CPU side of GPU DSL ops)**
 
-9. `Mat4.fromAxisAngle(axis: Vec3, angle: Double): Mat4`
-10. `Mat4.fromQuat(q: Quat): Mat4`
-11. `Mat4.ortho(left, right, bottom, top, near, far): Mat4`
-12. `Quat.fromMat4(m: Mat4): Quat`
+8. Add to `trivalibs`: `sign`, `round`, `trunc`, `fract`, `exp`, `exp2`, `log`,
+   `log2`, `inverseSqrt`, `degrees`, `radians`, `sinh`, `cosh`, `tanh`
 
-**P4 — NumExt parity (CPU side of GPU DSL ops)**
+**P4 — Vector additions**
 
-13. Add to `trivalibs`: `sign`, `round`, `trunc`, `fract`, `exp`, `exp2`, `log`,
-    `log2`, `inverseSqrt`, `degrees`, `radians`, `sinh`, `cosh`, `tanh`
+9. `v.distance(w)` — add to `Vec*Base`
+10. `v.reflect(n)` — add to `Vec*ImmutableOps`
+11. `v.refract(n, eta)` — add to `Vec*ImmutableOps`
 
-**P5 — Vector additions**
+**P5 — GPU DSL matrix constructors**
 
-14. `v.distance(w)` — add to `Vec*Base`
-15. `v.reflect(n)` — add to `Vec*ImmutableOps`
-16. `v.refract(n, eta)` — add to `Vec*ImmutableOps`
-
-**P6 — GPU DSL matrix constructors**
-
-17. `mat2`, `mat3`, `mat4` constructor free-functions from column vectors
+12. `mat2`, `mat3`, `mat4` constructor free-functions from column vectors
 
 ### 8.3 Depth Texture Support (Painter)
 
@@ -616,16 +612,16 @@ Tracked separately in `panel-texture-and-effects-plan.md`. Requires:
 
 ## 9. File Map
 
-| Path                                              | Contents                                                        |
-| ------------------------------------------------- | --------------------------------------------------------------- |
-| `src/graphics/math/vec2.scala`                    | `Vec2Base`, `Vec2Mutable`, `Vec2ImmutableOps`, `Vec2MutableOps` |
-| `src/graphics/math/vec3.scala`                    | `Vec3Base`, …                                                   |
-| `src/graphics/math/vec4.scala`                    | `Vec4Base`, …                                                   |
-| `src/graphics/math/mat2.scala`                    | `Mat2Base`, `Mat2Mutable`, `Mat2ImmutableOps`, `Mat2MutableOps` |
-| `src/graphics/math/mat3.scala`                    | `Mat3Base`, …                                                   |
-| `src/graphics/math/mat4.scala`                    | `Mat4Base`, … **← add new constructors here**                   |
-| `src/graphics/math/cpu/vec*.scala`                | Concrete CPU types (`Vec2`, `Vec2Tuple`, `Vec2Buffer`, …)       |
-| `src/graphics/math/cpu/mat*.scala`                | Concrete CPU types (`Mat4`, `Mat4Tuple`, `Mat4Buffer`, …)       |
-| `src/graphics/math/cpu/quat.scala`                | _planned_ `QuatImmutableOps`, `QuatMutableOps`, `class Quat`    |
-| `src/graphics/math/gpu/expr.scala`                | GPU DSL expression types + all extensions                       |
-| `src/graphics/math/api_and_naming_conventions.md` | Design rationale and naming rules                               |
+| Path                                              | Contents                                                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `src/graphics/math/vec2.scala`                    | `Vec2BaseG`, `Vec2ImmutableOpsG`, `Vec2Base`, `Vec2Mutable`, `Vec2ImmutableOps`, `Vec2MutableOps` |
+| `src/graphics/math/vec3.scala`                    | `Vec3BaseG`, … (same pattern, + `cross`)                                                          |
+| `src/graphics/math/vec4.scala`                    | `Vec4BaseG`, …                                                                                    |
+| `src/graphics/math/mat2.scala`                    | `Mat2BaseG`, `Mat2ImmutableOpsG`, `Mat2Base`, `Mat2Mutable`, `Mat2ImmutableOps`, `Mat2MutableOps` |
+| `src/graphics/math/mat3.scala`                    | `Mat3BaseG`, … (same pattern)                                                                     |
+| `src/graphics/math/mat4.scala`                    | `Mat4BaseG`, `Mat4ImmutableOpsG`, `Mat4Base`, `Mat4Mutable`, `Mat4ImmutableOps`, `Mat4MutableOps` |
+| `src/graphics/math/cpu/vec*.scala`                | Concrete CPU types (`Vec2`, `Vec2Tuple`, `Vec2Buffer`, `Vec2dBuffer`, …)                          |
+| `src/graphics/math/cpu/mat*.scala`                | Concrete CPU types (`Mat4`, `Mat4Tuple`, `Mat4Buffer`, …)                                         |
+| `src/graphics/math/cpu/quat.scala`                | `QuatImmutableOps`, `QuatMutableOps`, `class Quat`                                                |
+| `src/graphics/math/gpu/expr.scala`                | GPU DSL expression types implementing `*G` traits                                                 |
+| `src/graphics/math/api_and_naming_conventions.md` | Design rationale and naming rules                                                                 |

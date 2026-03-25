@@ -2,9 +2,7 @@ package graphics.math.cpu
 
 import graphics.math.*
 import trivalibs.bufferdata.StructRef
-import trivalibs.utils.numbers.NumExt
 import trivalibs.utils.numbers.NumExt.given
-import trivalibs.utils.numbers.NumOps
 
 // ---------------------------------------------------------------------------
 // Quaternion storage — (x, y, z, w), imaginary first, real last
@@ -14,11 +12,11 @@ import trivalibs.utils.numbers.NumOps
 // QuatImmutableOps — allocating quaternion operations
 // ---------------------------------------------------------------------------
 
-trait QuatImmutableOps[Num: {NumExt, NumOps}, Q]:
+trait QuatImmutableOps[Q]:
 
-  def create(x: Num, y: Num, z: Num, w: Num): Q
+  def create(x: Double, y: Double, z: Double, w: Double): Q
 
-  extension (q: Q)(using Vec4Base[Num, Q])
+  extension (q: Q)(using Vec4Base[Q])
 
     /** Hamilton product → new Q. */
     def quatMul(p: Q): Q =
@@ -30,10 +28,8 @@ trait QuatImmutableOps[Num: {NumExt, NumOps}, Q]:
       )
 
     /** Rotate a Vec3 by this unit quaternion (Rodrigues formula). */
-    def quatRotate[V](
-        v: V,
-    )(using Vec3Base[Num, V], Vec3ImmutableOps[Num, V]): V =
-      val vops = summon[Vec3ImmutableOps[Num, V]]
+    def quatRotate[V](v: V)(using Vec3Base[V], Vec3ImmutableOps[V]): V =
+      val vops = summon[Vec3ImmutableOps[V]]
       val tx = (q.y * v.z - q.z * v.y) + (q.y * v.z - q.z * v.y)
       val ty = (q.z * v.x - q.x * v.z) + (q.z * v.x - q.x * v.z)
       val tz = (q.x * v.y - q.y * v.x) + (q.x * v.y - q.y * v.x)
@@ -49,23 +45,19 @@ trait QuatImmutableOps[Num: {NumExt, NumOps}, Q]:
       val n2 = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w
       create(-q.x / n2, -q.y / n2, -q.z / n2, q.w / n2)
 
-    def slerp(p: Q, t: Num)(using
-        Conversion[Num, Double],
-        Conversion[Double, Num],
-    ): Q =
-      var cosH: Double = q.x * p.x + q.y * p.y + q.z * p.z + q.w * p.w
-      var px: Double = p.x; var py: Double = p.y
-      var pz: Double = p.z; var pw: Double = p.w
+    def slerp(p: Q, t: Double): Q =
+      var cosH = q.x * p.x + q.y * p.y + q.z * p.z + q.w * p.w
+      var px = p.x; var py = p.y
+      var pz = p.z; var pw = p.w
       if cosH < 0.0 then
         cosH = -cosH; px = -px; py = -py; pz = -pz; pw = -pw
-      val qx: Double = q.x; val qy: Double = q.y
-      val qz: Double = q.z; val qw: Double = q.w
-      val td: Double = t
+      val qx = q.x; val qy = q.y
+      val qz = q.z; val qw = q.w
       val (s0, s1) =
         if 1.0 - cosH > 1e-10 then
           val a = cosH.acos; val sa = a.sin
-          (((1.0 - td) * a).sin / sa, (td * a).sin / sa)
-        else (1.0 - td, td)
+          (((1.0 - t) * a).sin / sa, (t * a).sin / sa)
+        else (1.0 - t, t)
       create(
         s0 * qx + s1 * px,
         s0 * qy + s1 * py,
@@ -74,8 +66,8 @@ trait QuatImmutableOps[Num: {NumExt, NumOps}, Q]:
       )
 
     // format: off
-    def toMat4(using Conversion[Num, Double]): Mat4 =
-      val x: Double = q.x; val y: Double = q.y; val z: Double = q.z; val w: Double = q.w
+    def toMat4: Mat4 =
+      val x = q.x; val y = q.y; val z = q.z; val w = q.w
       val x2 = x+x; val y2 = y+y; val z2 = z+z
       val xx = x*x2; val xy = x*y2; val xz = x*z2
       val yy = y*y2; val yz = y*z2; val zz = z*z2
@@ -92,9 +84,9 @@ trait QuatImmutableOps[Num: {NumExt, NumOps}, Q]:
 // QuatMutableOps — in-place operations
 // ---------------------------------------------------------------------------
 
-trait QuatMutableOps[Num: {NumExt, NumOps}, Q]:
+trait QuatMutableOps[Q]:
 
-  extension (q: Q)(using Vec4Mutable[Num, Q])
+  extension (q: Q)(using Vec4Mutable[Q])
 
     /** Pre-multiply: self = p * self (apply p on top of current rotation). */
     def quatMulSelf(p: Q): Unit =
@@ -114,34 +106,23 @@ trait QuatMutableOps[Num: {NumExt, NumOps}, Q]:
       val len = (q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w).sqrt
       q.x = q.x / len; q.y = q.y / len; q.z = q.z / len; q.w = q.w / len
 
-    def setFromRotationX(angle: Num)(using Conversion[Double, Num]): Unit =
-      val h: Num = 0.5
-      val a = angle * h
+    def setFromRotationX(angle: Double): Unit =
+      val a = angle * 0.5
       q.x = a.sin; q.y = 0.0; q.z = 0.0; q.w = a.cos
 
-    def setFromRotationY(angle: Num)(using Conversion[Double, Num]): Unit =
-      val h: Num = 0.5
-      val a = angle * h
+    def setFromRotationY(angle: Double): Unit =
+      val a = angle * 0.5
       q.x = 0.0; q.y = a.sin; q.z = 0.0; q.w = a.cos
 
-    def setFromRotationZ(angle: Num)(using Conversion[Double, Num]): Unit =
-      val h: Num = 0.5
-      val a = angle * h
+    def setFromRotationZ(angle: Double): Unit =
+      val a = angle * 0.5
       q.x = 0.0; q.y = 0.0; q.z = a.sin; q.w = a.cos
 
-    def setFromAxisAngle[V](axis: V, angle: Num)(using
-        Vec3Base[Num, V],
-        Conversion[Double, Num],
-    ): Unit =
-      val h: Num = 0.5
-      val a = angle * h; val s = a.sin
+    def setFromAxisAngle[V](axis: V, angle: Double)(using Vec3Base[V]): Unit =
+      val a = angle * 0.5; val s = a.sin
       q.x = axis.x * s; q.y = axis.y * s; q.z = axis.z * s; q.w = a.cos
 
-    def setFromLookRotation[V](fwd: V, up: V)(using
-        Vec3Base[Num, V],
-        Conversion[Num, Double],
-        Conversion[Double, Num],
-    ): Unit =
+    def setFromLookRotation[V](fwd: V, up: V)(using Vec3Base[V]): Unit =
       val r = Quat.fromLookRotationDoubles(
         fwd.x,
         fwd.y,
@@ -164,20 +145,20 @@ class Quat(
 )
 
 object Quat:
-  def identity: Quat = new Quat(0.0, 0.0, 0.0, 1.0)
+  def identity: Quat = Quat(0.0, 0.0, 0.0, 1.0)
 
   def fromRotationX(angle: Double): Quat =
-    val h = angle * 0.5; new Quat(h.sin, 0.0, 0.0, h.cos)
+    val h = angle * 0.5; Quat(h.sin, 0.0, 0.0, h.cos)
 
   def fromRotationY(angle: Double): Quat =
-    val h = angle * 0.5; new Quat(0.0, h.sin, 0.0, h.cos)
+    val h = angle * 0.5; Quat(0.0, h.sin, 0.0, h.cos)
 
   def fromRotationZ(angle: Double): Quat =
-    val h = angle * 0.5; new Quat(0.0, 0.0, h.sin, h.cos)
+    val h = angle * 0.5; Quat(0.0, 0.0, h.sin, h.cos)
 
   def fromAxisAngle(axis: Vec3, angle: Double): Quat =
     val h = angle * 0.5; val s = h.sin
-    new Quat(axis.x * s, axis.y * s, axis.z * s, h.cos)
+    Quat(axis.x * s, axis.y * s, axis.z * s, h.cos)
 
   /** `fwd` = backward direction (+Z_local). Use `(eye - target).normalize` for
     * cameras.
@@ -206,30 +187,30 @@ object Quat:
     val trace = bxx + byy + bzz
     if trace > 0.0 then
       val s = (trace + 1.0).sqrt * 2.0
-      new Quat((byz - bzy) / s, (bzx - bxz) / s, (bxy - byx) / s, s / 4.0)
+      Quat((byz - bzy) / s, (bzx - bxz) / s, (bxy - byx) / s, s / 4.0)
     else if bxx > byy && bxx > bzz then
       val s = (1.0 + bxx - byy - bzz).sqrt * 2.0
-      new Quat(s / 4.0, (byx + bxy) / s, (bzx + bxz) / s, (byz - bzy) / s)
+      Quat(s / 4.0, (byx + bxy) / s, (bzx + bxz) / s, (byz - bzy) / s)
     else if byy > bzz then
       val s = (1.0 + byy - bxx - bzz).sqrt * 2.0
-      new Quat((byx + bxy) / s, s / 4.0, (bzy + byz) / s, (bzx - bxz) / s)
+      Quat((byx + bxy) / s, s / 4.0, (bzy + byz) / s, (bzx - bxz) / s)
     else
       val s = (1.0 + bzz - bxx - byy).sqrt * 2.0
-      new Quat((bzx + bxz) / s, (bzy + byz) / s, s / 4.0, (bxy - byx) / s)
+      Quat((bzx + bxz) / s, (bzy + byz) / s, s / 4.0, (bxy - byx) / s)
 
   // Type class instances — Vec4Mutable for field access, no Vec4ImmutableOps
-  given Vec4Mutable[Double, Quat]:
+  given Vec4Mutable[Quat]:
     extension (q: Quat)
       inline def x = q.x; inline def y = q.y; inline def z = q.z;
       inline def w = q.w
       inline def x_=(v: Double) = q.x = v; inline def y_=(v: Double) = q.y = v
       inline def z_=(v: Double) = q.z = v; inline def w_=(v: Double) = q.w = v
 
-  given QuatImmutableOps[Double, Quat]:
+  given QuatImmutableOps[Quat]:
     inline def create(x: Double, y: Double, z: Double, w: Double) =
-      new Quat(x, y, z, w)
+      Quat(x, y, z, w)
 
-  given QuatMutableOps[Double, Quat] = new QuatMutableOps[Double, Quat] {}
+  given QuatMutableOps[Quat] = new QuatMutableOps[Quat] {}
 
   // Operator aliases — pure delegation, no reimplementation
   extension (q: Quat)
@@ -248,17 +229,14 @@ object Quat:
 
     def normalize: Quat =
       val len = (q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w).sqrt
-      new Quat(q.x / len, q.y / len, q.z / len, q.w / len)
+      Quat(q.x / len, q.y / len, q.z / len, q.w / len)
 
 // ---------------------------------------------------------------------------
 // QuatImmutableOps for tuple types, QuatMutableOps for buffer types
 // ---------------------------------------------------------------------------
 
-given QuatImmutableOps[Double, Vec4Tuple]:
+given QuatImmutableOps[Vec4Tuple]:
   inline def create(x: Double, y: Double, z: Double, w: Double) = (x, y, z, w)
 
-given QuatImmutableOps[Float, Vec4fTuple]:
-  inline def create(x: Float, y: Float, z: Float, w: Float) = (x, y, z, w)
-
-given QuatMutableOps[Float, StructRef[Vec4Buffer]] =
-  new QuatMutableOps[Float, StructRef[Vec4Buffer]] {}
+given QuatMutableOps[StructRef[Vec4Buffer]] =
+  new QuatMutableOps[StructRef[Vec4Buffer]] {}
