@@ -104,9 +104,6 @@ trait QuatMutableOps[Num: {NumExt, NumOps}, Q]:
       val nw = p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z
       q.x = nx; q.y = ny; q.z = nz; q.w = nw
 
-    /** Operator alias for quatMulSelf — pre-multiply semantics. */
-    def *=(p: Q): Unit = q.quatMulSelf(p)
-
     def conjugateSelf: Unit = { q.x = -q.x; q.y = -q.y; q.z = -q.z }
 
     def inverseSelf: Unit =
@@ -241,6 +238,9 @@ object Quat:
 
     @scala.annotation.targetName("quatRotateVec3")
     def *(v: Vec3): Vec3 = q.quatRotate(v)
+
+    /** Operator alias for quatMulSelf — pre-multiply semantics. */
+    def *=(p: Quat): Unit = q.quatMulSelf(p)
 
     def unary_- : Quat = q.quatConjugate
     def conjugate: Quat = q.quatConjugate
