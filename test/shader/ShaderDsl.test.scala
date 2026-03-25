@@ -230,7 +230,7 @@ class ShaderDslTest extends FunSuite:
         translation: VertexUniform[Vec2],
     )
 
-    val program = Program[Attribs, Varyings, Uniforms]()
+    val program = Program[Attribs, Varyings, Uniforms, EmptyTuple]()
 
     program.vert[(rotated: Vec2)]: ctx =>
       Block(
@@ -259,7 +259,7 @@ class ShaderDslTest extends FunSuite:
     type Varyings = EmptyTuple
     type Uniforms = (color: FragmentUniform[Vec3])
 
-    val program = Program[Attribs, Varyings, Uniforms]()
+    val program = Program[Attribs, Varyings, Uniforms, EmptyTuple]()
 
     program.frag[EmptyTuple]: ctx =>
       Block(
@@ -277,7 +277,7 @@ class ShaderDslTest extends FunSuite:
     type Varyings = EmptyTuple
     type Uniforms = (scale: VertexUniform[Float])
 
-    val program = Program[Attribs, Varyings, Uniforms]()
+    val program = Program[Attribs, Varyings, Uniforms, EmptyTuple]()
 
     program.vert[(scaled: Vec2)]: ctx =>
       val scaled = ctx.locals.scaled
@@ -301,7 +301,7 @@ class ShaderDslTest extends FunSuite:
     type Varyings = EmptyTuple
     type Uniforms = (offset: VertexUniform[Vec2])
 
-    val program = Program[Attribs, Varyings, Uniforms]()
+    val program = Program[Attribs, Varyings, Uniforms, EmptyTuple]()
 
     program.vert[(moved: Vec2, final_pos: Vec2)]: ctx =>
       val moved: LetVec2 = ctx.locals.moved
@@ -331,7 +331,7 @@ class ShaderDslTest extends FunSuite:
     type Varyings = (color: Vec4)
     type Uniforms = EmptyTuple
 
-    val program = Program[Attribs, Varyings, Uniforms]()
+    val program = Program[Attribs, Varyings, Uniforms, EmptyTuple]()
 
     program.frag[EmptyTuple]: ctx =>
       Block(
@@ -353,7 +353,7 @@ class ShaderDslTest extends FunSuite:
         translation: VertexUniform[Vec2],
     )
 
-    val program = Program[Attribs, Varyings, Uniforms]()
+    val program = Program[Attribs, Varyings, Uniforms, EmptyTuple]()
 
     program.vert[(rotated: Vec2)]: ctx =>
       Block(
@@ -471,7 +471,7 @@ class ShaderDslTest extends FunSuite:
     type Varyings = EmptyTuple
     type Uniforms = (delta: VertexUniform[Vec2])
 
-    val program = Program[Attribs, Varyings, Uniforms]()
+    val program = Program[Attribs, Varyings, Uniforms, EmptyTuple]()
 
     program.vert[(acc: Var[Vec2], scale: Const[Float], tmp: Vec2)]: ctx =>
       Block(
@@ -504,7 +504,7 @@ class ShaderDslTest extends FunSuite:
     type Varyings = EmptyTuple
     type Uniforms = (delta: VertexUniform[Vec2])
 
-    val program = Program[Attribs, Varyings, Uniforms]()
+    val program = Program[Attribs, Varyings, Uniforms, EmptyTuple]()
 
     program.vert[(acc: Var[Vec2])]: ctx =>
       Block(
