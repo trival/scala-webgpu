@@ -148,16 +148,20 @@ object Quat:
   def identity: Quat = Quat(0.0, 0.0, 0.0, 1.0)
 
   def fromRotationX(angle: Double): Quat =
-    val h = angle * 0.5; Quat(h.sin, 0.0, 0.0, h.cos)
+    val h = angle * 0.5
+    Quat(h.sin, 0.0, 0.0, h.cos)
 
   def fromRotationY(angle: Double): Quat =
-    val h = angle * 0.5; Quat(0.0, h.sin, 0.0, h.cos)
+    val h = angle * 0.5
+    Quat(0.0, h.sin, 0.0, h.cos)
 
   def fromRotationZ(angle: Double): Quat =
-    val h = angle * 0.5; Quat(0.0, 0.0, h.sin, h.cos)
+    val h = angle * 0.5
+    Quat(0.0, 0.0, h.sin, h.cos)
 
   def fromAxisAngle(axis: Vec3, angle: Double): Quat =
-    val h = angle * 0.5; val s = h.sin
+    val h = angle * 0.5
+    val s = h.sin
     Quat(axis.x * s, axis.y * s, axis.z * s, h.cos)
 
   /** `fwd` = backward direction (+Z_local). Use `(eye - target).normalize` for
@@ -201,10 +205,14 @@ object Quat:
   // Type class instances — Vec4Mutable for field access, no Vec4ImmutableOps
   given Vec4Mutable[Quat]:
     extension (q: Quat)
-      inline def x = q.x; inline def y = q.y; inline def z = q.z;
+      inline def x = q.x
+      inline def y = q.y
+      inline def z = q.z
       inline def w = q.w
-      inline def x_=(v: Double) = q.x = v; inline def y_=(v: Double) = q.y = v
-      inline def z_=(v: Double) = q.z = v; inline def w_=(v: Double) = q.w = v
+      inline def x_=(v: Double) = q.x = v
+      inline def y_=(v: Double) = q.y = v
+      inline def z_=(v: Double) = q.z = v
+      inline def w_=(v: Double) = q.w = v
 
   given QuatImmutableOps[Quat]:
     inline def create(x: Double, y: Double, z: Double, w: Double) =
