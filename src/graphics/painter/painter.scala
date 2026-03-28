@@ -112,6 +112,12 @@ class Painter(
   inline def shade[A, V, U](vertWgsl: String, fragWgsl: String): Shade[U, EmptyTuple] =
     shadeFromWgsl[A, V, U, EmptyTuple](vertWgsl, fragWgsl, "")
 
+  private inline def buildIndices[T]: js.Dictionary[Int] =
+    val names = derive.fieldNames[T]
+    val dict = js.Dictionary[Int]()
+    for i <- 0 until names.length do dict(names(i)) = i
+    dict
+
   private inline def shadeFromWgsl[A, V, U, P](
       vertWgsl: String,
       fragWgsl: String,
@@ -119,6 +125,8 @@ class Painter(
   ): Shade[U, P] =
     val id = nextShadeId
     nextShadeId += 1
+    val uniformIndices = buildIndices[U]
+    val panelIndices = buildIndices[P]
 
     val panelDecls = derive.generatePanelDeclarations[P]
 
@@ -135,7 +143,7 @@ class Painter(
           if panelBgl != null then Arr[GPUBindGroupLayout](panelBgl)
           else Arr[GPUBindGroupLayout]()
         val pl = layouts.createPipelineLayout(device, bgls)
-        Shade[U, P](id, module, vbl, null, panelBgl, pl, false)
+        Shade[U, P](id, module, vbl, null, panelBgl, pl, false, uniformIndices, panelIndices)
       case _ =>
         type Wrapped = (values: U)
         val sd = Shader[A, V, Wrapped](vertWgsl, fragWgsl, helperFns)
@@ -150,7 +158,7 @@ class Painter(
           if panelBgl != null then bgls ++ Arr[GPUBindGroupLayout](panelBgl)
           else bgls
         val pl = layouts.createPipelineLayout(device, allBgls)
-        Shade[U, P](id, module, vbl, bgls(0), panelBgl, pl, false)
+        Shade[U, P](id, module, vbl, bgls(0), panelBgl, pl, false, uniformIndices, panelIndices)
 
   // =========================================================================
   // LayerShade factory — fullscreen triangle with user fragment shader
@@ -172,6 +180,8 @@ class Painter(
   ): Shade[U, P] =
     val id = nextShadeId
     nextShadeId += 1
+    val uniformIndices = buildIndices[U]
+    val panelIndices = buildIndices[P]
     type VBI = (vertex_index: BuiltinVertexIndex)
     val panelDecls = derive.generatePanelDeclarations[P]
     inline erasedValue[U] match
@@ -194,7 +204,7 @@ class Painter(
           if panelBgl != null then Arr[GPUBindGroupLayout](panelBgl)
           else Arr[GPUBindGroupLayout]()
         val pl = layouts.createPipelineLayout(device, bgls)
-        Shade[U, P](id, module, null, null, panelBgl, pl, false)
+        Shade[U, P](id, module, null, null, panelBgl, pl, false, uniformIndices, panelIndices)
       case _ =>
         type Wrapped = (values: U)
         val sd = Shader.full[
@@ -216,7 +226,7 @@ class Painter(
           if panelBgl != null then bgls ++ Arr[GPUBindGroupLayout](panelBgl)
           else bgls
         val pl = layouts.createPipelineLayout(device, allBgls)
-        Shade[U, P](id, module, null, bgls(0), panelBgl, pl, false)
+        Shade[U, P](id, module, null, bgls(0), panelBgl, pl, false, uniformIndices, panelIndices)
 
   // =========================================================================
   // Form factory

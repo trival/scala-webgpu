@@ -17,25 +17,16 @@ class BindPair[N <: String & Singleton, V](val name: N, val value: V)
 extension [N <: String & Singleton](name: N)
   inline def :=[V](value: V): BindPair[N, V] = BindPair(name, value)
 
-class Shape[U, P](
-    val form: Form,
-    val shade: Shade[U, P],
-    val device: GPUDevice,
-    var bindings: BindingSlots = Arr(),
-    var panelBindings: Arr[Panel | Null] = Arr(),
-    var cullMode: CullMode = CullMode.None,
-    var blendState: Opt[BlendState] = Opt.Null,
-):
-  def bind(slots: (Int, BufferBinding[?, ?])*): Shape[U, P] =
-    for (slot, binding) <- slots do
-      while bindings.length <= slot do bindings.push(null)
-      bindings(slot) = binding
-    this
+trait Bindable[U, P]:
+  val shade: Shade[U, P]
+  val device: GPUDevice
+  var bindings: BindingSlots
+  var panelBindings: Arr[Panel | Null]
 
   inline def bind[N1 <: String & Singleton, V1](
       e1: BindPair[N1, V1],
-  ): Shape[U, P] =
-    processEntry[N1, V1](e1.value)
+  ): this.type =
+    processEntry(e1)
     this
 
   inline def bind[
@@ -46,9 +37,9 @@ class Shape[U, P](
   ](
       e1: BindPair[N1, V1],
       e2: BindPair[N2, V2],
-  ): Shape[U, P] =
-    processEntry[N1, V1](e1.value)
-    processEntry[N2, V2](e2.value)
+  ): this.type =
+    processEntry(e1)
+    processEntry(e2)
     this
 
   inline def bind[
@@ -62,10 +53,10 @@ class Shape[U, P](
       e1: BindPair[N1, V1],
       e2: BindPair[N2, V2],
       e3: BindPair[N3, V3],
-  ): Shape[U, P] =
-    processEntry[N1, V1](e1.value)
-    processEntry[N2, V2](e2.value)
-    processEntry[N3, V3](e3.value)
+  ): this.type =
+    processEntry(e1)
+    processEntry(e2)
+    processEntry(e3)
     this
 
   inline def bind[
@@ -82,31 +73,31 @@ class Shape[U, P](
       e2: BindPair[N2, V2],
       e3: BindPair[N3, V3],
       e4: BindPair[N4, V4],
-  ): Shape[U, P] =
-    processEntry[N1, V1](e1.value)
-    processEntry[N2, V2](e2.value)
-    processEntry[N3, V3](e3.value)
-    processEntry[N4, V4](e4.value)
+  ): this.type =
+    processEntry(e1)
+    processEntry(e2)
+    processEntry(e3)
+    processEntry(e4)
     this
 
-  private inline def processEntry[N <: String & Singleton, V](
-      value: V,
+  protected inline def processEntry[N <: String & Singleton, V](
+      pair: BindPair[N, V],
   ): Unit =
     inline if derive.containsName[N, U] then
-      inline value match
+      inline pair.value match
         case sampler: GPUSampler =>
           derive.checkSamplerFieldType[N, U]
-          val idx = derive.uniformFieldIndex[N, U]
+          val idx = shade.uniformIndices(pair.name)
           while bindings.length <= idx do bindings.push(null)
           bindings(idx) = sampler
         case bb: BufferBinding[?, ?] =>
           derive.checkUniformFieldType[N, V, U]
-          val idx = derive.uniformFieldIndex[N, U]
+          val idx = shade.uniformIndices(pair.name)
           while bindings.length <= idx do bindings.push(null)
           bindings(idx) = bb
         case rawValue =>
           derive.checkUniformFieldType[N, V, U]
-          val idx = derive.uniformFieldIndex[N, U]
+          val idx = shade.uniformIndices(pair.name)
           if idx < bindings.length && bindings(idx) != null then
             bindings(idx).asInstanceOf[BufferBinding[V, ?]].set(rawValue)
           else
@@ -116,9 +107,9 @@ class Shape[U, P](
                 while bindings.length <= idx do bindings.push(null)
                 bindings(idx) = bb
     else inline if derive.containsName[N, P] then
-      inline value match
+      inline pair.value match
         case p: Panel =>
-          val idx = derive.panelFieldIndex[N, P]
+          val idx = shade.panelIndices(pair.name)
           while panelBindings.length <= idx do panelBindings.push(null)
           panelBindings(idx) = p
         case _ =>
@@ -129,3 +120,18 @@ class Shape[U, P](
       scala.compiletime.error(
         "Name not found in Uniforms or Panel bindings",
       )
+
+class Shape[U, P](
+    val form: Form,
+    val shade: Shade[U, P],
+    val device: GPUDevice,
+    var bindings: BindingSlots = Arr(),
+    var panelBindings: Arr[Panel | Null] = Arr(),
+    var cullMode: CullMode = CullMode.None,
+    var blendState: Opt[BlendState] = Opt.Null,
+) extends Bindable[U, P]:
+  def bind(slots: (Int, BufferBinding[?, ?])*): Shape[U, P] =
+    for (slot, binding) <- slots do
+      while bindings.length <= slot do bindings.push(null)
+      bindings(slot) = binding
+    this
