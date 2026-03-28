@@ -17,34 +17,17 @@ import trivalibs.utils.numbers.NumExt.given
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 
-// ---------------------------------------------------------------------------
-// Vertex attribute layouts
-// ---------------------------------------------------------------------------
-
-type ColorAttribs = (position: Vec3, color: Vec3)
-type TexAttribs = (position: Vec3, uv: Vec2)
-
-// ---------------------------------------------------------------------------
-// Uniform types
-// ---------------------------------------------------------------------------
-
-type MvpUniforms = (mvp: VertexUniform[Mat4])
-
-type TexUniforms = (
-    mvp: VertexUniform[Mat4],
-    texSampler: FragmentUniform[Sampler],
-)
-type TexPanels = (colorTex: FragmentPanel)
-
 @JSExportTopLevel("main", moduleID = "panel_tex")
 def main(): Unit =
   val canvas =
     document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
 
   Painter.init(canvas): painter =>
-    // -----------------------------------------------------------------------
-    // Shaders
-    // -----------------------------------------------------------------------
+    // color shade
+
+    type ColorAttribs = (position: Vec3, color: Vec3)
+    type MvpUniforms = (mvp: VertexUniform[Mat4])
+
     val colorShade = painter.shade[ColorAttribs, (color: Vec3), MvpUniforms]:
       program =>
         program.vert: ctx =>
@@ -54,6 +37,15 @@ def main(): Unit =
           )
         program.frag: ctx =>
           ctx.out.color := vec4(ctx.in.color, 1.0)
+
+    // tex shade
+
+    type TexAttribs = (position: Vec3, uv: Vec2)
+    type TexUniforms = (
+        mvp: VertexUniform[Mat4],
+        texSampler: FragmentUniform[Sampler],
+    )
+    type TexPanels = (colorTex: FragmentPanel)
 
     val texShade =
       painter.shade[TexAttribs, (uv: Vec2), TexUniforms, TexPanels]: program =>
