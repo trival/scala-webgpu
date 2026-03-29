@@ -111,11 +111,11 @@ def main(): Unit =
     val triShape = painter.shape(colorShade, triForm).bind("mvp" := triMvp)
     val quadShape = painter.shape(colorShade, quadForm).bind("mvp" := quadMvp)
 
-    val leftTexShape = painter
+    val triangleTexShape = painter
       .shape(texShade, leftTexForm)
-      .bind("mvp" := leftMvp, "texSampler" := painter.samplerLinear)
+      .bind("mvp" := leftMvp, "texSampler" := painter.samplerNearest)
 
-    val rightTexShape = painter
+    val quadTexShape = painter
       .shape(texShade, rightTexForm)
       .bind("mvp" := rightMvp, "texSampler" := painter.samplerLinear)
 
@@ -127,8 +127,8 @@ def main(): Unit =
       .set(
         width = 800,
         height = 800,
-        clearColor = (0.04, 0.04, 0.06, 1.0),
-        depthTest = true,
+        clearColor = (0.04, 0.04, 0.26, 1.0),
+        multisample = true,
         shapes = Arr(triShape),
       )
 
@@ -137,21 +137,21 @@ def main(): Unit =
       .set(
         width = 800,
         height = 800,
-        clearColor = (0.04, 0.06, 0.04, 1.0),
-        depthTest = true,
+        clearColor = (0.04, 0.26, 0.04, 1.0),
         shapes = Arr(quadShape),
       )
 
     // Bind intermediate panels as textures to canvas shapes
-    leftTexShape.bind("colorTex" := trianglePanel)
-    rightTexShape.bind("colorTex" := quadPanel)
+    triangleTexShape.bind("colorTex" := trianglePanel)
+    quadTexShape.bind("colorTex" := quadPanel)
 
     val canvasPanel = painter
       .panel()
       .set(
         clearColor = (0.03, 0.03, 0.05, 1.0),
         depthTest = true,
-        shapes = Arr(leftTexShape, rightTexShape),
+        multisample = true,
+        shapes = Arr(triangleTexShape, quadTexShape),
       )
 
     // -----------------------------------------------------------------------
@@ -165,7 +165,7 @@ def main(): Unit =
       near = 0.1,
       far = 100.0,
     )
-    shapeCam.resetTransform(Vec3(0.0, 1.2, 3.2), 0.0, -0.3)
+    shapeCam.resetTransform(Vec3(0.0, 1, 2.6), 0.0, -0.3)
 
     // Camera for the canvas (sees both floating textured quads side by side)
     val aspect =
@@ -176,7 +176,7 @@ def main(): Unit =
       near = 0.1,
       far = 100.0,
     )
-    canvasCam.resetTransform(Vec3(0.0, 0.4, 3.8), 0.0, -0.08)
+    canvasCam.resetTransform(Vec3(0.0, 0.3, 2.8), 0.0, -0.08)
 
     // -----------------------------------------------------------------------
     // Transforms for 3D shapes (world-space, rotated each frame)
@@ -192,9 +192,23 @@ def main(): Unit =
     // Animation
     // -----------------------------------------------------------------------
     var t = 0.0
+    var isSmall = true
+    var timeToSwap = 0.0
 
     animate: tpf =>
       t += tpf * 0.0006
+      timeToSwap += tpf
+
+      if timeToSwap > 2000 then
+        isSmall = !isSmall
+        timeToSwap = 0.0
+
+        if isSmall then
+          trianglePanel.set(width = 200, height = 200)
+          quadPanel.set(width = 200, height = 200)
+        else
+          trianglePanel.set(width = 800, height = 800)
+          quadPanel.set(width = 800, height = 800)
 
       // Intermediate shapes: counter-rotating around Y
       triTransform.rotation.setFromRotationY(t)

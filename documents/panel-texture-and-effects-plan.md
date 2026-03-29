@@ -54,7 +54,7 @@ painter.samplerLinear    // GPUSampler — bilinear filtering
 Bind them to a shape or layer by name, exactly like any other uniform:
 
 ```scala
-val myShape = painter.shape(form, shade)
+val myShape = painter.shape(shade, form)
   .bind(
     "mvp"        := mvpBinding,
     "texSampler" := painter.samplerNearest,
@@ -95,7 +95,7 @@ field names in `U` and `P` are always distinct, so there is no collision.
 binding slots, names found in `P` go to the panel binding array:
 
 ```scala
-val myShape = painter.shape(form, texShade)
+val myShape = painter.shape(texShade, form)
   .bind(
     "mvp"        := mvpBinding,
     "texSampler" := painter.samplerNearest,
@@ -228,7 +228,7 @@ shape samples the resolved panel, it reads a plain `texture_2d<f32>` — no WGSL
 changes needed on the consumer side:
 
 ```scala
-val msaaPanel = painter.panel(
+val msaaPanel = painter.panel().set(
   width = 800, height = 800,
   clearColor = (0.0, 1.0, 0.0, 1.0),
   shapes = Arr(colorShape),
@@ -308,7 +308,7 @@ let tex_shade = p
   .create();
 
 // Shape binds a panel texture at group 1, slot 0
-let tex_quad_shape = p.shape(quad_form, tex_shade)
+let tex_quad_shape = p.shape(tex_shade, quad_form)
   .with_bindings(map! {
     0 => tex_quad_mvp.binding(),
     1 => nearest_sampler.binding(),
@@ -391,34 +391,45 @@ method as uniforms and samplers. `processEntry` resolves the name at compile
 time: if found in `U`, it routes to `bindings`; if found in `P`, it routes to
 `panelBindings`. A name absent from both is a compile error.
 
+Constructor takes `(painter, shade, form)` — all other properties are `var`s
+configured via `set()`:
+
 ```scala
-class Shape[U, P = EmptyTuple](
-  val form: Form,
-  val shade: Shade[U, P],
-  val device: GPUDevice,
-  var bindings: BindingSlots           = Arr(),
-  var panelBindings: Arr[Panel | Null] = Arr(),   // internal, filled via bind()
-  var cullMode: CullMode               = CullMode.None,
-  var blendState: Opt[BlendState]      = Opt.Null,
-)
+class Shape[U, P](
+    val painter: Painter,
+    val shade: Shade[U, P],
+    val form: Form,
+) extends Bindable[U, P]:
+  var cullMode: CullMode = CullMode.None
+  var blendState: Opt[BlendState] = null
+  var bindings: BindingSlots = Arr()
+  var panelBindings: Arr[Panel | Null] = Arr()
+
+  def set(
+      cullMode: Maybe[CullMode] = Maybe.Not,
+      blendState: Maybe[Opt[BlendState]] = Maybe.Not,
+  ): this.type =
+    cullMode.foreach(v => this.cullMode = v)
+    blendState.foreach(v => this.blendState = v)
+    this
 ```
 
-`Layer[U, P = EmptyTuple]` — same.
+`Layer[U, P]` — takes `(painter, shade)`, same `set()` pattern for blendState.
 
-The `processEntry` dispatch:
+The `processEntry` dispatch (in `Bindable[U, P]` trait):
 
 ```scala
-private inline def processEntry[N <: String & Singleton, V](value: V): Unit =
-  inline if containsName[N, U] then
+protected inline def processEntry[N <: String & Singleton, V](
+    pair: BindPair[N, V],
+): Unit =
+  inline if derive.containsName[N, U] then
     // uniform / sampler path (existing)
-    derive.checkUniformFieldType[N, V, U]
-    val idx = derive.uniformFieldIndex[N, U]
     ...
-  else inline if containsName[N, P] then
+  else inline if derive.containsName[N, P] then
     // panel path — V must be Panel
-    inline value match
+    inline pair.value match
       case p: Panel =>
-        val idx = derive.panelFieldIndex[N, P]
+        val idx = shade.panelIndices(pair.name)
         while panelBindings.length <= idx do panelBindings.push(null)
         panelBindings(idx) = p
       case _ => error("Panel binding must be a Panel instance")
@@ -428,8 +439,19 @@ private inline def processEntry[N <: String & Singleton, V](value: V): Unit =
 
 #### 2.2.4 Painter Factory Changes
 
+Factories are thin wrappers — all setup lives in entity `set()` methods:
+
 ```scala
-inline def shade[A, V, U, P](build: Program[A, V, U] => Unit): Shade[U, P]
+def form(): Form = Form(this)
+def shape[U, P](shade: Shade[U, P], form: Form): Shape[U, P] = Shape(this, shade, form)
+def layer[U, P](shade: Shade[U, P]): Layer[U, P] = Layer(this, shade)
+def panel(): Panel = Panel(this)
+```
+
+Shade factories remain inline:
+
+```scala
+inline def shade[A, V, U, P](build: Program[A, V, U, P] => Unit): Shade[U, P]
 inline def layerShade[U, P](build: LayerProgram[U, P] => Unit): Shade[U, P]
 ```
 
@@ -455,12 +477,23 @@ if shape.panelBindings.length > 0 && shape.shade.panelBindGroupLayout != null th
 
 #### 2.2.6 MSAA Support
 
-**Panel changes**:
+**Panel changes** — `multisample` is a `var` configured via `set()`:
 
 ```scala
-class Panel(..., val multisample: Boolean = false, ...):
-  private var _msaaTexture: GPUTexture | Null = null
-  private var _msaaView: GPUTextureView | Null = null
+class Panel(val painter: Painter):
+  var multisample: Boolean = false
+  // ... other vars ...
+
+  private var _msaaTexture: Opt[GPUTexture] = null
+  private var _msaaView: Opt[GPUTextureView] = null
+
+  def set(
+      // ... existing params ...
+      multisample: Maybe[Boolean] = Maybe.Not,
+  ): this.type =
+    // ...
+    multisample.foreach(v => this.multisample = v)
+    this
 ```
 
 `ensureSize` allocates a 4× MSAA texture when `multisample = true`. The render
@@ -479,19 +512,6 @@ Obj.literal(
 Pipelines for shapes/layers rendered into an MSAA panel include
 `multisample = Obj.literal(count = 4)`. The pipeline cache key includes the
 sample count.
-
-**`painter.panel` factory update**:
-
-```scala
-def panel(
-  width: Int = 0,
-  height: Int = 0,
-  clearColor: Opt[...] = ...,
-  shapes: Arr[Shape[?]] = Arr(),
-  layers: Arr[Layer[?]] = Arr(),
-  multisample: Boolean = false,
-): Panel
-```
 
 #### 2.2.7 DSL Context: ctx.textures
 
@@ -561,10 +581,12 @@ compiles unchanged.
 
 **Step 3 — Shape / Layer / render path**
 
-- `Shape[U, P = EmptyTuple]` — add `panelBindings: Arr[Panel | Null]`; update
-  `processEntry` to dispatch by name across both `U` and `P`; add compile-time
-  `containsName[N, T]` and `panelFieldIndex[N, P]` helpers to `derive.scala`
-- `Layer[U, P = EmptyTuple]` — same
+- `Shape[U, P]` takes `(painter, shade, form)` — all other props are `var`s with
+  `set()` methods; `Bindable[U, P]` trait provides `val painter: Painter` and
+  `inline def device` via painter
+- `Layer[U, P]` takes `(painter, shade)` — same pattern
+- `processEntry` dispatches via `inline if derive.containsName[N, U]` /
+  `inline if derive.containsName[N, P]`
 - Update `renderShapeOnPass` and `renderLayerOnPass` for group 1
 - Add `TypedPanelAccessor[P]` to DSL
 - Add `textures: TypedPanelAccessor[P]` to `FragmentCtx`, `VertexCtx`
@@ -572,8 +594,10 @@ compiles unchanged.
 
 **Step 4 — MSAA**
 
-- Add `multisample: Boolean` to `Panel`
-- `Panel.ensureSize` allocates MSAA texture when `multisample = true`
+- Add `var multisample: Boolean = false` to `Panel`, settable via
+  `panel.set(multisample = true)`
+- `Panel.ensureSize` allocates MSAA texture (`Opt[GPUTexture]`) when
+  `multisample = true`
 - `paint(panel)`: MSAA attachment format when `panel.multisample`
 - `createPipeline` / `createLayerPipeline`: `multisample = { count: 4 }` + cache
   key update
@@ -630,12 +654,11 @@ attaches it to the render pass. Shapes and layers rendered into that panel
 automatically use a depth-testing pipeline.
 
 ```scala
-class Panel(
-  ...,
-  val depthTest: Boolean = false,   // NEW — allocate + attach depth texture
-):
-  private var _depthTexture: GPUTexture | Null     = null
-  private var _depthView:    GPUTextureView | Null = null
+class Panel(val painter: Painter):
+  var depthTest: Boolean = false   // allocate + attach depth texture
+  // ...
+  private var _depthTexture: Opt[GPUTexture] = null
+  private var _depthView: Opt[GPUTextureView] = null
 ```
 
 No WGSL changes needed — depth testing is fully handled by the pipeline and
@@ -645,7 +668,8 @@ render pass descriptors, not the shader.
 
 **Step 1 — Panel depth texture allocation**
 
-- Add `depthTest: Boolean = false` parameter to `Panel` and `painter.panel`
+- `Panel.depthTest` is a `var` (default `false`), settable via
+  `panel.set(depthTest = true)`
 - In `Panel.ensureSize`: when `depthTest = true`, create a `depth24plus` texture
   at the same size as the color texture; store as `_depthTexture` / `_depthView`
 - On resize, destroy the old depth texture before allocating the new one
@@ -700,8 +724,9 @@ needed here).
 ✅ Done. Steps 1–3 implemented in `src/graphics/painter/panel.scala` and
 `src/graphics/painter/painter.scala`:
 
-- `Panel` gains `depthTest: Boolean = false`; `ensureSize` allocates/destroys a
-  `depth24plus` texture alongside the color texture on resize
+- `Panel.depthTest` is a `var` (default `false`), settable via `set()`;
+  `ensureSize` allocates/destroys a `depth24plus` texture alongside the color
+  texture on resize
 - `paint()` attaches `depthStencilAttachment` (clear to 1.0, store) when
   `panel.depthTest`
 - `createPipeline` / `createLayerPipeline` conditionally include
@@ -709,9 +734,8 @@ needed here).
 - Pipeline cache key includes `|$depthTest` suffix to keep depth/non-depth
   variants separate
 
-Step 4 (`panel_tex` 3D upgrade) is deferred until the 3D math track
-(`fromTranslationRotationScale`, `Quat`, `Transform`, `PerspectiveCamera`) is
-in place.
+Step 4 (`panel_tex` 3D upgrade) done — draft uses `PerspectiveCamera` +
+`Transform` with 3D geometry.
 
 ---
 
@@ -750,7 +774,8 @@ in-place using its explicit source.
 `shade[A, V, U, P]`:
 
 ```scala
-inline def shade[A, V, U, P](build: Program[A, V, U] => Unit): Shade[U, P]
+def layer[U, P](shade: Shade[U, P]): Layer[U, P] = Layer(this, shade)
+
 inline def layerShade[U, P](build: LayerProgram[U, P] => Unit): Shade[U, P]
 ```
 
@@ -840,9 +865,10 @@ Main texture:  layer 1 reads from pong,  writes to main
 Final output:  whichever texture holds the last write
 ```
 
-Panel gains `_pongTexture`, `_pongView`, `_outputView`. `ensureSize` allocates
-the pong pair when needed. `panel.outputView` falls back to `panel.textureView`
-when no ping-pong occurred.
+Panel gains `_pongTexture: Opt[GPUTexture]`, `_pongView: Opt[GPUTextureView]`,
+`_outputView: Opt[GPUTextureView]`. `ensureSize` allocates the pong pair when
+needed. `panel.outputView` falls back to `panel.textureView` when no ping-pong
+occurred.
 
 #### 3.2.5 paint() Changes
 
@@ -893,15 +919,14 @@ def paint(panel: Panel): Unit =
 
 **Step 1 — Layer[U, P] + layerShade[U, P]**
 
-- Add `P = EmptyTuple` to `Layer[U, P]`, add `panelBindings: Arr[Panel | Null]`;
-  update `processEntry` to dispatch across both `U` and `P` (same as Shape)
-- Update `painter.layer(shade)` factory to infer `P` from shade
-- Update `layerShade[U, P]`: generate panel declarations + layout for `P`
-- Update `LayerProgram[U, P]` to pass `TypedPanelAccessor[P]` as `textures`
+Already done as part of Feature 1 — `Layer[U, P]` takes `(painter, shade)`, has
+`panelBindings: Arr[Panel | Null]`, `processEntry` dispatches across both `U`
+and `P`. `layerShade[U, P]` generates panel declarations + layout.
 
 **Step 2 — Ping-pong textures on Panel**
 
-- Add `_pongTexture`, `_pongView`, `_outputView` to `Panel`
+- Add `_pongTexture: Opt[GPUTexture]`, `_pongView: Opt[GPUTextureView]`,
+  `_outputView: Opt[GPUTextureView]` to `Panel`
 - `ensureSize`: allocate pong pair when any layer has a `panelBindGroupLayout`
 - Add `pongView`, `outputView`, `setOutputView`
 
@@ -1032,7 +1057,10 @@ val gaussianBlur9: WgslFn[(tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir:
 
 **Step 3 — Shape / Layer / render path** ✅ Done
 
-- `Shape[U, P]` and `Layer[U, P]` carry `panelBindings: Arr[Panel | Null]`
+- `Shape[U, P]` takes `(painter, shade, form)`, `Layer[U, P]` takes
+  `(painter, shade)` — all other props are `var`s with `set()` methods
+- `Bindable[U, P]` trait: `val painter: Painter`, `inline def device` via
+  painter
 - `processEntry` dispatches via `inline if derive.containsName[N, U]` /
   `inline if derive.containsName[N, P]` at compile time; `GPUSampler` arm added
   for group-0 sampler slots
@@ -1043,21 +1071,25 @@ val gaussianBlur9: WgslFn[(tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir:
 - `renderShapeOnPass` / `renderLayerOnPass` set group 1 when `panelBindings` is
   non-empty
 
-**Step 4 — MSAA** ⏭ Deferred
+**Step 4 — MSAA** ✅ Done
 
-Intentionally skipped for now. The `panel_tex` draft runs without MSAA. Will be
-implemented as a follow-up once the texture-sampling path is stable.
+- `Panel.multisample` is a `var` (default `false`), settable via
+  `panel.set(multisample = true)`; `Panel.sampleCount` returns 4 or 1
+- `ensureSize` allocates 4× MSAA texture (`_msaaTexture`, `_msaaView`) when
+  `multisample = true`; depth texture uses matching `sampleCount`
+- `paint()` renders to `panel.msaaView` with `resolveTarget = panel.textureView`
+  and `storeOp = "discard"` when MSAA is enabled
+- `createPipeline` / `createLayerPipeline` include
+  `multisample = { count: sampleCount }` when `sampleCount > 1`
+- Pipeline cache keys include `sampleCount` to separate MSAA/non-MSAA variants
+- `panel.textureView` is the resolved output — consumers sample it as a plain
+  `texture_2d<f32>`, no WGSL changes needed
 
 **Step 5 — panel_tex draft** ✅ Done
 
 Draft at `drafts/panel_tex/PanelTex.scala` compiles cleanly and renders
-correctly. Both build errors resolved:
-
-1. `src/graphics/painter/panel.scala` updated to `Arr[Shape[?,?]]` /
-   `Arr[Layer[?,?]]` — type-param mismatch in `painter.scala` fixed.
-
-2. `PanelTex.scala` updated to positional setters `.set0()` / `.set1()`
-   matching the pattern used in all other drafts.
+correctly. Uses new API: `painter.form().set(vertices = ...)`,
+`painter.shape(shade, form)`, `painter.panel().set(...)`.
 
 ### Open Questions — Resolved
 
@@ -1073,26 +1105,42 @@ correctly. Both build errors resolved:
 
 ### Feature 1b (Depth Buffer)
 
-✅ Done (Steps 1–3). `Panel.depthTest`, depth texture allocation, render pass
-attachment, and pipeline depth state all implemented. Step 4 (`panel_tex` 3D
-upgrade) deferred until 3D math track is complete. See §2b.4 for details.
+✅ Done (Steps 1–3). `Panel.depthTest` is a `var` settable via `set()`, depth
+texture allocation (`Opt[GPUTexture]` with `.nonNull`/`.get` patterns), render
+pass attachment, and pipeline depth state all implemented. Step 4 (`panel_tex`
+3D upgrade) done — draft uses `PerspectiveCamera` + `Transform`.
 
-### 3D Math Track (parallel to Feature 1b)
+### 3D Math Track
 
-✅ Ready to start in parallel with Feature 1b. Both tracks are independent and
-together will enable full 3D rendering in `panel_tex`.
-
-Planned work in order:
+✅ Done. All planned work completed:
 
 1. **P1 — Mat4 constructors**: `fromTranslation`, `fromScale`,
-   `fromTranslationRotationScale`, `perspective`, `lookAt`
-2. **P2 — Quat class**: `QuatImmutableOps`, `QuatMutableOps`, CPU `Quat`
-   implementation
+   `fromTranslationRotationScale`, `perspective`, `lookAt` — implemented
+2. **P2 — Quat class**: `QuatImmutableOps`, `QuatMutableOps`, CPU `Quat` —
+   implemented
 3. **Scene layer**: `Transform`, `PerspectiveCamera`, `SceneObject` in
-   `graphics.scene`
+   `graphics.scene` — implemented
+
+### Painter API Refactoring
+
+✅ Done. Constructors take only `painter` (+ `shade`/`form` for typed entities);
+all rendering properties are `var`s with defaults, configured via `set()` with
+`Maybe[T]` params. Nullable fields use `Opt[T] = T | Null`:
+
+- `Form(painter)` with `set(vertices, topology, frontFace)` — buffer lifecycle
+  managed internally (destroy old on `set(vertices = ...)`)
+- `Shape(painter, shade, form)` with `set(cullMode, blendState)`
+- `Layer(painter, shade)` with `set(blendState)`
+- `Panel(painter)` with
+  `set(width, height, clearColor, depthTest, multisample, shapes, layers)`
+- `GPUBuffer.destroy()` added to facade
+- All draft files updated to new API
 
 ### Feature 2 (Post-Processing / Ping-Pong)
 
-Not yet started. Prerequisite: Feature 1 fully working — now met. Lower
-priority; begin after Feature 1b and at least P1 math are in place. See §3 for
-the complete design.
+Not yet started. Prerequisite: Feature 1 fully working — now met. See §3 for the
+complete design. Remaining work:
+
+1. **Ping-pong textures on Panel** — `_pongTexture`, `_pongView`, `_outputView`
+2. **paint() + show() restructuring** — ping-pong layer chain
+3. **blur draft** — Gaussian blur post-processing example

@@ -8,8 +8,9 @@ type ClearColor = (Double, Double, Double, Double)
 class Panel(val painter: Painter):
   var specWidth: Int = 0
   var specHeight: Int = 0
-  var clearColor: Opt[ClearColor] = (0.0, 0.0, 0.0, 1.0)
+  var clearColor: Opt[ClearColor] = null
   var depthTest: Boolean = false
+  var multisample: Boolean = false
   var shapes: Arr[Shape[?, ?]] = Arr()
   var layers: Arr[Layer[?, ?]] = Arr()
 
@@ -17,17 +18,21 @@ class Panel(val painter: Painter):
   private var _textureView: Opt[GPUTextureView] = null
   private var _depthTexture: Opt[GPUTexture] = null
   private var _depthView: Opt[GPUTextureView] = null
+  private var _msaaTexture: Opt[GPUTexture] = null
+  private var _msaaView: Opt[GPUTextureView] = null
   private var _width: Int = 0
   private var _height: Int = 0
 
   def textureView: GPUTextureView = _textureView.get
   def depthView: GPUTextureView = _depthView.get
+  def msaaView: GPUTextureView = _msaaView.get
 
   def set(
       width: Maybe[Int] = Maybe.Not,
       height: Maybe[Int] = Maybe.Not,
       clearColor: Maybe[Opt[ClearColor]] = Maybe.Not,
       depthTest: Maybe[Boolean] = Maybe.Not,
+      multisample: Maybe[Boolean] = Maybe.Not,
       shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
       layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
   ): this.type =
@@ -35,6 +40,7 @@ class Panel(val painter: Painter):
     height.foreach(v => this.specHeight = v)
     clearColor.foreach(v => this.clearColor = v)
     depthTest.foreach(v => this.depthTest = v)
+    multisample.foreach(v => this.multisample = v)
     shapes.foreach(v => this.shapes = v)
     layers.foreach(v => this.layers = v)
     this
@@ -45,6 +51,7 @@ class Panel(val painter: Painter):
     if targetW != _width || targetH != _height then
       if _texture.nonNull then _texture.get.destroy()
       if _depthTexture.nonNull then _depthTexture.get.destroy()
+      if _msaaTexture.nonNull then _msaaTexture.get.destroy()
       _width = targetW
       _height = targetH
       val tex = painter.device.createTexture(
@@ -57,12 +64,24 @@ class Panel(val painter: Painter):
       )
       _texture = tex
       _textureView = tex.createView()
+      if multisample then
+        val msaaTex = painter.device.createTexture(
+          Obj.literal(
+            size = Obj.literal(width = targetW, height = targetH),
+            format = painter.preferredFormat,
+            sampleCount = 4,
+            usage = GPUTextureUsage.RENDER_ATTACHMENT,
+          ),
+        )
+        _msaaTexture = msaaTex
+        _msaaView = msaaTex.createView()
       if depthTest then
         val depthTex = painter.device.createTexture(
           Obj.literal(
             size = Obj.literal(width = targetW, height = targetH),
             format = "depth24plus",
             usage = GPUTextureUsage.RENDER_ATTACHMENT,
+            sampleCount = if multisample then 4 else 1,
           ),
         )
         _depthTexture = depthTex

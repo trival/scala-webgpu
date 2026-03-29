@@ -363,15 +363,32 @@ class Painter(
     val h = height
     panel.ensureSize(w, h)
     val encoder = device.createCommandEncoder()
+    val msaa = panel.multisample
 
     val colorAttachment =
       if panel.clearColor.nonNull then
         val (r, g, b, a) = panel.clearColor.get
+        if msaa then
+          Obj.literal(
+            view = panel.msaaView,
+            resolveTarget = panel.textureView,
+            loadOp = "clear",
+            storeOp = "discard",
+            clearValue = Obj.literal(r = r, g = g, b = b, a = a),
+          )
+        else
+          Obj.literal(
+            view = panel.textureView,
+            loadOp = "clear",
+            storeOp = "store",
+            clearValue = Obj.literal(r = r, g = g, b = b, a = a),
+          )
+      else if msaa then
         Obj.literal(
-          view = panel.textureView,
-          loadOp = "clear",
+          view = panel.msaaView,
+          resolveTarget = panel.textureView,
+          loadOp = "load",
           storeOp = "store",
-          clearValue = Obj.literal(r = r, g = g, b = b, a = a),
         )
       else
         Obj.literal(
@@ -393,12 +410,12 @@ class Painter(
 
     var i = 0
     while i < panel.shapes.length do
-      renderShapeOnPass(pass, panel.shapes(i), panel.depthTest)
+      renderShapeOnPass(pass, panel.shapes(i), panel.depthTest, msaa)
       i += 1
 
     var j = 0
     while j < panel.layers.length do
-      renderLayerOnPass(pass, panel.layers(j), panel.depthTest)
+      renderLayerOnPass(pass, panel.layers(j), panel.depthTest, msaa)
       j += 1
 
     pass.end()
@@ -413,9 +430,9 @@ class Painter(
         colorAttachments = Arr(
           Obj.literal(
             view = swapChainView,
-            loadOp = "clear",
+            loadOp = "load",
             storeOp = "store",
-            clearValue = Obj.literal(r = 0.0, g = 0.0, b = 0.0, a = 1.0),
+            // clearValue = Obj.literal(r = 0.0, g = 0.0, b = 0.0, a = 1.0),
           ),
         ),
       ),
@@ -491,15 +508,17 @@ class Painter(
       pass: GPURenderPassEncoder,
       shape: Shape[?, ?],
       depthTest: Boolean = false,
+      multisample: Boolean = false,
   ): Unit =
-    val cacheKey = pipelineKeyStr(shape, preferredFormat, depthTest)
+    val cacheKey =
+      pipelineKeyStr(shape, preferredFormat, depthTest, multisample)
     val pipeline =
       if js.DynamicImplicits.truthValue(
           pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(cacheKey),
         )
       then pipelineCache(cacheKey)
       else
-        val p = createPipeline(shape, depthTest)
+        val p = createPipeline(shape, depthTest, multisample)
         pipelineCache(cacheKey) = p
         p
 
@@ -529,16 +548,17 @@ class Painter(
       pass: GPURenderPassEncoder,
       layer: Layer[?, ?],
       depthTest: Boolean = false,
+      multisample: Boolean = false,
   ): Unit =
     val cacheKey =
-      s"L|${layer.shade.id}|${layer.blendState.isNull}|$preferredFormat|$depthTest"
+      s"L|${layer.shade.id}|${layer.blendState.isNull}|$preferredFormat|$depthTest|$multisample"
     val pipeline =
       if js.DynamicImplicits.truthValue(
           pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(cacheKey),
         )
       then pipelineCache(cacheKey)
       else
-        val p = createLayerPipeline(layer, depthTest)
+        val p = createLayerPipeline(layer, depthTest, multisample)
         pipelineCache(cacheKey) = p
         p
 
@@ -573,6 +593,7 @@ class Painter(
   private def createLayerPipeline(
       layer: Layer[?, ?],
       depthTest: Boolean = false,
+      multisample: Boolean = false,
   ): GPURenderPipeline =
     val shade = layer.shade
     val target: js.Dynamic =
@@ -594,6 +615,7 @@ class Painter(
         depthWriteEnabled = true,
         depthCompare = "less",
       )
+    if multisample then desc.multisample = Obj.literal(count = 4)
     device.createRenderPipeline(desc)
 
   // =========================================================================
@@ -604,14 +626,16 @@ class Painter(
       shape: Shape[?, ?],
       format: String,
       depthTest: Boolean,
+      multisample: Boolean,
   ): String =
     val s = shape.shade
     val f = shape.form
-    s"${s.id}|${shape.blendState.isNull}|${shape.cullMode}|${f.topology}|${f.frontFace}|${format}|${depthTest}"
+    s"${s.id}|${shape.blendState.isNull}|${shape.cullMode}|${f.topology}|${f.frontFace}|${format}|${depthTest}|${multisample}"
 
   private def createPipeline(
       shape: Shape[?, ?],
       depthTest: Boolean = false,
+      multisample: Boolean = false,
   ): GPURenderPipeline =
     val shade = shape.shade
 
@@ -652,6 +676,7 @@ class Painter(
         depthWriteEnabled = true,
         depthCompare = "less",
       )
+    if multisample then desc.multisample = Obj.literal(count = 4)
     device.createRenderPipeline(desc)
 
   // =========================================================================
