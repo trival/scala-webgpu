@@ -2,11 +2,11 @@ package webgpu
 
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
+import trivalibs.utils.js.Arr
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 import scala.scalajs.js.typedarray.*
-import trivalibs.utils.js.Arr
 
 // =============================================================================
 // Core WebGPU Types
@@ -16,7 +16,7 @@ import trivalibs.utils.js.Arr
 trait GPU extends js.Object:
   def requestAdapter(): js.Promise[GPUAdapter | Null] = js.native
   def requestAdapter(
-      options: js.Dynamic
+      options: js.Dynamic,
   ): js.Promise[GPUAdapter | Null] = js.native
   def getPreferredCanvasFormat(): String = js.native
 
@@ -54,20 +54,20 @@ trait GPUQueue extends js.Object:
   def writeBuffer(
       buffer: GPUBuffer,
       bufferOffset: Double,
-      data: Float32Array | Uint8Array | ArrayBuffer
-  ): Unit = js.native
-  def writeBuffer(
-      buffer: GPUBuffer,
-      bufferOffset: Double,
       data: Float32Array | Uint8Array | ArrayBuffer,
-      dataOffset: Double
   ): Unit = js.native
   def writeBuffer(
       buffer: GPUBuffer,
       bufferOffset: Double,
       data: Float32Array | Uint8Array | ArrayBuffer,
       dataOffset: Double,
-      size: Double
+  ): Unit = js.native
+  def writeBuffer(
+      buffer: GPUBuffer,
+      bufferOffset: Double,
+      data: Float32Array | Uint8Array | ArrayBuffer,
+      dataOffset: Double,
+      size: Double,
   ): Unit = js.native
 
 // =============================================================================
@@ -104,13 +104,13 @@ trait GPURenderPassEncoder extends js.Object:
       slot: Int,
       buffer: GPUBuffer,
       offset: Double,
-      size: Double
+      size: Double,
   ): Unit = js.native
   def setBindGroup(index: Int, bindGroup: GPUBindGroup): Unit = js.native
   def setBindGroup(
       index: Int,
       bindGroup: GPUBindGroup,
-      dynamicOffsets: js.Array[Double]
+      dynamicOffsets: js.Array[Double],
   ): Unit = js.native
   def draw(vertexCount: Int): Unit = js.native
   def draw(vertexCount: Int, instanceCount: Int): Unit = js.native
@@ -120,7 +120,7 @@ trait GPURenderPassEncoder extends js.Object:
       vertexCount: Int,
       instanceCount: Int,
       firstVertex: Int,
-      firstInstance: Int
+      firstInstance: Int,
   ): Unit = js.native
   def end(): Unit = js.native
 
@@ -132,7 +132,8 @@ trait GPUCommandBuffer extends js.Object
 // =============================================================================
 
 @js.native
-trait GPUBuffer extends js.Object
+trait GPUBuffer extends js.Object:
+  def destroy(): Unit = js.native
 
 @js.native
 trait GPUBindGroup extends js.Object

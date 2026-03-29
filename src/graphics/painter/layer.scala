@@ -1,12 +1,17 @@
 package graphics.painter
 
 import trivalibs.utils.js.*
-import webgpu.GPUDevice
 
 class Layer[U, P](
+    val painter: Painter,
     val shade: Shade[U, P],
-    val device: GPUDevice,
-    var bindings: BindingSlots = Arr(),
-    var panelBindings: Arr[Panel | Null] = Arr(),
-    var blendState: Opt[BlendState] = Opt.Null,
-) extends Bindable[U, P]
+) extends Bindable[U, P]:
+  var blendState: Opt[BlendState] = Opt.Null
+  var bindings: BindingSlots = Arr()
+  var panelBindings: Arr[Panel | Null] = Arr()
+
+  def set(
+      blendState: Maybe[Opt[BlendState]] = Maybe.Not,
+  ): this.type =
+    blendState.foreach(v => this.blendState = v)
+    this

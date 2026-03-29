@@ -19,7 +19,8 @@ extension [N <: String & Singleton](name: N)
 
 trait Bindable[U, P]:
   val shade: Shade[U, P]
-  val device: GPUDevice
+  val painter: Painter
+  inline def device: GPUDevice = painter.device
   var bindings: BindingSlots
   var panelBindings: Arr[Panel | Null]
 
@@ -122,16 +123,19 @@ trait Bindable[U, P]:
       )
 
 class Shape[U, P](
-    val form: Form,
+    val painter: Painter,
     val shade: Shade[U, P],
-    val device: GPUDevice,
-    var bindings: BindingSlots = Arr(),
-    var panelBindings: Arr[Panel | Null] = Arr(),
-    var cullMode: CullMode = CullMode.None,
-    var blendState: Opt[BlendState] = Opt.Null,
+    val form: Form,
 ) extends Bindable[U, P]:
-  def bind(slots: (Int, BufferBinding[?, ?])*): Shape[U, P] =
-    for (slot, binding) <- slots do
-      while bindings.length <= slot do bindings.push(null)
-      bindings(slot) = binding
+  var cullMode: CullMode = CullMode.None
+  var blendState: Opt[BlendState] = Opt.Null
+  var bindings: BindingSlots = Arr()
+  var panelBindings: Arr[Panel | Null] = Arr()
+
+  def set(
+      cullMode: Maybe[CullMode] = Maybe.Not,
+      blendState: Maybe[Opt[BlendState]] = Maybe.Not,
+  ): this.type =
+    cullMode.foreach(v => this.cullMode = v)
+    blendState.foreach(v => this.blendState = v)
     this

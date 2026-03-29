@@ -4,26 +4,28 @@ import trivalibs.bufferdata.StructArray
 import trivalibs.utils.js.*
 import webgpu.*
 
-class Form(
-    val vertexBuffer: GPUBuffer,
-    val vertexCount: Int,
-    val topology: PrimitiveTopology = PrimitiveTopology.TriangleList,
-    val frontFace: FrontFace = FrontFace.CCW,
-)
+class Form(val painter: Painter):
+  var vertexBuffer: Opt[GPUBuffer] = Opt.Null
+  var vertexCount: Int = 0
+  var topology: PrimitiveTopology = PrimitiveTopology.TriangleList
+  var frontFace: FrontFace = FrontFace.CCW
 
-object Form:
-  def apply[F <: Tuple](
-      device: GPUDevice,
-      queue: GPUQueue,
-      vertices: StructArray[F],
-      topology: PrimitiveTopology = PrimitiveTopology.TriangleList,
-      frontFace: FrontFace = FrontFace.CCW,
-  ): Form =
-    val buffer = device.createBuffer(
-      Obj.literal(
-        size = vertices.arrayBuffer.byteLength,
-        usage = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-      ),
-    )
-    queue.writeBuffer(buffer, 0.0, vertices.arrayBuffer)
-    new Form(buffer, vertices.length, topology, frontFace)
+  def set[F <: Tuple](
+      vertices: Maybe[StructArray[F]] = Maybe.Not,
+      topology: Maybe[PrimitiveTopology] = Maybe.Not,
+      frontFace: Maybe[FrontFace] = Maybe.Not,
+  ): this.type =
+    topology.foreach(v => this.topology = v)
+    frontFace.foreach(v => this.frontFace = v)
+    vertices.foreach: verts =>
+      if vertexBuffer.nonNull then vertexBuffer.get.destroy()
+      val buf = painter.device.createBuffer(
+        Obj.literal(
+          size = verts.arrayBuffer.byteLength,
+          usage = GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        ),
+      )
+      painter.queue.writeBuffer(buf, 0.0, verts.arrayBuffer)
+      vertexBuffer = buf
+      vertexCount = verts.length
+    this

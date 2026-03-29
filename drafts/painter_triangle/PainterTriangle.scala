@@ -50,9 +50,9 @@ def main(): Unit =
     vertices(2).set0(0.5, -0.5)
     vertices(2).set1(0.0, 0.0, 1.0)
 
-    val form = painter.form(vertices)
+    val form = painter.form().set(vertices = vertices)
     val tintColor = painter.binding[Vec3]
-    val shape = painter.shape(form, shade).bind(0 -> tintColor)
+    val shape = painter.shape(shade, form).bind("tintColor" := tintColor)
 
     var time = 0.0
 

@@ -3,25 +3,41 @@ package graphics.painter
 import trivalibs.utils.js.*
 import webgpu.*
 
-class Panel(
-    private val painter: Painter,
-    val specWidth: Int,
-    val specHeight: Int,
-    var clearColor: Opt[(Double, Double, Double, Double)],
-    val depthTest: Boolean = false,
-    val shapes: Arr[Shape[?, ?]] = Arr(),
-    val layers: Arr[Layer[?, ?]] = Arr(),
-):
+type ClearColor = (Double, Double, Double, Double)
 
-  private var _width: Int = 0
-  private var _height: Int = 0
+class Panel(val painter: Painter):
+  var specWidth: Int = 0
+  var specHeight: Int = 0
+  var clearColor: Opt[ClearColor] = (0.0, 0.0, 0.0, 1.0)
+  var depthTest: Boolean = false
+  var shapes: Arr[Shape[?, ?]] = Arr()
+  var layers: Arr[Layer[?, ?]] = Arr()
+
   private var _texture: Opt[GPUTexture] = Opt.Null
   private var _textureView: Opt[GPUTextureView] = Opt.Null
   private var _depthTexture: Opt[GPUTexture] = Opt.Null
   private var _depthView: Opt[GPUTextureView] = Opt.Null
+  private var _width: Int = 0
+  private var _height: Int = 0
 
   def textureView: GPUTextureView = _textureView.get
   def depthView: GPUTextureView = _depthView.get
+
+  def set(
+      width: Maybe[Int] = Maybe.Not,
+      height: Maybe[Int] = Maybe.Not,
+      clearColor: Maybe[Opt[ClearColor]] = Maybe.Not,
+      depthTest: Maybe[Boolean] = Maybe.Not,
+      shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
+      layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
+  ): this.type =
+    width.foreach(v => this.specWidth = v)
+    height.foreach(v => this.specHeight = v)
+    clearColor.foreach(v => this.clearColor = v)
+    depthTest.foreach(v => this.depthTest = v)
+    shapes.foreach(v => this.shapes = v)
+    layers.foreach(v => this.layers = v)
+    this
 
   private[painter] def ensureSize(canvasW: Int, canvasH: Int): Unit =
     val targetW = if specWidth == 0 then canvasW else specWidth

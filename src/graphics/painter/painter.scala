@@ -8,7 +8,6 @@ import graphics.shader.*
 import graphics.shader.dsl.LayerProgram
 import graphics.shader.dsl.Program
 import org.scalajs.dom.HTMLCanvasElement
-import trivalibs.bufferdata.StructArray
 import trivalibs.utils.js.*
 import webgpu.*
 
@@ -285,12 +284,7 @@ class Painter(
   // Form factory
   // =========================================================================
 
-  def form[F <: Tuple](
-      vertices: StructArray[F],
-      topology: PrimitiveTopology = PrimitiveTopology.TriangleList,
-      frontFace: FrontFace = FrontFace.CCW,
-  ): Form =
-    Form(device, queue, vertices, topology, frontFace)
+  def form(): Form = Form(this)
 
   // =========================================================================
   // Binding factory
@@ -308,40 +302,21 @@ class Painter(
   // Shape factory
   // =========================================================================
 
-  def shape[U, P](
-      form: Form,
-      shade: Shade[U, P],
-      bindings: BindingSlots = Arr(),
-      cullMode: CullMode = CullMode.None,
-      blendState: Opt[BlendState] = Opt.Null,
-  ): Shape[U, P] =
-    Shape[U, P](form, shade, device, bindings, Arr(), cullMode, blendState)
+  def shape[U, P](shade: Shade[U, P], form: Form): Shape[U, P] =
+    Shape[U, P](this, shade, form)
 
   // =========================================================================
   // Layer factory
   // =========================================================================
 
-  def layer[U, P](
-      shade: Shade[U, P],
-      bindings: BindingSlots = Arr(),
-      blendState: Opt[BlendState] = Opt.Null,
-  ): Layer[U, P] =
-    Layer[U, P](shade, device, bindings, Arr(), blendState)
+  def layer[U, P](shade: Shade[U, P]): Layer[U, P] =
+    Layer[U, P](this, shade)
 
   // =========================================================================
   // Panel factory
   // =========================================================================
 
-  def panel(
-      width: Int = 0,
-      height: Int = 0,
-      clearColor: Opt[(Double, Double, Double, Double)] =
-        (0.0, 0.0, 0.0, 1.0),
-      depthTest: Boolean = false,
-      shapes: Arr[Shape[?, ?]] = Arr(),
-      layers: Arr[Layer[?, ?]] = Arr(),
-  ): Panel =
-    Panel(this, width, height, clearColor, depthTest, shapes, layers)
+  def panel(): Panel = Panel(this)
 
   // =========================================================================
   // draw() — direct-to-canvas rendering
@@ -543,7 +518,7 @@ class Painter(
       )
       pass.setBindGroup(1, panelGroup)
 
-    pass.setVertexBuffer(0, shape.form.vertexBuffer)
+    pass.setVertexBuffer(0, shape.form.vertexBuffer.get)
     pass.draw(shape.form.vertexCount)
 
   // =========================================================================
