@@ -15,7 +15,7 @@ The painter API has several inconsistencies and rigidities:
 
 **Goal:** Constructor takes only `painter` (+ `shade`/`form` for typed/required
 entities); all rendering properties live as `var` with defaults and are
-configured via a `set(...)` method with all-`Opt` params. Type-level safety
+configured via a `set(...)` method with all-`Maybe` params. Type-level safety
 (compile-time bind checks via U, P) stays intact. Missing required GPU resources
 (e.g. Form vertices not set) → runtime crash.
 
@@ -33,40 +33,44 @@ configured via a `set(...)` method with all-`Opt` params. Type-level safety
   `GPUSampler`, `GPUShaderModule`, `GPUBindGroup`, `GPUBindGroupLayout`, and
   `GPUPipelineLayout` do NOT — they are GC'd by the browser.
 
-### Nullable fields: Scala `null` vs `Opt.Null`
+### `Maybe` vs `Opt` — two distinct null-like semantics
 
-Two distinct null-like values exist in Scala.js:
-
-- **Scala `null`** compiles to JS `null` — used for fields that can be
+- **`Maybe[T]`** = `js.UndefOr[T]` (JS `undefined`-based). Used for **function
+  parameters** where "not provided" means "don't change". Empty value:
+  `Maybe.Not`. Methods: `.orElse(default)`, `.safe`.
+- **`Opt[T]`** = `T | Null` (JS `null`-based). Used for **fields** that can be
   meaningfully absent at runtime (e.g. `blendState`, `clearColor`, GPU resources
-  before allocation)
-- **`Opt.Null`** = `js.undefined` — used in `set()` method params to mean
-  "don't change this field"
+  before allocation). Empty value: `Opt.Null` (= `null`). Methods: `.isNull`,
+  `.nonNull`, `.getOr(default)`, `.get`.
 
-This gives us a clean **three-state pattern** for `set()` parameters on
-nullable fields using `Opt[T | Null]`:
+### Three-state `set()` pattern for resettable fields
 
-- `Opt.Null` (= `js.undefined`) → don't change the field
-- `null` → explicitly unset the field (set to `null`)
+For fields that can be explicitly unset (e.g. `blendState`, `clearColor`), the
+`set()` parameter type is `Maybe[Opt[T]]`:
+
+- `Maybe.Not` (= `js.undefined`) → don't change the field
+- `Opt.Null` (= `null`) → explicitly unset the field
 - `T` value → set to that value
 
-This works because `Opt[T].foreach` skips `js.undefined` but passes `null`
-through, so `Opt[BlendState | Null]` with value `null` will execute the
-foreach body and assign `null`.
+Both `null` and `T` values are subtypes of `Opt[T]` which is a subtype of
+`Maybe[Opt[T]]`, so the user writes naturally:
+- `.set(blendState = BlendState.Alpha)` — set
+- `.set(blendState = null)` — unset
+- omit parameter — don't change
 
-**No opaque sentinels needed** — `null` replaces `Shape.NoBlend` and
-`Panel.NoClear`.
+Inside `set()`, `Maybe.foreach` skips `undefined` but passes both `null` and
+real values through:
 
-> **Future consideration:** We may rename `Opt` to `Maybe` (for
-> undefined-based semantics) and repurpose `Opt` for `T | Null` (null-based
-> semantics) to make the distinction clearer in the API.
+```scala
+blendState.foreach(v => this.blendState = v)
+```
 
-### Non-nullable `set()` parameters
+### Non-resettable `set()` parameters
 
-For fields that are always set to some value (e.g. `cullMode`, `topology`,
-`depthTest`), the `set()` parameter type is simply `Opt[T]`:
+For fields that always have a value (e.g. `cullMode`, `topology`, `depthTest`),
+the parameter type is simply `Maybe[T]`:
 
-- `Opt.Null` → don't change
+- `Maybe.Not` → don't change
 - `T` value → set to that value
 
 ## Files to Modify
@@ -76,11 +80,11 @@ For fields that are always set to some value (e.g. `cullMode`, `topology`,
 - `src/graphics/painter/layer.scala` — constructor(painter, shade); `set`
   method; `device` via painter
 - `src/graphics/painter/panel.scala` — constructor(painter); make all props
-  `var`; `set` method; switch internal textures to `T | Null`
+  `var`; `set` method; internal textures use `Opt[T]`
 - `src/graphics/painter/form.scala` — constructor(painter); `set` method with
   buffer destroy; move buffer allocation from painter factory to `set`
 - `src/graphics/painter/painter.scala` — simplify factory methods; update render
-  methods for nullable field access
+  methods for `Opt` field access
 - `src/webgpu/facades.scala` — add `destroy()` to `GPUBuffer` trait
 - Any draft files that use the old factory API
 
@@ -105,8 +109,8 @@ trait Bindable[U, P]:
 Geometry changes are handled by calling `form.set(vertices = ...)` on the form
 in place — the shape's `form` ref stays fixed.
 
-`blendState` is `BlendState | Null` — `null` means no blending. In `set()`,
-the param type is `Opt[BlendState | Null]` for the three-state pattern.
+`blendState` is `Opt[BlendState]` — `Opt.Null` means no blending. In `set()`,
+the param type is `Maybe[Opt[BlendState]]` for the three-state pattern.
 
 ```scala
 class Shape[U, P](
@@ -115,13 +119,13 @@ class Shape[U, P](
     val form: Form,
 ) extends Bindable[U, P]:
   var cullMode: CullMode = CullMode.None
-  var blendState: BlendState | Null = null
+  var blendState: Opt[BlendState] = Opt.Null
   var bindings: BindingSlots = Arr()
   var panelBindings: Arr[Panel | Null] = Arr()
 
   def set(
-      cullMode: Opt[CullMode] = Opt.Null,
-      blendState: Opt[BlendState | Null] = Opt.Null,
+      cullMode: Maybe[CullMode] = Maybe.Not,
+      blendState: Maybe[Opt[BlendState]] = Maybe.Not,
   ): this.type =
     cullMode.foreach(v => this.cullMode = v)
     blendState.foreach(v => this.blendState = v)
@@ -132,8 +136,8 @@ class Shape[U, P](
 ```
 
 Note how `blendState.foreach(v => this.blendState = v)` handles all cases:
-- `Opt.Null` → foreach skipped, field unchanged
-- `null` → foreach runs, field set to `null` (blending disabled)
+- `Maybe.Not` → foreach skipped, field unchanged
+- `null` (= `Opt.Null`) → foreach runs, field set to `null` (blending disabled)
 - `BlendState(...)` → foreach runs, field set to blend state
 
 ## Step 3 — `Layer[U, P]`
@@ -145,12 +149,12 @@ class Layer[U, P](
     val painter: Painter,
     val shade: Shade[U, P],
 ) extends Bindable[U, P]:
-  var blendState: BlendState | Null = null
+  var blendState: Opt[BlendState] = Opt.Null
   var bindings: BindingSlots = Arr()
   var panelBindings: Arr[Panel | Null] = Arr()
 
   def set(
-      blendState: Opt[BlendState | Null] = Opt.Null,
+      blendState: Maybe[Opt[BlendState]] = Maybe.Not,
   ): this.type =
     blendState.foreach(v => this.blendState = v)
     this
@@ -158,10 +162,10 @@ class Layer[U, P](
 
 ## Step 4 — `Panel`
 
-Internal texture fields use `T | Null` with `null` as initial value. Cleanup
-uses `!= null` checks (which in Scala.js catches both `null` and `undefined`).
+Internal texture fields use `Opt[T]` with `Opt.Null` as initial value. Cleanup
+uses `.nonNull` / `.get` methods.
 
-`clearColor` is `ClearColor | Null` — `null` means don't clear. Default is
+`clearColor` is `Opt[ClearColor]` — `Opt.Null` means don't clear. Default is
 black `(0.0, 0.0, 0.0, 1.0)`.
 
 ```scala
@@ -170,28 +174,28 @@ type ClearColor = (Double, Double, Double, Double)
 class Panel(val painter: Painter):
   var specWidth: Int = 0
   var specHeight: Int = 0
-  var clearColor: ClearColor | Null = (0.0, 0.0, 0.0, 1.0)
+  var clearColor: Opt[ClearColor] = (0.0, 0.0, 0.0, 1.0)
   var depthTest: Boolean = false
   var shapes: Arr[Shape[?, ?]] = Arr()
   var layers: Arr[Layer[?, ?]] = Arr()
 
-  private var _texture: GPUTexture | Null = null
-  private var _textureView: GPUTextureView | Null = null
-  private var _depthTexture: GPUTexture | Null = null
-  private var _depthView: GPUTextureView | Null = null
+  private var _texture: Opt[GPUTexture] = Opt.Null
+  private var _textureView: Opt[GPUTextureView] = Opt.Null
+  private var _depthTexture: Opt[GPUTexture] = Opt.Null
+  private var _depthView: Opt[GPUTextureView] = Opt.Null
   private var _width: Int = 0
   private var _height: Int = 0
 
-  def textureView: GPUTextureView = _textureView.asInstanceOf[GPUTextureView]
-  def depthView: GPUTextureView = _depthView.asInstanceOf[GPUTextureView]
+  def textureView: GPUTextureView = _textureView.get
+  def depthView: GPUTextureView = _depthView.get
 
   def set(
-      width: Opt[Int] = Opt.Null,
-      height: Opt[Int] = Opt.Null,
-      clearColor: Opt[ClearColor | Null] = Opt.Null,
-      depthTest: Opt[Boolean] = Opt.Null,
-      shapes: Opt[Arr[Shape[?, ?]]] = Opt.Null,
-      layers: Opt[Arr[Layer[?, ?]]] = Opt.Null,
+      width: Maybe[Int] = Maybe.Not,
+      height: Maybe[Int] = Maybe.Not,
+      clearColor: Maybe[Opt[ClearColor]] = Maybe.Not,
+      depthTest: Maybe[Boolean] = Maybe.Not,
+      shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
+      layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
   ): this.type =
     width.foreach(v => this.specWidth = v)
     height.foreach(v => this.specHeight = v)
@@ -205,8 +209,8 @@ class Panel(val painter: Painter):
     val targetW = if specWidth == 0 then canvasW else specWidth
     val targetH = if specHeight == 0 then canvasH else specHeight
     if targetW != _width || targetH != _height then
-      if _texture != null then _texture.asInstanceOf[GPUTexture].destroy()
-      if _depthTexture != null then _depthTexture.asInstanceOf[GPUTexture].destroy()
+      if _texture.nonNull then _texture.get.destroy()
+      if _depthTexture.nonNull then _depthTexture.get.destroy()
       _width = targetW
       _height = targetH
       val tex = painter.device.createTexture(...)
@@ -220,26 +224,25 @@ class Panel(val painter: Painter):
 
 ## Step 5 — `Form`
 
-Buffer allocation moves from painter factory to `Form.set()`. Uses `T | Null`
-for the vertex buffer with `!= null` check for destroy:
+Buffer allocation moves from painter factory to `Form.set()`. Uses `Opt[GPUBuffer]`
+with `.nonNull` / `.get` for destroy:
 
 ```scala
 class Form(val painter: Painter):
-  var vertexBuffer: GPUBuffer | Null = null
+  var vertexBuffer: Opt[GPUBuffer] = Opt.Null
   var vertexCount: Int = 0
   var topology: PrimitiveTopology = PrimitiveTopology.TriangleList
   var frontFace: FrontFace = FrontFace.CCW
 
   def set[F <: Tuple](
-      vertices: Opt[StructArray[F]] = Opt.Null,
-      topology: Opt[PrimitiveTopology] = Opt.Null,
-      frontFace: Opt[FrontFace] = Opt.Null,
+      vertices: Maybe[StructArray[F]] = Maybe.Not,
+      topology: Maybe[PrimitiveTopology] = Maybe.Not,
+      frontFace: Maybe[FrontFace] = Maybe.Not,
   ): this.type =
     topology.foreach(v => this.topology = v)
     frontFace.foreach(v => this.frontFace = v)
     vertices.foreach: verts =>
-      if vertexBuffer != null then
-        vertexBuffer.asInstanceOf[GPUBuffer].destroy()
+      if vertexBuffer.nonNull then vertexBuffer.get.destroy()
       val buf = painter.device.createBuffer(
         Obj.literal(
           size = verts.byteLength,
@@ -282,12 +285,12 @@ blendState args, old `panel` with all args). `binding[T]` stays as-is.
 
 **`renderShapeOnPass` in painter.scala:**
 
-- `shape.form.vertexBuffer` is `GPUBuffer | Null` — cast with
-  `.asInstanceOf[GPUBuffer]` (crashes if not set, by design)
+- `shape.form.vertexBuffer` is `Opt[GPUBuffer]` — use `.get` (crashes if not
+  set, by design)
 - `!= null` checks on Shade layouts (`valueBindGroupLayout`,
   `panelBindGroupLayout`, `vertexBufferLayout`) remain as-is — these are
   `T | Null` computed at Shade creation time, not user-settable
-- `shape.blendState` checks change from `.isEmpty` to `!= null`
+- `shape.blendState` checks use `.isNull` / `.nonNull` / `.get`
 
 ## Step 7 — Pipeline cache and runtime mutation
 
@@ -298,11 +301,10 @@ already handles key changes transparently by creating a new cached pipeline. Old
 pipelines stay in cache (acceptable; WebGPU pipelines don't have a destroy()
 method).
 
-**Pipeline key update:** The `blendState` portion of the key changes from
-checking `.isEmpty` to checking `!= null`:
+**Pipeline key update:** The `blendState` portion of the key uses `.isNull`:
 
 ```scala
-val key = s"${shade.id}|${shape.blendState != null}|${shape.cullMode}|..."
+val key = s"${shade.id}|${shape.blendState.isNull}|${shape.cullMode}|..."
 ```
 
 ## Step 8 — GPU resource cleanup summary
@@ -319,15 +321,12 @@ Everything else (GPURenderPipeline, GPUSampler, GPUShaderModule, GPUBindGroup,
 GPUBindGroupLayout, GPUPipelineLayout) has no destroy() and is GC'd by the
 browser.
 
-| Resource                  | When to destroy        | Cleanup pattern                                          |
-| ------------------------- | ---------------------- | -------------------------------------------------------- |
-| Panel `_texture`          | On size change         | `if _texture != null then _texture.nn.destroy()`         |
-| Panel `_depthTexture`     | On size change         | `if _depthTexture != null then _depthTexture.nn.destroy()` |
-| Form `vertexBuffer`       | On `set(vertices=...)` | `if vertexBuffer != null then vertexBuffer.nn.destroy()` |
-| `BufferBinding.gpuBuffer` | When binding replaced  | Leave to user (shared bindings)                          |
-
-(`.nn` or `.asInstanceOf[T]` needed after null check due to Scala's flow typing
-limitations with union types)
+| Resource                  | When to destroy        | Cleanup pattern                                            |
+| ------------------------- | ---------------------- | ---------------------------------------------------------- |
+| Panel `_texture`          | On size change         | `if _texture.nonNull then _texture.get.destroy()`          |
+| Panel `_depthTexture`     | On size change         | `if _depthTexture.nonNull then _depthTexture.get.destroy()`|
+| Form `vertexBuffer`       | On `set(vertices=...)` | `if vertexBuffer.nonNull then vertexBuffer.get.destroy()`  |
+| `BufferBinding.gpuBuffer` | When binding replaced  | Leave to user (shared bindings)                            |
 
 ## Usage after refactor
 

@@ -15,20 +15,20 @@ class Panel(
 
   private var _width: Int = 0
   private var _height: Int = 0
-  private var _texture: GPUTexture | Null = null
-  private var _textureView: GPUTextureView | Null = null
-  private var _depthTexture: GPUTexture | Null = null
-  private var _depthView: GPUTextureView | Null = null
+  private var _texture: Opt[GPUTexture] = Opt.Null
+  private var _textureView: Opt[GPUTextureView] = Opt.Null
+  private var _depthTexture: Opt[GPUTexture] = Opt.Null
+  private var _depthView: Opt[GPUTextureView] = Opt.Null
 
-  def textureView: GPUTextureView = _textureView.asInstanceOf[GPUTextureView]
-  def depthView: GPUTextureView = _depthView.asInstanceOf[GPUTextureView]
+  def textureView: GPUTextureView = _textureView.get
+  def depthView: GPUTextureView = _depthView.get
 
   private[painter] def ensureSize(canvasW: Int, canvasH: Int): Unit =
     val targetW = if specWidth == 0 then canvasW else specWidth
     val targetH = if specHeight == 0 then canvasH else specHeight
     if targetW != _width || targetH != _height then
-      if _texture != null then _texture.asInstanceOf[GPUTexture].destroy()
-      if _depthTexture != null then _depthTexture.asInstanceOf[GPUTexture].destroy()
+      if _texture.nonNull then _texture.get.destroy()
+      if _depthTexture.nonNull then _depthTexture.get.destroy()
       _width = targetW
       _height = targetH
       val tex = painter.device.createTexture(
