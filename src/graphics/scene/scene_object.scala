@@ -43,4 +43,4 @@ trait SceneObject[T]:
 given SceneObject[Transform]:
   extension (t: Transform)
     inline def transform = t
-    inline def parent = Opt.Null
+    inline def parent = null

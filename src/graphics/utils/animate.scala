@@ -5,7 +5,7 @@ import scala.scalajs.js
 
 class Animator(
     val frame: js.Function1[Double, Unit],
-    var onFpsCallback: Opt[js.Function1[Double, Unit]] = Opt.Null,
+    var onFpsCallback: Opt[js.Function1[Double, Unit]] = null,
 ):
   private var frameCount = 0
   private var lastFpsTime = 0.0
@@ -47,7 +47,7 @@ class Animator(
     lastFrameTime = -1.0
     frameCount = 0
 
-  def onFps(newOnFps: Opt[js.Function1[Double, Unit]] = Opt.Null) =
+  def onFps(newOnFps: Opt[js.Function1[Double, Unit]]) =
     onFpsCallback = newOnFps
 
 def animate(frame: js.Function1[Double, Unit]) =

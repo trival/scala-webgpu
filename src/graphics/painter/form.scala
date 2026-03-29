@@ -5,7 +5,7 @@ import trivalibs.utils.js.*
 import webgpu.*
 
 class Form(val painter: Painter):
-  var vertexBuffer: Opt[GPUBuffer] = Opt.Null
+  var vertexBuffer: Opt[GPUBuffer] = null
   var vertexCount: Int = 0
   var topology: PrimitiveTopology = PrimitiveTopology.TriangleList
   var frontFace: FrontFace = FrontFace.CCW

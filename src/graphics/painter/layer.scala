@@ -6,7 +6,7 @@ class Layer[U, P](
     val painter: Painter,
     val shade: Shade[U, P],
 ) extends Bindable[U, P]:
-  var blendState: Opt[BlendState] = Opt.Null
+  var blendState: Opt[BlendState] = null
   var bindings: BindingSlots = Arr()
   var panelBindings: Arr[Panel | Null] = Arr()
 

@@ -324,7 +324,7 @@ class Painter(
 
   def draw(
       shape: Shape[?, ?],
-      clearColor: Opt[(Double, Double, Double, Double)] = Opt.Null,
+      clearColor: Opt[(Double, Double, Double, Double)] = null,
   ): Unit =
     val encoder = device.createCommandEncoder()
     val textureView = context.getCurrentTexture().createView()

@@ -1,5 +1,8 @@
 # Refactor: Mutable painter entities with unified Painter access
 
+DONE: This refactoring was successfully implemented and tested, resulting in a
+more flexible and consistent painter API. The key changes include:
+
 ## Context
 
 The painter API has several inconsistencies and rigidities:
@@ -54,6 +57,7 @@ For fields that can be explicitly unset (e.g. `blendState`, `clearColor`), the
 
 Both `null` and `T` values are subtypes of `Opt[T]` which is a subtype of
 `Maybe[Opt[T]]`, so the user writes naturally:
+
 - `.set(blendState = BlendState.Alpha)` — set
 - `.set(blendState = null)` — unset
 - omit parameter — don't change
@@ -136,6 +140,7 @@ class Shape[U, P](
 ```
 
 Note how `blendState.foreach(v => this.blendState = v)` handles all cases:
+
 - `Maybe.Not` → foreach skipped, field unchanged
 - `null` (= `Opt.Null`) → foreach runs, field set to `null` (blending disabled)
 - `BlendState(...)` → foreach runs, field set to blend state
@@ -224,8 +229,8 @@ class Panel(val painter: Painter):
 
 ## Step 5 — `Form`
 
-Buffer allocation moves from painter factory to `Form.set()`. Uses `Opt[GPUBuffer]`
-with `.nonNull` / `.get` for destroy:
+Buffer allocation moves from painter factory to `Form.set()`. Uses
+`Opt[GPUBuffer]` with `.nonNull` / `.get` for destroy:
 
 ```scala
 class Form(val painter: Painter):
@@ -321,12 +326,12 @@ Everything else (GPURenderPipeline, GPUSampler, GPUShaderModule, GPUBindGroup,
 GPUBindGroupLayout, GPUPipelineLayout) has no destroy() and is GC'd by the
 browser.
 
-| Resource                  | When to destroy        | Cleanup pattern                                            |
-| ------------------------- | ---------------------- | ---------------------------------------------------------- |
-| Panel `_texture`          | On size change         | `if _texture.nonNull then _texture.get.destroy()`          |
-| Panel `_depthTexture`     | On size change         | `if _depthTexture.nonNull then _depthTexture.get.destroy()`|
-| Form `vertexBuffer`       | On `set(vertices=...)` | `if vertexBuffer.nonNull then vertexBuffer.get.destroy()`  |
-| `BufferBinding.gpuBuffer` | When binding replaced  | Leave to user (shared bindings)                            |
+| Resource                  | When to destroy        | Cleanup pattern                                             |
+| ------------------------- | ---------------------- | ----------------------------------------------------------- |
+| Panel `_texture`          | On size change         | `if _texture.nonNull then _texture.get.destroy()`           |
+| Panel `_depthTexture`     | On size change         | `if _depthTexture.nonNull then _depthTexture.get.destroy()` |
+| Form `vertexBuffer`       | On `set(vertices=...)` | `if vertexBuffer.nonNull then vertexBuffer.get.destroy()`   |
+| `BufferBinding.gpuBuffer` | When binding replaced  | Leave to user (shared bindings)                             |
 
 ## Usage after refactor
 

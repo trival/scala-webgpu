@@ -128,7 +128,7 @@ class Shape[U, P](
     val form: Form,
 ) extends Bindable[U, P]:
   var cullMode: CullMode = CullMode.None
-  var blendState: Opt[BlendState] = Opt.Null
+  var blendState: Opt[BlendState] = null
   var bindings: BindingSlots = Arr()
   var panelBindings: Arr[Panel | Null] = Arr()
 

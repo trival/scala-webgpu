@@ -13,10 +13,10 @@ class Panel(val painter: Painter):
   var shapes: Arr[Shape[?, ?]] = Arr()
   var layers: Arr[Layer[?, ?]] = Arr()
 
-  private var _texture: Opt[GPUTexture] = Opt.Null
-  private var _textureView: Opt[GPUTextureView] = Opt.Null
-  private var _depthTexture: Opt[GPUTexture] = Opt.Null
-  private var _depthView: Opt[GPUTextureView] = Opt.Null
+  private var _texture: Opt[GPUTexture] = null
+  private var _textureView: Opt[GPUTextureView] = null
+  private var _depthTexture: Opt[GPUTexture] = null
+  private var _depthView: Opt[GPUTextureView] = null
   private var _width: Int = 0
   private var _height: Int = 0
 
