@@ -8,7 +8,7 @@ class Layer[U, P](
 ) extends Bindable[U, P]:
   var blendState: Opt[BlendState] = null
   var bindings: BindingSlots = Arr()
-  var panelBindings: Arr[Panel | Null] = Arr()
+  var panelBindings: Arr[Opt[Panel]] = Arr()
 
   def set(
       blendState: Maybe[Opt[BlendState]] = Maybe.Not,

@@ -20,10 +20,7 @@ def main(): Unit =
     document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
 
   Painter.init(canvas): painter =>
-    type Uniforms = (
-        time: FragmentUniform[Float],
-        res: FragmentUniform[Vec2],
-    )
+    type Uniforms = (time: Float, res: Vec2)
 
     val shade = painter.layerShade[Uniforms]: program =>
       program.frag: ctx =>

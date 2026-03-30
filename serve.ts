@@ -1,4 +1,5 @@
 import { serve } from "bun";
+import blur from "./drafts/blur/index.html";
 import bufferTriangle from "./drafts/buffer_triangle/index.html";
 import index from "./drafts/index.html";
 import painterDsl from "./drafts/painter_dsl/index.html";
@@ -14,6 +15,7 @@ const server = serve({
 
 	routes: {
 		"/": index,
+		"/blur": blur,
 		"/buffer_triangle": bufferTriangle,
 		"/panel_tex": panelTex,
 		"/painter_triangle": painterTriangle,

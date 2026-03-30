@@ -16,19 +16,22 @@ class Var[T]
 /** Marker type for WGSL compile-time constants (`const`). */
 class Const[T]
 
-/** Maps GPU math types to their DSL expression equivalents. */
+/** Maps GPU math types to their DSL expression equivalents.
+  * Concrete types (Float, Vec2, …) reduce to their Expr wrappers.
+  * Opaque GPU resource types (Texture2D, Sampler) fall through to the
+  * identity case — they are already expression types (<: Expr).
+  */
 type ToExpr[T] = T match
-  case Texture2D => Texture2D
-  case Sampler   => Sampler
-  case Float     => FloatExpr
-  case Double    => FloatExpr
-  case Boolean   => BoolExpr
-  case Vec2      => Vec2Expr
-  case Vec3      => Vec3Expr
-  case Vec4      => Vec4Expr
-  case Mat2      => Mat2Expr
-  case Mat3      => Mat3Expr
-  case Mat4      => Mat4Expr
+  case Float   => FloatExpr
+  case Double  => FloatExpr
+  case Boolean => BoolExpr
+  case Vec2    => Vec2Expr
+  case Vec3    => Vec3Expr
+  case Vec4    => Vec4Expr
+  case Mat2    => Mat2Expr
+  case Mat3    => Mat3Expr
+  case Mat4    => Mat4Expr
+  case _       => T
 
 /** Unwraps uniform wrapper types and maps to Expr. */
 type UniformToExpr[T] = T match

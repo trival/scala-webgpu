@@ -54,13 +54,13 @@ class Painter(
 ):
   private val pipelineCache = Dict[GPURenderPipeline]()
   private var nextShadeId = 0
-  private val resizeCallbacks = Arr[(Int, Int) => Unit]()
+  private val resizeCallbacks = Arr[(Double, Double) => Unit]()
 
-  def onResize(cb: (Int, Int) => Unit): Unit =
+  def onResize(cb: (Double, Double) => Unit): Unit =
     resizeCallbacks.push(cb)
     cb(canvas.width, canvas.height)
 
-  private[painter] def fireResize(w: Int, h: Int): Unit =
+  private[painter] def fireResize(w: Double, h: Double): Unit =
     var k = 0
     while k < resizeCallbacks.length do
       resizeCallbacks(k)(w, h)
@@ -147,7 +147,7 @@ class Painter(
         val vbl = sd.vertexBufferLayout
         val panelBgl = layouts.createPanelBindGroupLayout[P](device)
         val bgls =
-          if panelBgl != null then Arr[GPUBindGroupLayout](panelBgl)
+          if panelBgl.notNull then Arr[GPUBindGroupLayout](panelBgl)
           else Arr[GPUBindGroupLayout]()
         val pl = layouts.createPipelineLayout(device, bgls)
         Shade[U, P](
@@ -173,7 +173,7 @@ class Painter(
         val (bgls, _) = sd.createPipelineLayout(device)
         val panelBgl = layouts.createPanelBindGroupLayout[P](device)
         val allBgls =
-          if panelBgl != null then bgls ++ Arr[GPUBindGroupLayout](panelBgl)
+          if panelBgl.notNull then bgls ++ Arr[GPUBindGroupLayout](panelBgl)
           else bgls
         val pl = layouts.createPipelineLayout(device, allBgls)
         Shade[U, P](
@@ -232,7 +232,7 @@ class Painter(
         val module = device.createShaderModule(Obj.literal(code = wgsl))
         val panelBgl = layouts.createPanelBindGroupLayout[P](device)
         val bgls =
-          if panelBgl != null then Arr[GPUBindGroupLayout](panelBgl)
+          if panelBgl.notNull then Arr[GPUBindGroupLayout](panelBgl)
           else Arr[GPUBindGroupLayout]()
         val pl = layouts.createPipelineLayout(device, bgls)
         Shade[U, P](
@@ -247,7 +247,9 @@ class Painter(
           panelIndices,
         )
       case _ =>
-        type Wrapped = (values: U)
+        import scala.NamedTuple.AnyNamedTuple
+        type FragU = NamedTuple.Map[U & AnyNamedTuple, derive.WrapFragment]
+        type Wrapped = (values: FragU)
         val sd = Shader.full[
           EmptyTuple,
           (uv: Vec2),
@@ -265,7 +267,7 @@ class Painter(
         val (bgls, _) = sd.createPipelineLayout(device)
         val panelBgl = layouts.createPanelBindGroupLayout[P](device)
         val allBgls =
-          if panelBgl != null then bgls ++ Arr[GPUBindGroupLayout](panelBgl)
+          if panelBgl.notNull then bgls ++ Arr[GPUBindGroupLayout](panelBgl)
           else bgls
         val pl = layouts.createPipelineLayout(device, allBgls)
         Shade[U, P](
@@ -330,8 +332,8 @@ class Painter(
     val textureView = context.getCurrentTexture().createView()
 
     val colorAttachment =
-      if clearColor.nonNull then
-        val (r, g, b, a) = clearColor.get
+      if clearColor.notNull then
+        val (r, g, b, a) = clearColor
         Obj.literal(
           view = textureView,
           loadOp = "clear",
@@ -362,12 +364,14 @@ class Painter(
     val w = width
     val h = height
     panel.ensureSize(w, h)
-    val encoder = device.createCommandEncoder()
     val msaa = panel.multisample
 
+    // Step 1: render shapes into main texture
+    val encoder = device.createCommandEncoder()
+
     val colorAttachment =
-      if panel.clearColor.nonNull then
-        val (r, g, b, a) = panel.clearColor.get
+      if panel.clearColor.notNull then
+        val (r, g, b, a) = panel.clearColor
         if msaa then
           Obj.literal(
             view = panel.msaaView,
@@ -406,20 +410,89 @@ class Painter(
         depthStoreOp = "store",
         depthClearValue = 1.0,
       )
-    val pass = encoder.beginRenderPass(passDesc)
+
+    // Step 1: Render shapes (with depth/msaa from panel config)
+    val shapePass = encoder.beginRenderPass(passDesc)
 
     var i = 0
     while i < panel.shapes.length do
-      renderShapeOnPass(pass, panel.shapes(i), panel.depthTest, msaa)
+      renderShapeOnPass(shapePass, panel.shapes(i), panel.depthTest, msaa)
       i += 1
+
+    shapePass.end()
+    queue.submit(Arr(encoder.finish()))
+
+    // Step 2: Render layers in order — no depth, no msaa.
+    // Layers are fullscreen quads that always render on top.
+    // Consecutive non-ping-pong layers share a pass; ping-pong forces a new one.
+
+    var srcView = panel.textureView
+    var dstView = panel.pongView
+    var hasPongLayers = false
+
+    var curEncoder: Opt[GPUCommandEncoder] = null
+    var curPass: Opt[GPURenderPassEncoder] = null
 
     var j = 0
     while j < panel.layers.length do
-      renderLayerOnPass(pass, panel.layers(j), panel.depthTest, msaa)
+      val layer = panel.layers(j)
+      val hasPanelLayout = layer.shade.panelBindGroupLayout.notNull
+      val slot0Manual = hasPanelLayout &&
+        layer.panelBindings.length > 0 && layer.panelBindings(0).notNull
+      val needsPingPong = hasPanelLayout && !slot0Manual
+
+      if needsPingPong then
+        hasPongLayers = true
+        // End current pass if open, submit
+        if curPass.notNull then
+          curPass.end()
+          queue.submit(Arr(curEncoder.finish()))
+          curPass = null
+
+        // Ping-pong pass: render to dstView, inject srcView at slot 0
+        val enc = device.createCommandEncoder()
+        val ppPass = enc.beginRenderPass(
+          Obj.literal(
+            colorAttachments = Arr(
+              Obj.literal(
+                view = dstView,
+                loadOp = "load",
+                storeOp = "store",
+              ),
+            ),
+          ),
+        )
+        renderLayerOnPass(ppPass, layer, srcView = srcView)
+        ppPass.end()
+        queue.submit(Arr(enc.finish()))
+
+        val tmp = srcView; srcView = dstView; dstView = tmp
+      else
+        // Lazily open a pass on srcView if none is open
+        if curPass.isNull then
+          curEncoder = device.createCommandEncoder()
+          curPass = curEncoder.beginRenderPass(
+            Obj.literal(
+              colorAttachments = Arr(
+                Obj.literal(
+                  view = srcView,
+                  loadOp = "load",
+                  storeOp = "store",
+                ),
+              ),
+            ),
+          )
+        renderLayerOnPass(curPass, layer)
+
       j += 1
 
-    pass.end()
-    queue.submit(Arr(encoder.finish()))
+    if curPass.notNull then
+      curPass.end()
+      queue.submit(Arr(curEncoder.finish()))
+
+    // Record the final output view for show()
+    if hasPongLayers then panel.setOutputView(srcView)
+    else panel.setOutputView(null)
 
   def show(panel: Panel): Unit =
     val encoder = device.createCommandEncoder()
@@ -432,7 +505,6 @@ class Painter(
             view = swapChainView,
             loadOp = "load",
             storeOp = "store",
-            // clearValue = Obj.literal(r = 0.0, g = 0.0, b = 0.0, a = 1.0),
           ),
         ),
       ),
@@ -442,7 +514,7 @@ class Painter(
       Obj.literal(
         layout = blitBindGroupLayout,
         entries = Arr(
-          Obj.literal(binding = 0, resource = panel.textureView),
+          Obj.literal(binding = 0, resource = panel.outputView),
           Obj.literal(binding = 1, resource = blitSampler),
         ),
       ),
@@ -524,12 +596,12 @@ class Painter(
 
     pass.setPipeline(pipeline)
 
-    if shape.bindings.length > 0 && shape.shade.valueBindGroupLayout != null
+    if shape.bindings.length > 0 && shape.shade.valueBindGroupLayout.notNull
     then
       val bindGroup = createBindGroup(shape)
       pass.setBindGroup(0, bindGroup)
 
-    if shape.panelBindings.length > 0 && shape.shade.panelBindGroupLayout != null
+    if shape.panelBindings.length > 0 && shape.shade.panelBindGroupLayout.notNull
     then
       val panelGroup = createPanelBindGroup(
         shape.shade.panelBindGroupLayout,
@@ -537,7 +609,7 @@ class Painter(
       )
       pass.setBindGroup(1, panelGroup)
 
-    pass.setVertexBuffer(0, shape.form.vertexBuffer.get)
+    pass.setVertexBuffer(0, shape.form.vertexBuffer)
     pass.draw(shape.form.vertexCount)
 
   // =========================================================================
@@ -549,6 +621,7 @@ class Painter(
       layer: Layer[?, ?],
       depthTest: Boolean = false,
       multisample: Boolean = false,
+      srcView: Opt[GPUTextureView] = null,
   ): Unit =
     val cacheKey =
       s"L|${layer.shade.id}|${layer.blendState.isNull}|$preferredFormat|$depthTest|$multisample"
@@ -564,7 +637,7 @@ class Painter(
 
     pass.setPipeline(pipeline)
 
-    if layer.bindings.length > 0 && layer.shade.valueBindGroupLayout != null
+    if layer.bindings.length > 0 && layer.shade.valueBindGroupLayout.notNull
     then
       val entries = Arr[js.Dynamic]()
       var i = 0
@@ -580,11 +653,28 @@ class Painter(
       )
       pass.setBindGroup(0, bindGroup)
 
-    if layer.panelBindings.length > 0 && layer.shade.panelBindGroupLayout != null
-    then
-      val panelGroup = createPanelBindGroup(
-        layer.shade.panelBindGroupLayout,
-        layer.panelBindings,
+    if layer.shade.panelBindGroupLayout.notNull then
+      val entries = Arr[js.Dynamic]()
+      // Slot 0: inject srcView when not manually bound (ping-pong)
+      if srcView.notNull then
+        entries.push(
+          Obj.literal(binding = 0, resource = srcView),
+        )
+      // Remaining slots (or all slots if no srcView injection)
+      val startIdx = if srcView.notNull then 1 else 0
+      var k = startIdx
+      while k < layer.panelBindings.length do
+        val p = layer.panelBindings(k)
+        if p.notNull then
+          entries.push(
+            Obj.literal(binding = k, resource = p.textureView),
+          )
+        k += 1
+      val panelGroup = device.createBindGroup(
+        Obj.literal(
+          layout = layer.shade.panelBindGroupLayout,
+          entries = entries,
+        ),
       )
       pass.setBindGroup(1, panelGroup)
 
@@ -598,7 +688,7 @@ class Painter(
     val shade = layer.shade
     val target: js.Dynamic =
       if layer.blendState.isNull then Obj.literal(format = preferredFormat)
-      else Obj.literal(format = preferredFormat, blend = layer.blendState.get)
+      else Obj.literal(format = preferredFormat, blend = layer.blendState)
     val desc = Obj.literal(
       layout = shade.pipelineLayout,
       vertex = Obj.literal(module = shade.shaderModule, entryPoint = "vs_main"),
@@ -641,10 +731,10 @@ class Painter(
 
     val target: js.Dynamic =
       if shape.blendState.isNull then Obj.literal(format = preferredFormat)
-      else Obj.literal(format = preferredFormat, blend = shape.blendState.get)
+      else Obj.literal(format = preferredFormat, blend = shape.blendState)
 
     val vertexDescriptor =
-      if shade.vertexBufferLayout != null then
+      if shade.vertexBufferLayout.notNull then
         Obj.literal(
           module = shade.shaderModule,
           entryPoint = "vs_main",
@@ -711,13 +801,13 @@ class Painter(
 
   private def createPanelBindGroup(
       layout: GPUBindGroupLayout,
-      panelBindings: Arr[Panel | Null],
+      panelBindings: Arr[Opt[Panel]],
   ): GPUBindGroup =
     val entries = Arr[js.Dynamic]()
     var i = 0
     while i < panelBindings.length do
       val p = panelBindings(i)
-      if p != null then
+      if p.notNull then
         entries.push(
           Obj.literal(binding = i, resource = p.textureView),
         )
@@ -761,11 +851,11 @@ object Painter:
           .newInstance(js.Dynamic.global.ResizeObserver)(
             ((entries: js.Array[js.Dynamic]) =>
               val entry = entries(0)
-              val rw = entry.contentRect.width.asInstanceOf[Int]
-              val rh = entry.contentRect.height.asInstanceOf[Int]
+              val rw: Double = entry.contentRect.width.asInstanceOf[Double]
+              val rh: Double = entry.contentRect.height.asInstanceOf[Double]
               if rw > 0 && rh > 0 then
-                canvas.width = rw
-                canvas.height = rh
+                canvas.width = rw.toInt
+                canvas.height = rh.toInt
                 painter.fireResize(rw, rh),
             ): js.Function1[js.Array[js.Dynamic], Unit],
           )

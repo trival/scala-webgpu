@@ -241,6 +241,15 @@ object derive:
     case SharedUniform[t]   => t
     case _                  => T
 
+  /** Auto-wraps bare types with FragmentUniform; already-wrapped types pass
+    * through. Used by layerShade to infer fragment visibility for all uniforms.
+    */
+  type WrapFragment[T] = T match
+    case VertexUniform[?]   => T
+    case FragmentUniform[?] => T
+    case SharedUniform[?]   => T
+    case _                  => FragmentUniform[T]
+
   /** Compile-time check that V matches the expected type for field Name in U.
     * V can be the raw type T or a BufferBinding[T, ?] — both are accepted.
     */
@@ -376,6 +385,7 @@ object derive:
               case _: VertexUniform[Sampler]   => ()
               case _: FragmentUniform[Sampler] => ()
               case _: SharedUniform[Sampler]   => ()
+              case _: graphics.math.gpu.Expr.Sampler => ()
               case _ =>
                 error(
                   "This uniform field is not a Sampler — bind GPUSampler only to Sampler fields",

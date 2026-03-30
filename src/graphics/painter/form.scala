@@ -18,7 +18,7 @@ class Form(val painter: Painter):
     topology.foreach(v => this.topology = v)
     frontFace.foreach(v => this.frontFace = v)
     vertices.foreach: verts =>
-      if vertexBuffer.nonNull then vertexBuffer.get.destroy()
+      if vertexBuffer.notNull then vertexBuffer.get.destroy()
       val buf = painter.device.createBuffer(
         Obj.literal(
           size = verts.arrayBuffer.byteLength,

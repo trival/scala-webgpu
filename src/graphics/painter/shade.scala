@@ -1,5 +1,6 @@
 package graphics.painter
 
+import trivalibs.utils.js.*
 import webgpu.*
 
 import scala.scalajs.js
@@ -7,9 +8,9 @@ import scala.scalajs.js
 class Shade[U, P](
     val id: Int,
     val shaderModule: GPUShaderModule,
-    val vertexBufferLayout: js.Dynamic | Null,
-    val valueBindGroupLayout: GPUBindGroupLayout | Null,
-    val panelBindGroupLayout: GPUBindGroupLayout | Null,
+    val vertexBufferLayout: Opt[js.Dynamic],
+    val valueBindGroupLayout: Opt[GPUBindGroupLayout],
+    val panelBindGroupLayout: Opt[GPUBindGroupLayout],
     val pipelineLayout: GPUPipelineLayout,
     val isLayer: Boolean,
     val uniformIndices: js.Dictionary[Int],

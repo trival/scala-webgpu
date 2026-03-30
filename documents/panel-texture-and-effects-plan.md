@@ -1138,9 +1138,37 @@ all rendering properties are `var`s with defaults, configured via `set()` with
 
 ### Feature 2 (Post-Processing / Ping-Pong)
 
-Not yet started. Prerequisite: Feature 1 fully working — now met. See §3 for the
-complete design. Remaining work:
+**Step 1 — Ping-pong textures on Panel** ✅ Done
 
-1. **Ping-pong textures on Panel** — `_pongTexture`, `_pongView`, `_outputView`
-2. **paint() + show() restructuring** — ping-pong layer chain
-3. **blur draft** — Gaussian blur post-processing example
+- `_pongTexture: Opt[GPUTexture]`, `_pongView: Opt[GPUTextureView]`,
+  `_outputView: Opt[GPUTextureView]` added to `Panel`
+- `ensureSize` allocates pong pair when `needsPong` (any layer has
+  `panelBindGroupLayout != null`)
+- `panel.outputView` falls back to `panel.textureView` when no ping-pong occurred
+- `panel.setOutputView(view)` sets `_outputView` from `paint()`
+
+**Step 2 — paint() + show() restructuring** ✅ Done
+
+- `paint()` restructured into two phases: shapes pass (with depth/msaa) then
+  layer pass (no depth/msaa — fullscreen quads always render on top)
+- Layers rendered in user-specified order; consecutive non-ping-pong layers share
+  a pass, ping-pong layers get their own pass with src/dst swap
+- `renderLayerOnPass` gains `srcView: Opt[GPUTextureView]` param; when non-null,
+  injects `srcView` at slot 0 of the panel bind group (auto ping-pong source)
+- Slot 0 manually bound → render in-place to `srcView`, no swap
+- Slot 0 unbound → inject `srcView` at slot 0, render to `dstView`, swap
+- `show()` uses `panel.outputView` instead of `panel.textureView`
+
+**Step 3 — blur draft** ✅ Done
+
+- `drafts/blur/Blur.scala`: triangle shape (UV-colored) rendered to a panel with
+  blue-ish clear color, then Gaussian blur applied via logarithmic passes
+  (halve diameter while > 2.0, horizontal then vertical each step)
+- `gaussianBlur9` as `WgslFn.raw` — 9-tap optimized linear sampling (5 fetches)
+- `layerShade` with bare uniform types (no `FragmentUniform` wrappers) — auto
+  fragment visibility inference via `WrapFragment` match type
+- `painter.onResize` updates resolution binding
+- `drafts/index.html` and `serve.ts` updated with blur route
+- DSL fix: `ToExpr` match type uses `case _ => T` fallback so `Texture2D` and
+  `Sampler` opaque types reduce correctly
+- `checkSamplerFieldImpl` extended to accept bare `Sampler` type

@@ -10,7 +10,7 @@ import webgpu.GPUSampler
 import scala.compiletime.summonFrom
 import scala.scalajs.js
 
-type BindingSlots = Arr[BufferBinding[?, ?] | GPUSampler | Null]
+type BindingSlots = Arr[BufferBinding[?, ?] | GPUSampler | Null] // Null = empty slot
 
 class BindPair[N <: String & Singleton, V](val name: N, val value: V)
 
@@ -22,7 +22,7 @@ trait Bindable[U, P]:
   val painter: Painter
   inline def device: GPUDevice = painter.device
   var bindings: BindingSlots
-  var panelBindings: Arr[Panel | Null]
+  var panelBindings: Arr[Opt[Panel]]
 
   inline def bind[N1 <: String & Singleton, V1](
       e1: BindPair[N1, V1],
@@ -130,7 +130,7 @@ class Shape[U, P](
   var cullMode: CullMode = CullMode.None
   var blendState: Opt[BlendState] = null
   var bindings: BindingSlots = Arr()
-  var panelBindings: Arr[Panel | Null] = Arr()
+  var panelBindings: Arr[Opt[Panel]] = Arr()
 
   def set(
       cullMode: Maybe[CullMode] = Maybe.Not,
