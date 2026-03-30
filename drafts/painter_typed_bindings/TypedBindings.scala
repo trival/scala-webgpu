@@ -1,4 +1,4 @@
-package painter_typed_bindings
+package drafts.painter_typed_bindings
 
 import graphics.buffers.*
 import graphics.math.cpu.Mat2.given

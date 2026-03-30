@@ -1,4 +1,4 @@
-package buffer_triangle
+package drafts.buffer_triangle
 
 import graphics.buffers.*
 import graphics.math.cpu.{*, given}

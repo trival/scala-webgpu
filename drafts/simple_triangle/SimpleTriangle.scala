@@ -1,12 +1,12 @@
-package simple_triangle
+package drafts.simple_triangle
 
+import graphics.math.cpu.*
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
 import trivalibs.utils.js.*
 import webgpu.*
-import graphics.math.cpu.*
 
 import scala.scalajs.js.annotation.*
 

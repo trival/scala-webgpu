@@ -1,4 +1,4 @@
-package panel_layer
+package drafts.panel_layer
 
 import graphics.math.cpu.{*, given}
 import graphics.math.gpu.{*, given}

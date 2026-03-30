@@ -1,4 +1,4 @@
-package painter_dsl
+package drafts.painter_dsl
 
 import graphics.buffers.*
 import graphics.math.cpu.Mat2Buffer.given
@@ -32,7 +32,7 @@ def main(): Unit =
         translation: VertexUniform[Vec2],
     )
 
-    // Helper function defined with raw WGSL — applies mat2 rotation + translation
+    // Helper function defined with raw WGSL and applies mat2 rotation + translation
     val applyTransform =
       WgslFn.dsl[(pos: Vec2, mat: Mat2, offset: Vec2), Vec2](
         "apply_transform",

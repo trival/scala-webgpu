@@ -1,4 +1,4 @@
-package painter_triangle
+package drafts.painter_triangle
 
 import graphics.buffers.*
 import graphics.math.cpu.{*, given}
