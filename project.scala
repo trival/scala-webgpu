@@ -2,10 +2,10 @@
 //> using platform js
 
 //> using jsVersion 1.20.2
-//> using jsMode fast
+//> using jsMode full // fast
 //> using jsModuleKind es
 //> using jsEsVersionStr es2021
-//> using jsModuleSplitStyleStr smallestmodules // fewestmodules
+//> using jsModuleSplitStyleStr fewestmodules // smallestmodules // fewestmodules
 
 //> using exclude trivalibs/test/**
 //> using exclude test/**
