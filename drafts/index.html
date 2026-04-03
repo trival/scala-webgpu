@@ -65,42 +65,48 @@
 <body>
   <h1>Scala WebGPU Examples</h1>
   <div class="examples">
-    <a href="/simple_triangle" class="example-link">
+    <a href="/simple_triangle/" class="example-link">
       <h2>Simple Triangle</h2>
       <p>Basic triangle using hardcoded vertex positions in the shader. Demonstrates WebGPU initialization and shader
         generation.</p>
     </a>
-    <a href="/buffer_triangle" class="example-link">
+    <a href="/buffer_triangle/" class="example-link">
       <h2>Buffer Triangle</h2>
       <p>Triangle with vertex data loaded from GPU buffers. Demonstrates vertex buffers and buffer layouts.</p>
     </a>
-    <a href="/painter_triangle" class="example-link">
+    <a href="/painter_triangle/" class="example-link">
       <h2>Painter Triangle</h2>
       <p>Triangle using the Painter abstraction. Demonstrates CanvasApp, Shade, Form, Shape, and painter.draw().</p>
     </a>
-    <a href="/painter_typed_bindings" class="example-link">
+    <a href="/painter_typed_bindings/" class="example-link">
       <h2>Typed Bindings</h2>
-      <p>Two triangles with type-safe named uniform bindings. Demonstrates compile-time validated bind() with Vec3, Mat2, and Vec2 uniforms.</p>
+      <p>Two triangles with type-safe named uniform bindings. Demonstrates compile-time validated bind() with Vec3,
+        Mat2, and Vec2 uniforms.</p>
     </a>
-    <a href="/painter_dsl" class="example-link">
+    <a href="/painter_dsl/" class="example-link">
       <h2>Painter DSL</h2>
-      <p>Two triangles with shaders written in the Scala DSL. Demonstrates the Program builder with typed expression accessors for vertex and fragment stages.</p>
+      <p>Two triangles with shaders written in the Scala DSL. Demonstrates the Program builder with typed expression
+        accessors for vertex and fragment stages.</p>
     </a>
-    <a href="/panel_triangle" class="example-link">
+    <a href="/panel_triangle/" class="example-link">
       <h2>Panel Triangle</h2>
-      <p>Triangle rendered to an intermediate Panel (render-to-texture), then blitted to canvas. Demonstrates paint() and show().</p>
+      <p>Triangle rendered to an intermediate Panel (render-to-texture), then blitted to canvas. Demonstrates paint()
+        and show().</p>
     </a>
-    <a href="/panel_layer" class="example-link">
+    <a href="/panel_layer/" class="example-link">
       <h2>Panel Layer</h2>
-      <p>Fullscreen animated plasma effect using a Layer shader. Demonstrates layerShade(), aspect-corrected UV, time and resolution uniforms, and onResize().</p>
+      <p>Fullscreen animated plasma effect using a Layer shader. Demonstrates layerShade(), aspect-corrected UV, time
+        and resolution uniforms, and onResize().</p>
     </a>
-    <a href="/panel_tex" class="example-link">
+    <a href="/panel_tex/" class="example-link">
       <h2>Panel Tex</h2>
-      <p>Two intermediate panels rendered as textures onto shapes in a final canvas panel. Demonstrates panel-to-texture sampling with nearest and linear samplers.</p>
+      <p>Two intermediate panels rendered as textures onto shapes in a final canvas panel. Demonstrates panel-to-texture
+        sampling with nearest and linear samplers.</p>
     </a>
-    <a href="/blur" class="example-link">
+    <a href="/blur/" class="example-link">
       <h2>Blur</h2>
-      <p>Triangle rendered to a panel with multi-pass Gaussian blur post-processing. Demonstrates ping-pong layer chain with auto-injected source textures.</p>
+      <p>Triangle rendered to a panel with multi-pass Gaussian blur post-processing. Demonstrates ping-pong layer chain
+        with auto-injected source textures.</p>
     </a>
   </div>
 </body>

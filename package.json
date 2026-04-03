@@ -4,7 +4,9 @@
 	"scripts": {
 		"build": "scala --power package . --js -o drafts/out -f",
 		"watch": "scala --power package . --js -o drafts/out -f -w",
-		"dev": "bun --bun serve.ts",
+		"dev": "bun --bun serve_bun.ts",
+		"dev:bun": "bun --bun serve_bun.ts",
+		"dev:custom": "PORT=3001 bun --bun serve_custom.ts",
 		"test": "scala test test/"
 	},
 	"devDependencies": {
