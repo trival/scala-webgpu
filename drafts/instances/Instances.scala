@@ -1,0 +1,131 @@
+package drafts.instances
+
+import graphics.buffers.*
+import graphics.math.cpu.{*, given}
+import graphics.painter.*
+import graphics.shader.None as GPUNone
+import graphics.shader.{*, given}
+import graphics.utils.animation.animate
+import org.scalajs.dom.HTMLCanvasElement
+import org.scalajs.dom.document
+import trivalibs.utils.js.*
+
+import scala.scalajs.js
+import scala.scalajs.js.annotation.*
+
+val NUM_TRIANGLES = 100
+
+@JSExportTopLevel("main", moduleID = "instances")
+def main(): Unit =
+  val canvas =
+    document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
+
+  Painter.init(canvas): painter =>
+    type Attribs = (position: Vec3, color: Vec3)
+    type Varyings = (color: Vec3)
+    type Uniforms = (
+        viewProj: VertexUniform[Mat4],
+        model: VertexUniform[Mat4],
+        tint: FragmentUniform[Vec3],
+    )
+
+    val shade = painter.shade[Attribs, Varyings, Uniforms](
+      vertWgsl = """
+        out.position = viewProj * model * vec4<f32>(in.position, 1.0);
+        out.color = in.color;
+        """,
+      fragWgsl = """
+        out.color = vec4<f32>(in.color * tint, 1.0);
+        """,
+    )
+
+    // Unit triangle in XY plane
+    val vertices = allocateAttribs[Attribs](3)
+    vertices(0).set0(0.0, 0.4, 0.0)
+    vertices(0).set1(1.0, 0.8, 0.8)
+    vertices(1).set0(-0.3, -0.2, 0.0)
+    vertices(1).set1(0.8, 1.0, 0.8)
+    vertices(2).set0(0.3, -0.2, 0.0)
+    vertices(2).set1(0.8, 0.8, 1.0)
+
+    val form = painter.form().set(vertices = vertices)
+
+    val shape = painter.shape(shade, form)
+
+    // Seed per-triangle parameters
+    val rng = js.Dynamic.global.Math
+    val positions = Arr[(Double, Double, Double)]()
+    val colors = Arr[Vec3]()
+    val axes = Arr[(Double, Double)]() // (axisChoice, speed)
+    var i = 0
+    while i < NUM_TRIANGLES do
+      val x = rng.random().asInstanceOf[Double] * 16.0 - 8.0
+      val y = rng.random().asInstanceOf[Double] * 16.0 - 8.0
+      val z = rng.random().asInstanceOf[Double] * 16.0 - 8.0
+      positions.push((x, y, z))
+      colors.push(Vec3(
+        rng.random().asInstanceOf[Double] * 0.6 + 0.4,
+        rng.random().asInstanceOf[Double] * 0.6 + 0.4,
+        rng.random().asInstanceOf[Double] * 0.6 + 0.4,
+      ))
+      val axis = rng.random().asInstanceOf[Double] * 3.0 // 0-1: X, 1-2: Y, 2-3: Z
+      val speed = (rng.random().asInstanceOf[Double] - 0.5) * 4.0
+      axes.push((axis, speed))
+      i += 1
+
+    // Pre-create instances with initial bindings
+    i = 0
+    while i < NUM_TRIANGLES do
+      val (x, y, z) = positions(i)
+      shape.instances.add(
+        "model" := Mat4.fromTranslation(x, y, z),
+        "tint" := colors(i),
+      )
+      i += 1
+
+    // Camera: viewProj shared via panel binding
+    val viewProj = painter.binding(Mat4.identity)
+
+    val panel = painter
+      .panel()
+      .set(
+        clearColor = (0.06, 0.06, 0.12, 1.0),
+        shapes = Arr(shape),
+      )
+      .bind("viewProj" := viewProj)
+
+    val aspect = canvas.width.toDouble / canvas.height.toDouble
+    val proj = Mat4.perspective(math.Pi / 3.0, aspect, 0.1, 100.0)
+    val view = Mat4.lookAt(0.0, 5.0, 20.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+    viewProj.set(proj * view)
+
+    painter.onResize: (w, h) =>
+      val a = w / h
+      val p = Mat4.perspective(math.Pi / 3.0, a, 0.1, 100.0)
+      viewProj.set(p * view)
+
+    val modelIdx = shade.uniformIndices("model")
+
+    var time = 0.0
+
+    animate: tpf =>
+      time += tpf
+      val t = time / 1000.0
+
+      // Update each instance's model matrix with rotation
+      i = 0
+      while i < NUM_TRIANGLES do
+        val (x, y, z) = positions(i)
+        val (axisF, speed) = axes(i)
+        val angle = t * speed
+        val rot =
+          if axisF < 1.0 then Mat4.fromRotationX(angle)
+          else if axisF < 2.0 then Mat4.fromRotationY(angle)
+          else Mat4.fromRotationZ(angle)
+        val model = Mat4.fromTranslation(x, y, z) * rot
+        val inst = shape.instances.items(i)
+        inst.bindings(modelIdx).asInstanceOf[BufferBinding[Mat4, ?]].set(model)
+        i += 1
+
+      painter.paint(panel)
+      painter.show(panel)

@@ -9,6 +9,7 @@ class Layer[U, P](
   var blendState: Opt[BlendState] = null
   var bindings: BindingSlots = Arr()
   var panelBindings: Arr[Opt[Panel]] = Arr()
+  val instances: InstanceList[U, P] = InstanceList[U, P](shade, painter)
 
   def set(
       blendState: Maybe[Opt[BlendState]] = Maybe.Not,

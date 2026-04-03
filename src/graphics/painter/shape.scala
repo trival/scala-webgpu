@@ -81,6 +81,130 @@ trait Bindable[U, P]:
     processEntry(e4)
     this
 
+  inline def bind[
+      N1 <: String & Singleton,
+      V1,
+      N2 <: String & Singleton,
+      V2,
+      N3 <: String & Singleton,
+      V3,
+      N4 <: String & Singleton,
+      V4,
+      N5 <: String & Singleton,
+      V5,
+  ](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+      e3: BindPair[N3, V3],
+      e4: BindPair[N4, V4],
+      e5: BindPair[N5, V5],
+  ): this.type =
+    processEntry(e1)
+    processEntry(e2)
+    processEntry(e3)
+    processEntry(e4)
+    processEntry(e5)
+    this
+
+  inline def bind[
+      N1 <: String & Singleton,
+      V1,
+      N2 <: String & Singleton,
+      V2,
+      N3 <: String & Singleton,
+      V3,
+      N4 <: String & Singleton,
+      V4,
+      N5 <: String & Singleton,
+      V5,
+      N6 <: String & Singleton,
+      V6,
+  ](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+      e3: BindPair[N3, V3],
+      e4: BindPair[N4, V4],
+      e5: BindPair[N5, V5],
+      e6: BindPair[N6, V6],
+  ): this.type =
+    processEntry(e1)
+    processEntry(e2)
+    processEntry(e3)
+    processEntry(e4)
+    processEntry(e5)
+    processEntry(e6)
+    this
+
+  inline def bind[
+      N1 <: String & Singleton,
+      V1,
+      N2 <: String & Singleton,
+      V2,
+      N3 <: String & Singleton,
+      V3,
+      N4 <: String & Singleton,
+      V4,
+      N5 <: String & Singleton,
+      V5,
+      N6 <: String & Singleton,
+      V6,
+      N7 <: String & Singleton,
+      V7,
+  ](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+      e3: BindPair[N3, V3],
+      e4: BindPair[N4, V4],
+      e5: BindPair[N5, V5],
+      e6: BindPair[N6, V6],
+      e7: BindPair[N7, V7],
+  ): this.type =
+    processEntry(e1)
+    processEntry(e2)
+    processEntry(e3)
+    processEntry(e4)
+    processEntry(e5)
+    processEntry(e6)
+    processEntry(e7)
+    this
+
+  inline def bind[
+      N1 <: String & Singleton,
+      V1,
+      N2 <: String & Singleton,
+      V2,
+      N3 <: String & Singleton,
+      V3,
+      N4 <: String & Singleton,
+      V4,
+      N5 <: String & Singleton,
+      V5,
+      N6 <: String & Singleton,
+      V6,
+      N7 <: String & Singleton,
+      V7,
+      N8 <: String & Singleton,
+      V8,
+  ](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+      e3: BindPair[N3, V3],
+      e4: BindPair[N4, V4],
+      e5: BindPair[N5, V5],
+      e6: BindPair[N6, V6],
+      e7: BindPair[N7, V7],
+      e8: BindPair[N8, V8],
+  ): this.type =
+    processEntry(e1)
+    processEntry(e2)
+    processEntry(e3)
+    processEntry(e4)
+    processEntry(e5)
+    processEntry(e6)
+    processEntry(e7)
+    processEntry(e8)
+    this
+
   protected inline def processEntry[N <: String & Singleton, V](
       pair: BindPair[N, V],
   ): Unit =
@@ -131,6 +255,7 @@ class Shape[U, P](
   var blendState: Opt[BlendState] = null
   var bindings: BindingSlots = Arr()
   var panelBindings: Arr[Opt[Panel]] = Arr()
+  val instances: InstanceList[U, P] = InstanceList[U, P](shade, painter)
 
   def set(
       cullMode: Maybe[CullMode] = Maybe.Not,
