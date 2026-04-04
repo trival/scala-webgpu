@@ -10,7 +10,8 @@ import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.document
 import trivalibs.utils.js.*
 
-import scala.scalajs.js
+import trivalibs.utils.random.*
+
 import scala.scalajs.js.annotation.*
 
 val NUM_TRIANGLES = 100
@@ -53,23 +54,24 @@ def main(): Unit =
     val shape = painter.shape(shade, form)
 
     // Seed per-triangle parameters
-    val rng = js.Dynamic.global.Math
     val positions = Arr[(Double, Double, Double)]()
     val colors = Arr[Vec3]()
     val axes = Arr[(Double, Double)]() // (axisChoice, speed)
     var i = 0
     while i < NUM_TRIANGLES do
-      val x = rng.random().asInstanceOf[Double] * 16.0 - 8.0
-      val y = rng.random().asInstanceOf[Double] * 16.0 - 8.0
-      val z = rng.random().asInstanceOf[Double] * 16.0 - 8.0
+      val x = randInRange(-8.0, 8.0)
+      val y = randInRange(-8.0, 8.0)
+      val z = randInRange(-8.0, 8.0)
       positions.push((x, y, z))
-      colors.push(Vec3(
-        rng.random().asInstanceOf[Double] * 0.6 + 0.4,
-        rng.random().asInstanceOf[Double] * 0.6 + 0.4,
-        rng.random().asInstanceOf[Double] * 0.6 + 0.4,
-      ))
-      val axis = rng.random().asInstanceOf[Double] * 3.0 // 0-1: X, 1-2: Y, 2-3: Z
-      val speed = (rng.random().asInstanceOf[Double] - 0.5) * 4.0
+      colors.push(
+        Vec3(
+          randInRange(0.4, 1.0),
+          randInRange(0.4, 1.0),
+          randInRange(0.4, 1.0),
+        ),
+      )
+      val axis = rand() * 3.0 // 0-1: X, 1-2: Y, 2-3: Z
+      val speed = randInRange(-2.0, 2.0)
       axes.push((axis, speed))
       i += 1
 
@@ -104,8 +106,6 @@ def main(): Unit =
       val p = Mat4.perspective(math.Pi / 3.0, a, 0.1, 100.0)
       viewProj.set(p * view)
 
-    val modelIdx = shade.uniformIndices("model")
-
     var time = 0.0
 
     animate: tpf =>
@@ -123,8 +123,7 @@ def main(): Unit =
           else if axisF < 2.0 then Mat4.fromRotationY(angle)
           else Mat4.fromRotationZ(angle)
         val model = Mat4.fromTranslation(x, y, z) * rot
-        val inst = shape.instances.items(i)
-        inst.bindings(modelIdx).asInstanceOf[BufferBinding[Mat4, ?]].set(model)
+        shape.instances(i).bind("model" := model)
         i += 1
 
       painter.paint(panel)

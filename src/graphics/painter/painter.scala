@@ -623,7 +623,7 @@ class Painter(
       i += 1
 
   private def applyInstanceBindings(
-      inst: Instance,
+      inst: Instance[?, ?],
       workBindings: BindingSlots,
       workPanelBindings: Arr[Opt[Panel]],
   ): Unit =

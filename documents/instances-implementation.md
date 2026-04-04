@@ -1,9 +1,9 @@
 # Instance Rendering — Implementation Record
 
-## Status: ✓ Complete (v1)
+## Status: ✓ Complete (v2 — unified bindings)
 
-All stages implemented and verified. The instances draft renders 100 rotating
-triangles with per-instance bindings and a panel-level shared camera matrix.
+All stages implemented and verified. Instance[U, P] extends Bindable[U, P]
+directly, unifying the binding API across shapes, layers, and instances.
 
 ---
 
@@ -74,25 +74,30 @@ panel.bind("viewProj" := viewProj)
 
 ### Instance and InstanceList — [instance.scala](src/graphics/painter/instance.scala)
 
-**`Instance`** — plain data holder:
+**`Instance[U, P]`** extends `Bindable[U, P]` — inherits all 8 `bind` overloads
+and `processEntry` directly. No separate `processInstanceEntry` needed.
 
 ```scala
-class Instance:
+class Instance[U, P](
+    val shade: Shade[U, P],
+    val painter: Painter,
+) extends Bindable[U, P]:
   var bindings: BindingSlots = Arr()
   var panelBindings: Arr[Opt[Panel]] = Arr()
 ```
 
-**`InstanceList[U, P]`** — typed manager:
+U and P are erased at runtime (zero cost). The shade/painter refs (~16 bytes per
+instance) are needed at runtime for `processEntry`'s index lookups and device
+access — negligible overhead even for thousands of instances.
+
+**`InstanceList[U, P]`** — thin typed array wrapper:
 
 - Constructor: `InstanceList[U, P](shade: Shade[U, P], painter: Painter)`
-- `val items: Arr[Instance]`
+- `val items: Arr[Instance[U, P]]`
+- `def apply(i: Int): Instance[U, P]` — direct typed access
 - `def length: Int`, `def clear(): Unit`
 - 8 overloaded `inline add(e1, ..., eN)` methods (1–8 `BindPair` params),
-  returns `Int` (index of new instance)
-- `processInstanceEntry` mirrors `Bindable.processEntry` — same compile-time
-  name/type checks against U and P, writes to Instance's arrays instead of
-  `this`. Handles `GPUSampler`, `BufferBinding`, `Panel`, and raw values
-  (auto-creates `BufferBinding` via `summonFrom`)
+  returns `Int` (index of new instance). Each delegates to `inst.bind(...)`.
 
 ### Shape and Layer — [shape.scala](src/graphics/painter/shape.scala), [layer.scala](src/graphics/painter/layer.scala)
 
@@ -105,17 +110,14 @@ val instances: InstanceList[U, P] = InstanceList[U, P](shade, painter)
 ### Usage
 
 ```scala
-// Type-safe: compile-time checks that "model" and "tint" exist in Uniforms
-// with correct types
+// Creating — type-safe, compile-time checked:
 shape.instances.add(
   "model" := Mat4.fromTranslation(x, y, z),
   "tint"  := Vec3(1.0, 0.5, 0.2),
 )
 
-// Accessing instance bindings for animation updates:
-val modelIdx = shade.uniformIndices("model")
-val inst = shape.instances.items(i)
-inst.bindings(modelIdx).asInstanceOf[BufferBinding[Mat4, ?]].set(newModel)
+// Updating — type-safe, name-based:
+shape.instances(i).bind("model" := newModel)
 ```
 
 ### Rendering — [painter.scala](src/graphics/painter/painter.scala)
