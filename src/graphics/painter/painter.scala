@@ -83,6 +83,19 @@ class Painter(
       Obj.literal(magFilter = "linear", minFilter = "linear"),
     )
 
+  def sampler(
+      magFilter: FilterMode = FilterMode.Nearest,
+      minFilter: FilterMode = FilterMode.Nearest,
+      mipmapFilter: FilterMode = FilterMode.Nearest,
+  ): GPUSampler =
+    device.createSampler(
+      Obj.literal(
+        magFilter = magFilter.toJs,
+        minFilter = minFilter.toJs,
+        mipmapFilter = mipmapFilter.toJs,
+      ),
+    )
+
   // =========================================================================
   // Shade factory
   // =========================================================================
@@ -440,8 +453,37 @@ class Painter(
       val slot0Manual = hasPanelLayout &&
         layer.panelBindings.length > 0 && layer.panelBindings(0).notNull
       val needsPingPong = hasPanelLayout && !slot0Manual
+      val hasMipTarget = layer.mipTarget >= 0
 
-      if needsPingPong then
+      if hasMipTarget then
+        // Mip-targeted layer: render to specific mip level, no ping-pong
+        if curPass.notNull then
+          curPass.end()
+          queue.submit(Arr(curEncoder.finish()))
+          curPass = null
+
+        val mipDstView = panel.textureViewAt(0, layer.mipTarget)
+        val mipSrcView =
+          if layer.mipSource >= 0 then panel.textureViewAt(0, layer.mipSource)
+          else srcView
+
+        val enc = device.createCommandEncoder()
+        val mipPass = enc.beginRenderPass(
+          Obj.literal(
+            colorAttachments = Arr(
+              Obj.literal(
+                view = mipDstView,
+                loadOp = "load",
+                storeOp = "store",
+              ),
+            ),
+          ),
+        )
+        renderLayerOnPass(mipPass, layer, srcView = mipSrcView, panel = panel)
+        mipPass.end()
+        queue.submit(Arr(enc.finish()))
+
+      else if needsPingPong then
         hasPongLayers = true
         // End current pass if open, submit
         if curPass.notNull then
@@ -493,6 +535,9 @@ class Painter(
     // Record the final output view for show()
     if hasPongLayers then panel.setOutputView(srcView)
     else panel.setOutputView(null)
+
+    // Generate mipmaps if configured
+    if panel.mipLevelCount > 1 then generateMipmaps(panel)
 
   def show(panel: Panel): Unit =
     val encoder = device.createCommandEncoder()
@@ -573,15 +618,92 @@ class Painter(
     )
 
   // =========================================================================
+  // Mipmap generation
+  // =========================================================================
+
+  private lazy val mipBlitSampler: GPUSampler =
+    device.createSampler(
+      Obj.literal(magFilter = "linear", minFilter = "linear"),
+    )
+
+  private val mipBlitPipelines: js.Dictionary[GPURenderPipeline] =
+    js.Dictionary()
+
+  private def getMipBlitPipeline(format: String): GPURenderPipeline =
+    val dict = mipBlitPipelines.asInstanceOf[js.Dynamic]
+    if js.DynamicImplicits.truthValue(dict.hasOwnProperty(format)) then
+      mipBlitPipelines(format)
+    else
+      val module = device.createShaderModule(Obj.literal(code = BLIT_WGSL))
+      val pl = device.createPipelineLayout(
+        Obj.literal(bindGroupLayouts = Arr(blitBindGroupLayout)),
+      )
+      val p = device.createRenderPipeline(
+        Obj.literal(
+          layout = pl,
+          vertex = Obj.literal(module = module, entryPoint = "vs_main"),
+          fragment = Obj.literal(
+            module = module,
+            entryPoint = "fs_main",
+            targets = Arr(Obj.literal(format = format)),
+          ),
+          primitive = Obj.literal(topology = "triangle-list"),
+        ),
+      )
+      mipBlitPipelines(format) = p
+      p
+
+  private def generateMipmaps(panel: Panel): Unit =
+    val mipCount = panel.mipLevelCount
+    if mipCount <= 1 then return
+    val pipeline = getMipBlitPipeline(preferredFormat)
+
+    var i = 1
+    while i < mipCount do
+      val srcView = panel.textureViewAt(0, i - 1)
+      val dstView = panel.textureViewAt(0, i)
+
+      val encoder = device.createCommandEncoder()
+      val pass = encoder.beginRenderPass(
+        Obj.literal(
+          colorAttachments = Arr(
+            Obj.literal(
+              view = dstView,
+              loadOp = "clear",
+              storeOp = "store",
+              clearValue = Obj.literal(r = 0, g = 0, b = 0, a = 0),
+            ),
+          ),
+        ),
+      )
+
+      val bindGroup = device.createBindGroup(
+        Obj.literal(
+          layout = blitBindGroupLayout,
+          entries = Arr(
+            Obj.literal(binding = 0, resource = srcView),
+            Obj.literal(binding = 1, resource = mipBlitSampler),
+          ),
+        ),
+      )
+
+      pass.setPipeline(pipeline)
+      pass.setBindGroup(0, bindGroup)
+      pass.draw(3)
+      pass.end()
+      queue.submit(Arr(encoder.finish()))
+      i += 1
+
+  // =========================================================================
   // Working buffers for binding merge (reusable, single-threaded JS)
   // =========================================================================
 
   private val _workBindings: BindingSlots = Arr()
-  private val _workPanelBindings: Arr[Opt[Panel]] = Arr()
+  private val _workPanelBindings: Arr[Opt[PanelBinding]] = Arr()
 
   private def copyToWork(
       bindings: BindingSlots,
-      panelBindings: Arr[Opt[Panel]],
+      panelBindings: Arr[Opt[PanelBinding]],
   ): Unit =
     _workBindings.length = bindings.length
     var i = 0
@@ -598,7 +720,7 @@ class Painter(
       panel: Panel,
       shade: Shade[?, ?],
       workBindings: BindingSlots,
-      workPanelBindings: Arr[Opt[Panel]],
+      workPanelBindings: Arr[Opt[PanelBinding]],
   ): Unit =
     val dict = panel.runtimeBindings
     val keys =
@@ -619,13 +741,17 @@ class Painter(
         val idx = shade.panelIndices(name)
         if idx >= workPanelBindings.length || workPanelBindings(idx).isNull then
           while workPanelBindings.length <= idx do workPanelBindings.push(null)
-          workPanelBindings(idx) = value.asInstanceOf[Panel]
+          val pb =
+            if value.isInstanceOf[PanelBinding] then
+              value.asInstanceOf[PanelBinding]
+            else PanelBinding(value.asInstanceOf[Panel])
+          workPanelBindings(idx) = pb
       i += 1
 
   private def applyInstanceBindings(
       inst: Instance[?, ?],
       workBindings: BindingSlots,
-      workPanelBindings: Arr[Opt[Panel]],
+      workPanelBindings: Arr[Opt[PanelBinding]],
   ): Unit =
     var i = 0
     while i < inst.bindings.length do
@@ -670,7 +796,7 @@ class Painter(
   private def setPanelBindGroup(
       pass: GPURenderPassEncoder,
       shade: Shade[?, ?],
-      panelBindings: Arr[Opt[Panel]],
+      panelBindings: Arr[Opt[PanelBinding]],
       srcView: Opt[GPUTextureView] = null,
   ): Unit =
     if shade.panelBindGroupLayout.notNull then
@@ -680,9 +806,10 @@ class Painter(
       val startIdx = if srcView.notNull then 1 else 0
       var k = startIdx
       while k < panelBindings.length do
-        val p = panelBindings(k)
-        if p.notNull then
-          entries.push(Obj.literal(binding = k, resource = p.textureView))
+        val pb = panelBindings(k)
+        if pb.notNull then
+          val view = pb.panel.textureViewAt(pb.index, pb.mipLevel)
+          entries.push(Obj.literal(binding = k, resource = view))
         k += 1
       if entries.length > 0 then
         val pg = device.createBindGroup(

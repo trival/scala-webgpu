@@ -12,6 +12,7 @@ const draftRoutes = new Set([
 	"blur",
 	"buffer_triangle",
 	"instances",
+	"mipmaps",
 	"painter_dsl",
 	"painter_triangle",
 	"painter_typed_bindings",

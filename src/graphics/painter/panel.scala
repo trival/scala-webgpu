@@ -9,7 +9,14 @@ import scala.compiletime.summonFrom
 import scala.scalajs.js
 
 type ClearColor = (Double, Double, Double, Double)
-type PanelBindingValue = BufferBinding[?, ?] | GPUSampler | Panel
+
+class PanelBinding(
+    val panel: Panel,
+    val index: Int = 0,
+    val mipLevel: Int = -1,
+) extends js.Object
+
+type PanelBindingValue = BufferBinding[?, ?] | GPUSampler | Panel | PanelBinding
 
 class Panel(val painter: Painter):
   var specWidth: Int = 0
@@ -17,6 +24,7 @@ class Panel(val painter: Painter):
   var clearColor: Opt[ClearColor] = null
   var depthTest: Boolean = false
   var multisample: Boolean = false
+  var mipLevels: Int = 1
   var shapes: Arr[Shape[?, ?]] = Arr()
   var layers: Arr[Layer[?, ?]] = Arr()
   var runtimeBindings: js.Dictionary[PanelBindingValue] = js.Dictionary()
@@ -30,8 +38,20 @@ class Panel(val painter: Painter):
   private var _msaaTexture: Opt[GPUTexture] = null
   private var _msaaView: Opt[GPUTextureView] = null
   private var _outputView: Opt[GPUTextureView] = null
+  private var _samplingView: Opt[GPUTextureView] = null
   private var _width: Int = 0
   private var _height: Int = 0
+  private val _mipViews: js.Dictionary[GPUTextureView] = js.Dictionary()
+
+  def panelWidth: Int = _width
+  def panelHeight: Int = _height
+
+  def mipLevelCount: Int =
+    if mipLevels == 0 then
+      val maxDim = Math.max(_width, _height)
+      if maxDim <= 0 then 1
+      else (Math.log(maxDim.toDouble) / Math.log(2.0)).toInt + 1
+    else mipLevels
 
   def textureView: GPUTextureView = _textureView.get
   def pongView: GPUTextureView = _pongView.get
@@ -39,6 +59,24 @@ class Panel(val painter: Painter):
   def msaaView: GPUTextureView = _msaaView.get
   def outputView: GPUTextureView =
     if _outputView.notNull then _outputView.get else _textureView.get
+
+  def textureViewAt(index: Int = 0, mipLevel: Int = -1): GPUTextureView =
+    if mipLevel < 0 then
+      if _samplingView.notNull then _samplingView.get else _textureView.get
+    else
+      val key = s"$index|$mipLevel"
+      val dict = _mipViews.asInstanceOf[js.Dynamic]
+      if js.DynamicImplicits.truthValue(dict.hasOwnProperty(key)) then
+        _mipViews(key)
+      else
+        val view = _texture.get.createView(
+          Obj.literal(baseMipLevel = mipLevel, mipLevelCount = 1),
+        )
+        _mipViews(key) = view
+        view
+
+  def binding(index: Int = 0, mipLevel: Int = -1): PanelBinding =
+    new PanelBinding(this, index, mipLevel)
 
   private[painter] def setOutputView(view: GPUTextureView): Unit =
     _outputView = view
@@ -49,6 +87,7 @@ class Panel(val painter: Painter):
       clearColor: Maybe[Opt[ClearColor]] = Maybe.Not,
       depthTest: Maybe[Boolean] = Maybe.Not,
       multisample: Maybe[Boolean] = Maybe.Not,
+      mipLevels: Maybe[Int] = Maybe.Not,
       shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
       layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
   ): this.type =
@@ -57,6 +96,7 @@ class Panel(val painter: Painter):
     clearColor.foreach(v => this.clearColor = v)
     depthTest.foreach(v => this.depthTest = v)
     multisample.foreach(v => this.multisample = v)
+    mipLevels.foreach(v => this.mipLevels = v)
     shapes.foreach(v => this.shapes = v)
     layers.foreach(v => this.layers = v)
     this
@@ -69,6 +109,8 @@ class Panel(val painter: Painter):
         runtimeBindings(pair.name) = sampler
       case bb: BufferBinding[?, ?] =>
         runtimeBindings(pair.name) = bb
+      case pb: PanelBinding =>
+        runtimeBindings(pair.name) = pb
       case p: Panel =>
         runtimeBindings(pair.name) = p
       case rawValue =>
@@ -280,6 +322,16 @@ class Panel(val painter: Painter):
       if _msaaTexture.notNull then _msaaTexture.get.destroy()
       _width = targetW
       _height = targetH
+      // Clear mip view cache on resize
+      val mipKeys = js.Object
+        .keys(_mipViews.asInstanceOf[js.Object])
+        .asInstanceOf[Arr[String]]
+      var mk = 0
+      while mk < mipKeys.length do
+        js.special.delete(_mipViews, mipKeys(mk))
+        mk += 1
+
+      val mipCount = mipLevelCount
       val colorUsage =
         GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
       val tex = painter.device.createTexture(
@@ -287,20 +339,29 @@ class Panel(val painter: Painter):
           size = Obj.literal(width = targetW, height = targetH),
           format = painter.preferredFormat,
           usage = colorUsage,
+          mipLevelCount = mipCount,
         ),
       )
       _texture = tex
-      _textureView = tex.createView()
+      _textureView = tex.createView(
+        Obj.literal(baseMipLevel = 0, mipLevelCount = 1),
+      )
+      _samplingView =
+        if mipCount > 1 then tex.createView()
+        else null
       if needsPong then
         val pongTex = painter.device.createTexture(
           Obj.literal(
             size = Obj.literal(width = targetW, height = targetH),
             format = painter.preferredFormat,
             usage = colorUsage,
+            mipLevelCount = mipCount,
           ),
         )
         _pongTexture = pongTex
-        _pongView = pongTex.createView()
+        _pongView = pongTex.createView(
+          Obj.literal(baseMipLevel = 0, mipLevelCount = 1),
+        )
       if multisample then
         val msaaTex = painter.device.createTexture(
           Obj.literal(

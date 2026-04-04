@@ -99,8 +99,7 @@ shape.bind("texture" := panel.binding(index = 2, mipLevel = 4))  // detailed for
 
 Add to `Panel` in panel.scala:
 
-- Field: `var mipLevels: Int = 1` (1 = no mips; 0 = full chain; N = exact
-  count)
+- Field: `var mipLevels: Int = 1` (1 = no mips; 0 = full chain; N = exact count)
 - Add `mipLevels` param to `Panel.set(...)`
 - Helper: `def mipLevelCount: Int` — computes actual count from dimensions when
   `mipLevels == 0`
@@ -115,9 +114,8 @@ def mipLevelCount: Int =
 
 ### 1.2 Texture allocation with mips
 
-In `Panel.ensureSize` (panel.scala:273), add `mipLevelCount` to
-`createTexture` calls for main + pong textures. Depth and MSAA textures stay at
-mipLevelCount=1.
+In `Panel.ensureSize` (panel.scala:273), add `mipLevelCount` to `createTexture`
+calls for main + pong textures. Depth and MSAA textures stay at mipLevelCount=1.
 
 ### 1.3 Mip-level texture views
 
@@ -193,12 +191,10 @@ Add `mipSource` and `mipTarget` params to `Layer.set(...)`.
 
 In `paint()` layer loop (painter.scala:436):
 
-- If `layer.mipTarget >= 0`: render to
-  `panel.textureViewAt(0, layer.mipTarget)` instead of `dstView`; skip
-  ping-pong swap
-- If `layer.mipSource >= 0`: use
-  `panel.textureViewAt(0, layer.mipSource)` as srcView instead of current ping
-  texture
+- If `layer.mipTarget >= 0`: render to `panel.textureViewAt(0, layer.mipTarget)`
+  instead of `dstView`; skip ping-pong swap
+- If `layer.mipSource >= 0`: use `panel.textureViewAt(0, layer.mipSource)` as
+  srcView instead of current ping texture
 
 ### 1.7 Draft example
 
@@ -262,8 +258,8 @@ In `createPipeline` (painter.scala:850) and `createLayerPipeline`
 ### 2.6 No ping-pong for MRT (MVP)
 
 For the initial implementation, **MRT panels do not support ping-pong**. This
-matches the Rust library's behavior. Layers on MRT panels render directly to
-the main textures without swapping.
+matches the Rust library's behavior. Layers on MRT panels render directly to the
+main textures without swapping.
 
 This simplifies the MVP significantly: no pong textures are allocated for MRT
 panels, and the layer loop skips the swap logic when `targetCount > 1`.
@@ -342,8 +338,8 @@ MRT ping-pong is meaningful when:
 - A layer (fullscreen effect) has **no explicit panel bindings at slot 0** (the
   auto-inject trigger for ping-pong today)
 - The panel has N targets
-- The layer's shader expects to read from the "previous pass" — all N targets
-  as inputs
+- The layer's shader expects to read from the "previous pass" — all N targets as
+  inputs
 
 In this case, the auto-injected srcView would need to become N auto-injected
 texture views (one per MRT target), and the layer would render into the
@@ -376,25 +372,24 @@ corresponding N pong textures.
 ### Recommendation
 
 Defer MRT ping-pong to a future milestone after the basic MRT and mip features
-are stable and in use. The MVP (no ping-pong for MRT) covers the most common
-use case (deferred lighting with explicit panel bindings) without added
-complexity.
+are stable and in use. The MVP (no ping-pong for MRT) covers the most common use
+case (deferred lighting with explicit panel bindings) without added complexity.
 
 ---
 
 ## Files to Modify
 
-| File                                     | Phase | Changes                                                           |
-| ---------------------------------------- | ----- | ----------------------------------------------------------------- |
-| `src/graphics/painter/panel.scala`       | 0,1,2 | PanelBinding type, mip config, multi-texture storage, formats     |
-| `src/graphics/painter/painter.scala`     | 0,1,2 | Bind group resolution, sampler factory, mipmap gen, MRT, pipeline |
-| `src/graphics/painter/shape.scala`       | 0     | panelBindings type change, processEntry update                    |
-| `src/graphics/painter/layer.scala`       | 0,1   | panelBindings type change, mipSource/mipTarget fields             |
-| `src/graphics/painter/instance.scala`    | 0     | panelBindings type change                                         |
-| `src/graphics/painter/enums.scala`       | 1     | FilterMode opaque type                                            |
-| `src/graphics/shader/dsl/context.scala`  | 2     | FragmentCtx type param FO                                         |
-| `src/graphics/shader/dsl/program.scala`  | 2     | Program/LayerProgram FO type param                                |
-| `src/webgpu/facades.scala`               | 0     | Verify createView(descriptor) exists (it does)                    |
+| File                                    | Phase | Changes                                                           |
+| --------------------------------------- | ----- | ----------------------------------------------------------------- |
+| `src/graphics/painter/panel.scala`      | 0,1,2 | PanelBinding type, mip config, multi-texture storage, formats     |
+| `src/graphics/painter/painter.scala`    | 0,1,2 | Bind group resolution, sampler factory, mipmap gen, MRT, pipeline |
+| `src/graphics/painter/shape.scala`      | 0     | panelBindings type change, processEntry update                    |
+| `src/graphics/painter/layer.scala`      | 0,1   | panelBindings type change, mipSource/mipTarget fields             |
+| `src/graphics/painter/instance.scala`   | 0     | panelBindings type change                                         |
+| `src/graphics/painter/enums.scala`      | 1     | FilterMode opaque type                                            |
+| `src/graphics/shader/dsl/context.scala` | 2     | FragmentCtx type param FO                                         |
+| `src/graphics/shader/dsl/program.scala` | 2     | Program/LayerProgram FO type param                                |
+| `src/webgpu/facades.scala`              | 0     | Verify createView(descriptor) exists (it does)                    |
 
 ---
 

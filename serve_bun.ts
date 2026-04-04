@@ -3,6 +3,7 @@ import blur from "./drafts/blur/index.html";
 import bufferTriangle from "./drafts/buffer_triangle/index.html";
 import index from "./drafts/index.html";
 import instances from "./drafts/instances/index.html";
+import mipmaps from "./drafts/mipmaps/index.html";
 import painterDsl from "./drafts/painter_dsl/index.html";
 import painterTriangle from "./drafts/painter_triangle/index.html";
 import painterTypedBindings from "./drafts/painter_typed_bindings/index.html";
@@ -19,6 +20,7 @@ const server = serve({
 		"/blur/": blur,
 		"/buffer_triangle/": bufferTriangle,
 		"/instances/": instances,
+		"/mipmaps/": mipmaps,
 		"/panel_tex/": panelTex,
 		"/painter_triangle/": painterTriangle,
 		"/painter_dsl/": painterDsl,
