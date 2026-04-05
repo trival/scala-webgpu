@@ -393,25 +393,83 @@ case (deferred lighting with explicit panel bindings) without added complexity.
 
 ---
 
+## Implementation Status
+
+### Phase 0: Unified PanelBinding API — COMPLETE
+
+- `PanelBinding` class added to `panel.scala`
+- `PanelBindingValue` union extended with `PanelBinding`
+- All `panelBindings` arrays changed from `Arr[Opt[Panel]]` to
+  `Arr[Opt[PanelBinding]]` in shape, layer, instance, painter
+- `processEntry` (shape) and `processPanelEntry` (panel) accept both `Panel`
+  (auto-wrapped) and `PanelBinding`
+- `setPanelBindGroup` resolves `PanelBinding` → `panel.textureViewAt(pb.index, pb.mipLevel)`
+- `applyPanelRuntimeBindings` handles both `Panel` and `PanelBinding` in union
+- All existing drafts compile and run; all 62 tests pass
+
+### Phase 1: Mip Levels — COMPLETE
+
+- `mipLevels` field + `mipLevelCount` helper on Panel
+- `ensureSize` allocates textures with `mipLevelCount`; separate render views
+  (single mip via `baseMipLevel=0, mipLevelCount=1`) and sampling views (full
+  mip chain) to avoid WebGPU attachment errors
+- `_mipViews` cache for per-mip texture views, cleared on resize
+- `textureViewAt(index, mipLevel)` returns sampling view for mipLevel < 0,
+  cached single-mip view otherwise
+- `FilterMode` opaque type in `enums.scala`
+- `painter.sampler(magFilter, minFilter, mipmapFilter)` factory
+- `generateMipmaps(panel)` blit chain with cached per-format pipelines and
+  linear sampler, called at end of `paint()` when `mipLevelCount > 1`
+- Layer `mipSource`/`mipTarget` fields; mip-targeted layers skip ping-pong
+- `drafts/mipmaps/` example: 4 colored triangles → 512x512 panel with full mip
+  chain, displayed at mip levels 0/2/4/6 via `textureSampleLevel`
+
+### Phase 2: Multiple Render Targets — COMPLETE
+
+- `formats` field + `effectiveFormats`/`targetCount` helpers on Panel
+- Multi-texture storage: `_textures`, `_textureViews`, `_samplingViews`,
+  `_pongTextures`, `_pongViews`, `_msaaTextures`, `_msaaViews` all as `Arr`
+- `renderViewAt(index)` accessor for single-mip render views (used by
+  `paint()` color attachments to avoid accidentally binding all-mip sampling
+  views as render attachments)
+- `ensureSize` loops over `effectiveFormats`, one texture set per format
+- `paint()` builds `colorAttachments` array with one entry per `targetCount`
+- `renderShapeOnPass` and `renderLayerOnPass` accept `formats: Arr[String]`
+- `pipelineKeyStr` uses `formats.join(",")` for cache key uniqueness
+- `createPipeline` and `createLayerPipeline` build `targets` array from formats
+- Shader DSL: `FragmentCtx[V, U, L, P, FO]` with typed `out` accessor via
+  `NamedTuple.Map[FO, ToAssign]`
+- `Program[A, V, U, P, FO]` and `LayerProgram[U, P, FO]` thread FO through
+- New `shade[A, V, U, P, FO]` and `layerShade[U, P, FO]` overloads; existing
+  overloads default to `FragOut` for backward compatibility
+- `shadeFromWgslFO` and `layerShadeFromWgslFO` use `Shader.full` with custom FO
+- `drafts/deferred/` example: G-buffer with 2 targets (`rgba8unorm` albedo +
+  `rgba16float` normals), MRT shade with `GBufferOut = (color: Vec4, normal: Vec4)`,
+  lighting layer composites with animated directional light using typed locals
+- No ping-pong for MRT panels (MVP, matches Rust library behavior)
+- All 62 tests pass; all existing + new drafts compile
+
+---
+
 ## Verification
 
 ### After Phase 0
 
-- All existing drafts compile and run identically (`bun run build`)
-- `scala test .` passes
+- [x] All existing drafts compile and run identically (`bun run build`)
+- [x] `scala test test/` passes (62 tests)
 
 ### After Phase 1
 
-- New `drafts/mipmaps/` example renders and shows mip level differences
-- Panel with `mipLevels = 0` generates full chain
-- `panel.binding(mipLevel = 3)` correctly binds that mip level
-- `painter.sampler(mipmapFilter = FilterMode.Linear)` creates correct sampler
-- Layer with `mipTarget` renders to specific mip without ping-pong
+- [x] New `drafts/mipmaps/` example renders and shows mip level differences
+- [x] Panel with `mipLevels = 0` generates full chain
+- [x] `panel.binding(mipLevel = 3)` correctly binds that mip level
+- [x] `painter.sampler(mipmapFilter = FilterMode.Linear)` creates correct sampler
+- [x] Layer with `mipTarget` renders to specific mip without ping-pong
 
 ### After Phase 2
 
-- New `drafts/deferred/` example renders G-buffer with 3 targets
-- `panel.binding(index = 1)` correctly binds second MRT target
-- Fragment shader with `GBufferOut` writes to all locations
-- No ping-pong for MRT panels (MVP)
-- Combined: `panel.binding(index = 1, mipLevel = 2)` works
+- [x] New `drafts/deferred/` example renders G-buffer with 2 targets
+- [x] `panel.binding(index = 1)` correctly binds second MRT target
+- [x] Fragment shader with `GBufferOut` writes to all locations
+- [x] No ping-pong for MRT panels (MVP)
+- [x] Combined: `panel.binding(index = 1, mipLevel = 2)` works
