@@ -2,6 +2,7 @@ package graphics.shader.dsl
 
 import graphics.math.cpu.Vec2
 import graphics.math.gpu.*
+import graphics.shader.FragOut
 import trivalibs.utils.js.Arr
 import trivalibs.utils.js.Dict
 import scala.NamedTuple
@@ -19,7 +20,7 @@ import scala.scalajs.js
   *     ctx.out.color := vec4(ctx.in.uv, 0.0, 1.0)
   * }}}
   */
-class LayerProgram[U, P]:
+class LayerProgram[U, P, FO]:
   var fragBody: Block = Block.empty
   private val fnSrcs = Arr[String]()
   private val fnNames = Dict[Boolean]()
@@ -42,17 +43,19 @@ class LayerProgram[U, P]:
     * coords (0..1).
     */
   inline def frag(
-      body: FragmentCtx[(uv: Vec2), U, EmptyTuple, P] => Block,
+      body: FragmentCtx[(uv: Vec2), U, EmptyTuple, P, FO] => Block,
   ): Unit = frag[EmptyTuple](body)
 
   /** Fragment shader with typed locals. */
   inline def frag[L](
-      body: FragmentCtx[(uv: Vec2), U, L, P] => Block,
+      body: FragmentCtx[(uv: Vec2), U, L, P, FO] => Block,
   ): Unit =
     val kinds = buildLocalKinds[L]
-    val ctx = FragmentCtx[(uv: Vec2), U, L, P](
+    val ctx = FragmentCtx[(uv: Vec2), U, L, P, FO](
       in = TypedExprAccessor[NamedTuple.Map[(uv: Vec2) & AnyNamedTuple, ToExpr]]("in"),
-      out = TypedAssignAccessor[(color: AssignTarget)]("out"),
+      out = TypedAssignAccessor[
+        NamedTuple.Map[FO & AnyNamedTuple, ToAssign],
+      ]("out"),
       bindings =
         TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]](""),
       locals =

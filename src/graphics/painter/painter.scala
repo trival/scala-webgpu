@@ -102,9 +102,9 @@ class Painter(
 
   // DSL overload — accepts a Program builder lambda (no panels)
   inline def shade[A, V, U](
-      build: Program[A, V, U, EmptyTuple] => Unit,
+      build: Program[A, V, U, EmptyTuple, FragOut] => Unit,
   ): Shade[U, EmptyTuple] =
-    val program = new Program[A, V, U, EmptyTuple]
+    val program = new Program[A, V, U, EmptyTuple, FragOut]
     build(program)
     shadeFromWgsl[A, V, U, EmptyTuple](
       program.vertBodyStr,
@@ -114,11 +114,23 @@ class Painter(
 
   // DSL overload — with panels P
   inline def shade[A, V, U, P](
-      build: Program[A, V, U, P] => Unit,
+      build: Program[A, V, U, P, FragOut] => Unit,
   ): Shade[U, P] =
-    val program = new Program[A, V, U, P]
+    val program = new Program[A, V, U, P, FragOut]
     build(program)
     shadeFromWgsl[A, V, U, P](
+      program.vertBodyStr,
+      program.fragBodyStr,
+      program.helperFnsStr,
+    )
+
+  // DSL overload — with panels P and custom fragment output FO
+  inline def shade[A, V, U, P, FO](
+      build: Program[A, V, U, P, FO] => Unit,
+  ): Shade[U, P] =
+    val program = new Program[A, V, U, P, FO]
+    build(program)
+    shadeFromWgslFO[A, V, U, P, FO](
       program.vertBodyStr,
       program.fragBodyStr,
       program.helperFnsStr,
@@ -201,21 +213,105 @@ class Painter(
           panelIndices,
         )
 
+  private inline def shadeFromWgslFO[A, V, U, P, FO](
+      vertWgsl: String,
+      fragWgsl: String,
+      helperFns: String,
+  ): Shade[U, P] =
+    val id = nextShadeId
+    nextShadeId += 1
+    val uniformIndices = buildIndices[U]
+    val panelIndices = buildIndices[P]
+
+    val panelDecls = derive.generatePanelDeclarations[P]
+
+    inline erasedValue[U] match
+      case _: EmptyTuple =>
+        val sd = Shader.full[A, V, EmptyTuple, None, VertOut, None, FO](
+          vertWgsl,
+          fragWgsl,
+          helperFns,
+        )
+        val baseWgsl = sd.generateWGSL
+        val wgsl =
+          if panelDecls.isEmpty then baseWgsl else s"$baseWgsl\n\n$panelDecls"
+        log(wgsl)
+        val module = device.createShaderModule(Obj.literal(code = wgsl))
+        val vbl = sd.vertexBufferLayout
+        val panelBgl = layouts.createPanelBindGroupLayout[P](device)
+        val bgls =
+          if panelBgl.notNull then Arr[GPUBindGroupLayout](panelBgl)
+          else Arr[GPUBindGroupLayout]()
+        val pl = layouts.createPipelineLayout(device, bgls)
+        Shade[U, P](
+          id,
+          module,
+          vbl,
+          null,
+          panelBgl,
+          pl,
+          false,
+          uniformIndices,
+          panelIndices,
+        )
+      case _ =>
+        type Wrapped = (values: U)
+        val sd = Shader.full[A, V, Wrapped, None, VertOut, None, FO](
+          vertWgsl,
+          fragWgsl,
+          helperFns,
+        )
+        val baseWgsl = sd.generateWGSL
+        val wgsl =
+          if panelDecls.isEmpty then baseWgsl else s"$baseWgsl\n\n$panelDecls"
+        log(wgsl)
+        val module = device.createShaderModule(Obj.literal(code = wgsl))
+        val vbl = sd.vertexBufferLayout
+        val (bgls, _) = sd.createPipelineLayout(device)
+        val panelBgl = layouts.createPanelBindGroupLayout[P](device)
+        val allBgls =
+          if panelBgl.notNull then bgls ++ Arr[GPUBindGroupLayout](panelBgl)
+          else bgls
+        val pl = layouts.createPipelineLayout(device, allBgls)
+        Shade[U, P](
+          id,
+          module,
+          vbl,
+          bgls(0),
+          panelBgl,
+          pl,
+          false,
+          uniformIndices,
+          panelIndices,
+        )
+
   // =========================================================================
   // LayerShade factory — fullscreen triangle with user fragment shader
   // =========================================================================
 
   inline def layerShade[U](
-      build: LayerProgram[U, EmptyTuple] => Unit,
+      build: LayerProgram[U, EmptyTuple, FragOut] => Unit,
   ): Shade[U, EmptyTuple] =
-    val program = new LayerProgram[U, EmptyTuple]
+    val program = new LayerProgram[U, EmptyTuple, FragOut]
     build(program)
     layerShadeFromWgsl[U, EmptyTuple](program.fragBodyStr, program.helperFnsStr)
 
-  inline def layerShade[U, P](build: LayerProgram[U, P] => Unit): Shade[U, P] =
-    val program = new LayerProgram[U, P]
+  inline def layerShade[U, P](
+      build: LayerProgram[U, P, FragOut] => Unit,
+  ): Shade[U, P] =
+    val program = new LayerProgram[U, P, FragOut]
     build(program)
     layerShadeFromWgsl[U, P](program.fragBodyStr, program.helperFnsStr)
+
+  inline def layerShade[U, P, FO](
+      build: LayerProgram[U, P, FO] => Unit,
+  ): Shade[U, P] =
+    val program = new LayerProgram[U, P, FO]
+    build(program)
+    layerShadeFromWgslFO[U, P, FO](
+      program.fragBodyStr,
+      program.helperFnsStr,
+    )
 
   private inline def layerShadeFromWgsl[U, P](
       fragWgsl: String,
@@ -271,6 +367,84 @@ class Painter(
           VertOut,
           EmptyTuple,
           FragOut,
+        ](LAYER_VERT_BODY, fragWgsl, helperFns)
+        val baseWgsl = sd.generateWGSL
+        val wgsl =
+          if panelDecls.isEmpty then baseWgsl else s"$baseWgsl\n\n$panelDecls"
+        log(wgsl)
+        val module = device.createShaderModule(Obj.literal(code = wgsl))
+        val (bgls, _) = sd.createPipelineLayout(device)
+        val panelBgl = layouts.createPanelBindGroupLayout[P](device)
+        val allBgls =
+          if panelBgl.notNull then bgls ++ Arr[GPUBindGroupLayout](panelBgl)
+          else bgls
+        val pl = layouts.createPipelineLayout(device, allBgls)
+        Shade[U, P](
+          id,
+          module,
+          null,
+          bgls(0),
+          panelBgl,
+          pl,
+          false,
+          uniformIndices,
+          panelIndices,
+        )
+
+  private inline def layerShadeFromWgslFO[U, P, FO](
+      fragWgsl: String,
+      helperFns: String,
+  ): Shade[U, P] =
+    val id = nextShadeId
+    nextShadeId += 1
+    val uniformIndices = buildIndices[U]
+    val panelIndices = buildIndices[P]
+    type VBI = (vertex_index: BuiltinVertexIndex)
+    val panelDecls = derive.generatePanelDeclarations[P]
+    inline erasedValue[U] match
+      case _: EmptyTuple =>
+        val sd = Shader.full[
+          EmptyTuple,
+          (uv: Vec2),
+          EmptyTuple,
+          VBI,
+          VertOut,
+          EmptyTuple,
+          FO,
+        ](LAYER_VERT_BODY, fragWgsl, helperFns)
+        val baseWgsl = sd.generateWGSL
+        val wgsl =
+          if panelDecls.isEmpty then baseWgsl else s"$baseWgsl\n\n$panelDecls"
+        log(wgsl)
+        val module = device.createShaderModule(Obj.literal(code = wgsl))
+        val panelBgl = layouts.createPanelBindGroupLayout[P](device)
+        val bgls =
+          if panelBgl.notNull then Arr[GPUBindGroupLayout](panelBgl)
+          else Arr[GPUBindGroupLayout]()
+        val pl = layouts.createPipelineLayout(device, bgls)
+        Shade[U, P](
+          id,
+          module,
+          null,
+          null,
+          panelBgl,
+          pl,
+          false,
+          uniformIndices,
+          panelIndices,
+        )
+      case _ =>
+        import scala.NamedTuple.AnyNamedTuple
+        type FragU = NamedTuple.Map[U & AnyNamedTuple, derive.WrapFragment]
+        type Wrapped = (values: FragU)
+        val sd = Shader.full[
+          EmptyTuple,
+          (uv: Vec2),
+          Wrapped,
+          VBI,
+          VertOut,
+          EmptyTuple,
+          FO,
         ](LAYER_VERT_BODY, fragWgsl, helperFns)
         val baseWgsl = sd.generateWGSL
         val wgsl =
@@ -379,43 +553,49 @@ class Painter(
     panel.ensureSize(w, h)
     val msaa = panel.multisample
 
-    // Step 1: render shapes into main texture
+    // Step 1: render shapes into main texture(s)
     val encoder = device.createCommandEncoder()
+    val panelFormats = panel.effectiveFormats
 
-    val colorAttachment =
-      if panel.clearColor.notNull then
-        val (r, g, b, a) = panel.clearColor
-        if msaa then
+    val colorAttachments = Arr[js.Dynamic]()
+    var t = 0
+    while t < panel.targetCount do
+      val attachment =
+        if panel.clearColor.notNull then
+          val (r, g, b, a) = panel.clearColor
+          if msaa then
+            Obj.literal(
+              view = panel.msaaViewAt(t),
+              resolveTarget = panel.renderViewAt(t),
+              loadOp = "clear",
+              storeOp = "discard",
+              clearValue = Obj.literal(r = r, g = g, b = b, a = a),
+            )
+          else
+            Obj.literal(
+              view = panel.renderViewAt(t),
+              loadOp = "clear",
+              storeOp = "store",
+              clearValue = Obj.literal(r = r, g = g, b = b, a = a),
+            )
+        else if msaa then
           Obj.literal(
-            view = panel.msaaView,
-            resolveTarget = panel.textureView,
-            loadOp = "clear",
-            storeOp = "discard",
-            clearValue = Obj.literal(r = r, g = g, b = b, a = a),
+            view = panel.msaaViewAt(t),
+            resolveTarget = panel.renderViewAt(t),
+            loadOp = "load",
+            storeOp = "store",
           )
         else
           Obj.literal(
-            view = panel.textureView,
-            loadOp = "clear",
+            view = panel.renderViewAt(t),
+            loadOp = "load",
             storeOp = "store",
-            clearValue = Obj.literal(r = r, g = g, b = b, a = a),
           )
-      else if msaa then
-        Obj.literal(
-          view = panel.msaaView,
-          resolveTarget = panel.textureView,
-          loadOp = "load",
-          storeOp = "store",
-        )
-      else
-        Obj.literal(
-          view = panel.textureView,
-          loadOp = "load",
-          storeOp = "store",
-        )
+      colorAttachments.push(attachment)
+      t += 1
 
     val passDesc: js.Dynamic =
-      Obj.literal(colorAttachments = Arr(colorAttachment))
+      Obj.literal(colorAttachments = colorAttachments)
     if panel.depthTest then
       passDesc.depthStencilAttachment = Obj.literal(
         view = panel.depthView,
@@ -429,7 +609,7 @@ class Painter(
 
     var i = 0
     while i < panel.shapes.length do
-      renderShapeOnPass(shapePass, panel.shapes(i), panel.depthTest, msaa, panel)
+      renderShapeOnPass(shapePass, panel.shapes(i), panel.depthTest, msaa, panelFormats, panel)
       i += 1
 
     shapePass.end()
@@ -479,7 +659,7 @@ class Painter(
             ),
           ),
         )
-        renderLayerOnPass(mipPass, layer, srcView = mipSrcView, panel = panel)
+        renderLayerOnPass(mipPass, layer, formats = panelFormats, srcView = mipSrcView, panel = panel)
         mipPass.end()
         queue.submit(Arr(enc.finish()))
 
@@ -504,7 +684,7 @@ class Painter(
             ),
           ),
         )
-        renderLayerOnPass(ppPass, layer, srcView = srcView, panel = panel)
+        renderLayerOnPass(ppPass, layer, formats = panelFormats, srcView = srcView, panel = panel)
         ppPass.end()
         queue.submit(Arr(enc.finish()))
 
@@ -524,7 +704,7 @@ class Painter(
               ),
             ),
           )
-        renderLayerOnPass(curPass, layer, panel = panel)
+        renderLayerOnPass(curPass, layer, formats = panelFormats, panel = panel)
 
       j += 1
 
@@ -829,17 +1009,19 @@ class Painter(
       shape: Shape[?, ?],
       depthTest: Boolean = false,
       multisample: Boolean = false,
+      formats: Arr[String] = null,
       panel: Opt[Panel] = null,
   ): Unit =
+    val fmts = if formats != null then formats else Arr(preferredFormat)
     val cacheKey =
-      pipelineKeyStr(shape, preferredFormat, depthTest, multisample)
+      pipelineKeyStr(shape, fmts, depthTest, multisample)
     val pipeline =
       if js.DynamicImplicits.truthValue(
           pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(cacheKey),
         )
       then pipelineCache(cacheKey)
       else
-        val p = createPipeline(shape, depthTest, multisample)
+        val p = createPipeline(shape, fmts, depthTest, multisample)
         pipelineCache(cacheKey) = p
         p
 
@@ -881,18 +1063,20 @@ class Painter(
       layer: Layer[?, ?],
       depthTest: Boolean = false,
       multisample: Boolean = false,
+      formats: Arr[String] = null,
       srcView: Opt[GPUTextureView] = null,
       panel: Opt[Panel] = null,
   ): Unit =
+    val fmts = if formats != null then formats else Arr(preferredFormat)
     val cacheKey =
-      s"L|${layer.shade.id}|${layer.blendState.isNull}|$preferredFormat|$depthTest|$multisample"
+      s"L|${layer.shade.id}|${layer.blendState.isNull}|${fmts.join(",")}|$depthTest|$multisample"
     val pipeline =
       if js.DynamicImplicits.truthValue(
           pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(cacheKey),
         )
       then pipelineCache(cacheKey)
       else
-        val p = createLayerPipeline(layer, depthTest, multisample)
+        val p = createLayerPipeline(layer, fmts, depthTest, multisample)
         pipelineCache(cacheKey) = p
         p
 
@@ -934,20 +1118,26 @@ class Painter(
 
   private def createLayerPipeline(
       layer: Layer[?, ?],
+      formats: Arr[String],
       depthTest: Boolean = false,
       multisample: Boolean = false,
   ): GPURenderPipeline =
     val shade = layer.shade
-    val target: js.Dynamic =
-      if layer.blendState.isNull then Obj.literal(format = preferredFormat)
-      else Obj.literal(format = preferredFormat, blend = layer.blendState)
+    val targets = Arr[js.Dynamic]()
+    var ti = 0
+    while ti < formats.length do
+      val target =
+        if layer.blendState.isNull then Obj.literal(format = formats(ti))
+        else Obj.literal(format = formats(ti), blend = layer.blendState)
+      targets.push(target)
+      ti += 1
     val desc = Obj.literal(
       layout = shade.pipelineLayout,
       vertex = Obj.literal(module = shade.shaderModule, entryPoint = "vs_main"),
       fragment = Obj.literal(
         module = shade.shaderModule,
         entryPoint = "fs_main",
-        targets = Arr(target),
+        targets = targets,
       ),
       primitive = Obj.literal(topology = "triangle-list"),
     )
@@ -966,24 +1156,30 @@ class Painter(
 
   private def pipelineKeyStr(
       shape: Shape[?, ?],
-      format: String,
+      formats: Arr[String],
       depthTest: Boolean,
       multisample: Boolean,
   ): String =
     val s = shape.shade
     val f = shape.form
-    s"${s.id}|${shape.blendState.isNull}|${shape.cullMode}|${f.topology}|${f.frontFace}|${format}|${depthTest}|${multisample}"
+    s"${s.id}|${shape.blendState.isNull}|${shape.cullMode}|${f.topology}|${f.frontFace}|${formats.join(",")}|${depthTest}|${multisample}"
 
   private def createPipeline(
       shape: Shape[?, ?],
+      formats: Arr[String],
       depthTest: Boolean = false,
       multisample: Boolean = false,
   ): GPURenderPipeline =
     val shade = shape.shade
 
-    val target: js.Dynamic =
-      if shape.blendState.isNull then Obj.literal(format = preferredFormat)
-      else Obj.literal(format = preferredFormat, blend = shape.blendState)
+    val targets = Arr[js.Dynamic]()
+    var ti = 0
+    while ti < formats.length do
+      val target =
+        if shape.blendState.isNull then Obj.literal(format = formats(ti))
+        else Obj.literal(format = formats(ti), blend = shape.blendState)
+      targets.push(target)
+      ti += 1
 
     val vertexDescriptor =
       if shade.vertexBufferLayout.notNull then
@@ -1004,7 +1200,7 @@ class Painter(
       fragment = Obj.literal(
         module = shade.shaderModule,
         entryPoint = "fs_main",
-        targets = Arr(target),
+        targets = targets,
       ),
       primitive = Obj.literal(
         topology = shape.form.topology.toJs,

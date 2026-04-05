@@ -25,20 +25,21 @@ class Panel(val painter: Painter):
   var depthTest: Boolean = false
   var multisample: Boolean = false
   var mipLevels: Int = 1
+  var formats: Arr[String] = Arr()
   var shapes: Arr[Shape[?, ?]] = Arr()
   var layers: Arr[Layer[?, ?]] = Arr()
   var runtimeBindings: js.Dictionary[PanelBindingValue] = js.Dictionary()
 
-  private var _texture: Opt[GPUTexture] = null
-  private var _textureView: Opt[GPUTextureView] = null
-  private var _pongTexture: Opt[GPUTexture] = null
-  private var _pongView: Opt[GPUTextureView] = null
+  private var _textures: Arr[GPUTexture] = Arr()
+  private var _textureViews: Arr[GPUTextureView] = Arr()
+  private var _samplingViews: Arr[Opt[GPUTextureView]] = Arr()
+  private var _pongTextures: Arr[GPUTexture] = Arr()
+  private var _pongViews: Arr[GPUTextureView] = Arr()
   private var _depthTexture: Opt[GPUTexture] = null
   private var _depthView: Opt[GPUTextureView] = null
-  private var _msaaTexture: Opt[GPUTexture] = null
-  private var _msaaView: Opt[GPUTextureView] = null
+  private var _msaaTextures: Arr[GPUTexture] = Arr()
+  private var _msaaViews: Arr[GPUTextureView] = Arr()
   private var _outputView: Opt[GPUTextureView] = null
-  private var _samplingView: Opt[GPUTextureView] = null
   private var _width: Int = 0
   private var _height: Int = 0
   private val _mipViews: js.Dictionary[GPUTextureView] = js.Dictionary()
@@ -53,27 +54,37 @@ class Panel(val painter: Painter):
       else (Math.log(maxDim.toDouble) / Math.log(2.0)).toInt + 1
     else mipLevels
 
-  def textureView: GPUTextureView = _textureView.get
-  def pongView: GPUTextureView = _pongView.get
+  def effectiveFormats: Arr[String] =
+    if formats.length == 0 then Arr(painter.preferredFormat) else formats
+
+  def targetCount: Int = effectiveFormats.length
+
+  def textureView: GPUTextureView = _textureViews(0)
+  def pongView: GPUTextureView = _pongViews(0)
   def depthView: GPUTextureView = _depthView.get
-  def msaaView: GPUTextureView = _msaaView.get
+  def msaaView: GPUTextureView = _msaaViews(0)
   def outputView: GPUTextureView =
-    if _outputView.notNull then _outputView.get else _textureView.get
+    if _outputView.notNull then _outputView.get else _textureViews(0)
 
   def textureViewAt(index: Int = 0, mipLevel: Int = -1): GPUTextureView =
     if mipLevel < 0 then
-      if _samplingView.notNull then _samplingView.get else _textureView.get
+      val sv = _samplingViews(index)
+      if sv.notNull then sv.get else _textureViews(index)
     else
       val key = s"$index|$mipLevel"
       val dict = _mipViews.asInstanceOf[js.Dynamic]
       if js.DynamicImplicits.truthValue(dict.hasOwnProperty(key)) then
         _mipViews(key)
       else
-        val view = _texture.get.createView(
+        val view = _textures(index).createView(
           Obj.literal(baseMipLevel = mipLevel, mipLevelCount = 1),
         )
         _mipViews(key) = view
         view
+
+  def renderViewAt(index: Int): GPUTextureView = _textureViews(index)
+  def pongViewAt(index: Int): GPUTextureView = _pongViews(index)
+  def msaaViewAt(index: Int): GPUTextureView = _msaaViews(index)
 
   def binding(index: Int = 0, mipLevel: Int = -1): PanelBinding =
     new PanelBinding(this, index, mipLevel)
@@ -88,6 +99,7 @@ class Panel(val painter: Painter):
       depthTest: Maybe[Boolean] = Maybe.Not,
       multisample: Maybe[Boolean] = Maybe.Not,
       mipLevels: Maybe[Int] = Maybe.Not,
+      formats: Maybe[Arr[String]] = Maybe.Not,
       shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
       layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
   ): this.type =
@@ -97,6 +109,7 @@ class Panel(val painter: Painter):
     depthTest.foreach(v => this.depthTest = v)
     multisample.foreach(v => this.multisample = v)
     mipLevels.foreach(v => this.mipLevels = v)
+    formats.foreach(v => this.formats = v)
     shapes.foreach(v => this.shapes = v)
     layers.foreach(v => this.layers = v)
     this
@@ -316,13 +329,25 @@ class Panel(val painter: Painter):
     val targetW = if specWidth == 0 then canvasW else specWidth
     val targetH = if specHeight == 0 then canvasH else specHeight
     if targetW != _width || targetH != _height then
-      if _texture.notNull then _texture.get.destroy()
-      if _pongTexture.notNull then _pongTexture.get.destroy()
+      // Destroy old textures
+      var d = 0
+      while d < _textures.length do
+        _textures(d).destroy()
+        d += 1
+      d = 0
+      while d < _pongTextures.length do
+        _pongTextures(d).destroy()
+        d += 1
+      d = 0
+      while d < _msaaTextures.length do
+        _msaaTextures(d).destroy()
+        d += 1
       if _depthTexture.notNull then _depthTexture.get.destroy()
-      if _msaaTexture.notNull then _msaaTexture.get.destroy()
+
       _width = targetW
       _height = targetH
-      // Clear mip view cache on resize
+
+      // Clear mip view cache
       val mipKeys = js.Object
         .keys(_mipViews.asInstanceOf[js.Object])
         .asInstanceOf[Arr[String]]
@@ -332,47 +357,68 @@ class Panel(val painter: Painter):
         mk += 1
 
       val mipCount = mipLevelCount
+      val fmts = effectiveFormats
+      val hasPong = needsPong
       val colorUsage =
         GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
-      val tex = painter.device.createTexture(
-        Obj.literal(
-          size = Obj.literal(width = targetW, height = targetH),
-          format = painter.preferredFormat,
-          usage = colorUsage,
-          mipLevelCount = mipCount,
-        ),
-      )
-      _texture = tex
-      _textureView = tex.createView(
-        Obj.literal(baseMipLevel = 0, mipLevelCount = 1),
-      )
-      _samplingView =
-        if mipCount > 1 then tex.createView()
-        else null
-      if needsPong then
-        val pongTex = painter.device.createTexture(
+
+      _textures = Arr()
+      _textureViews = Arr()
+      _samplingViews = Arr()
+      _pongTextures = Arr()
+      _pongViews = Arr()
+      _msaaTextures = Arr()
+      _msaaViews = Arr()
+
+      var i = 0
+      while i < fmts.length do
+        val fmt = fmts(i)
+        val tex = painter.device.createTexture(
           Obj.literal(
             size = Obj.literal(width = targetW, height = targetH),
-            format = painter.preferredFormat,
+            format = fmt,
             usage = colorUsage,
             mipLevelCount = mipCount,
           ),
         )
-        _pongTexture = pongTex
-        _pongView = pongTex.createView(
-          Obj.literal(baseMipLevel = 0, mipLevelCount = 1),
+        _textures.push(tex)
+        _textureViews.push(
+          tex.createView(Obj.literal(baseMipLevel = 0, mipLevelCount = 1)),
         )
-      if multisample then
-        val msaaTex = painter.device.createTexture(
-          Obj.literal(
-            size = Obj.literal(width = targetW, height = targetH),
-            format = painter.preferredFormat,
-            sampleCount = 4,
-            usage = GPUTextureUsage.RENDER_ATTACHMENT,
-          ),
+        _samplingViews.push(
+          if mipCount > 1 then tex.createView() else null,
         )
-        _msaaTexture = msaaTex
-        _msaaView = msaaTex.createView()
+
+        if hasPong then
+          val pongTex = painter.device.createTexture(
+            Obj.literal(
+              size = Obj.literal(width = targetW, height = targetH),
+              format = fmt,
+              usage = colorUsage,
+              mipLevelCount = mipCount,
+            ),
+          )
+          _pongTextures.push(pongTex)
+          _pongViews.push(
+            pongTex.createView(
+              Obj.literal(baseMipLevel = 0, mipLevelCount = 1),
+            ),
+          )
+
+        if multisample then
+          val msaaTex = painter.device.createTexture(
+            Obj.literal(
+              size = Obj.literal(width = targetW, height = targetH),
+              format = fmt,
+              sampleCount = 4,
+              usage = GPUTextureUsage.RENDER_ATTACHMENT,
+            ),
+          )
+          _msaaTextures.push(msaaTex)
+          _msaaViews.push(msaaTex.createView())
+
+        i += 1
+
       if depthTest then
         val depthTex = painter.device.createTexture(
           Obj.literal(

@@ -111,10 +111,14 @@ class VertexCtx[A, V, U, L, P](
     val textures: TypedPanelAccessor[P],
 )
 
-/** Fragment shader context. Fragment output is always `color: Vec4`. */
-class FragmentCtx[V, U, L, P](
+/** Fragment shader context.
+  *
+  * FO is the fragment output named tuple (default: `(color: Vec4)`).
+  * Each field becomes an AssignTarget via `ToAssign`.
+  */
+class FragmentCtx[V, U, L, P, FO](
     val in: TypedExprAccessor[NamedTuple.Map[V & AnyNamedTuple, ToExpr]],
-    val out: TypedAssignAccessor[(color: AssignTarget)],
+    val out: TypedAssignAccessor[NamedTuple.Map[FO & AnyNamedTuple, ToAssign]],
     val bindings: TypedExprAccessor[
       NamedTuple.Map[U & AnyNamedTuple, UniformToExpr],
     ],

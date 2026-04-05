@@ -10,6 +10,7 @@ import painterTypedBindings from "./drafts/painter_typed_bindings/index.html";
 import panelLayer from "./drafts/panel_layer/index.html";
 import panelTex from "./drafts/panel_tex/index.html";
 import panelTriangle from "./drafts/panel_triangle/index.html";
+import deferred from "./drafts/deferred/index.html";
 import simpleTriangle from "./drafts/simple_triangle/index.html";
 
 const server = serve({
@@ -19,6 +20,7 @@ const server = serve({
 		"/": index,
 		"/blur/": blur,
 		"/buffer_triangle/": bufferTriangle,
+		"/deferred/": deferred,
 		"/instances/": instances,
 		"/mipmaps/": mipmaps,
 		"/panel_tex/": panelTex,
