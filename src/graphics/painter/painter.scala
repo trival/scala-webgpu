@@ -416,7 +416,7 @@ class Painter(
 
     var i = 0
     while i < panel.shapes.length do
-      renderShapeOnPass(shapePass, panel.shapes(i), panel.depthTest, msaa)
+      renderShapeOnPass(shapePass, panel.shapes(i), panel.depthTest, msaa, panel)
       i += 1
 
     shapePass.end()
@@ -462,7 +462,7 @@ class Painter(
             ),
           ),
         )
-        renderLayerOnPass(ppPass, layer, srcView = srcView)
+        renderLayerOnPass(ppPass, layer, srcView = srcView, panel = panel)
         ppPass.end()
         queue.submit(Arr(enc.finish()))
 
@@ -482,7 +482,7 @@ class Painter(
               ),
             ),
           )
-        renderLayerOnPass(curPass, layer)
+        renderLayerOnPass(curPass, layer, panel = panel)
 
       j += 1
 
@@ -573,6 +573,127 @@ class Painter(
     )
 
   // =========================================================================
+  // Working buffers for binding merge (reusable, single-threaded JS)
+  // =========================================================================
+
+  private val _workBindings: BindingSlots = Arr()
+  private val _workPanelBindings: Arr[Opt[Panel]] = Arr()
+
+  private def copyToWork(
+      bindings: BindingSlots,
+      panelBindings: Arr[Opt[Panel]],
+  ): Unit =
+    _workBindings.length = bindings.length
+    var i = 0
+    while i < bindings.length do
+      _workBindings(i) = bindings(i)
+      i += 1
+    _workPanelBindings.length = panelBindings.length
+    var j = 0
+    while j < panelBindings.length do
+      _workPanelBindings(j) = panelBindings(j)
+      j += 1
+
+  private def applyPanelRuntimeBindings(
+      panel: Panel,
+      shade: Shade[?, ?],
+      workBindings: BindingSlots,
+      workPanelBindings: Arr[Opt[Panel]],
+  ): Unit =
+    val dict = panel.runtimeBindings
+    val keys =
+      js.Object.keys(dict.asInstanceOf[js.Object]).asInstanceOf[Arr[String]]
+    var i = 0
+    while i < keys.length do
+      val name = keys(i)
+      val value = dict(name)
+      val uniDyn = shade.uniformIndices.asInstanceOf[js.Dynamic]
+      val panDyn = shade.panelIndices.asInstanceOf[js.Dynamic]
+      if js.DynamicImplicits.truthValue(uniDyn.hasOwnProperty(name)) then
+        val idx = shade.uniformIndices(name)
+        if idx >= workBindings.length || workBindings(idx) == null then
+          while workBindings.length <= idx do workBindings.push(null)
+          workBindings(idx) =
+            value.asInstanceOf[BufferBinding[?, ?] | GPUSampler]
+      else if js.DynamicImplicits.truthValue(panDyn.hasOwnProperty(name)) then
+        val idx = shade.panelIndices(name)
+        if idx >= workPanelBindings.length || workPanelBindings(idx).isNull then
+          while workPanelBindings.length <= idx do workPanelBindings.push(null)
+          workPanelBindings(idx) = value.asInstanceOf[Panel]
+      i += 1
+
+  private def applyInstanceBindings(
+      inst: Instance[?, ?],
+      workBindings: BindingSlots,
+      workPanelBindings: Arr[Opt[Panel]],
+  ): Unit =
+    var i = 0
+    while i < inst.bindings.length do
+      if inst.bindings(i) != null then
+        while workBindings.length <= i do workBindings.push(null)
+        workBindings(i) = inst.bindings(i)
+      i += 1
+    var j = 0
+    while j < inst.panelBindings.length do
+      if inst.panelBindings(j).notNull then
+        while workPanelBindings.length <= j do workPanelBindings.push(null)
+        workPanelBindings(j) = inst.panelBindings(j)
+      j += 1
+
+  private def hasPanelRuntimeBindings(panel: Opt[Panel]): Boolean =
+    panel.notNull && js.Object
+      .keys(panel.runtimeBindings.asInstanceOf[js.Object])
+      .asInstanceOf[Arr[String]]
+      .length > 0
+
+  // =========================================================================
+  // Bind group helpers
+  // =========================================================================
+
+  private def setValueBindGroup(
+      pass: GPURenderPassEncoder,
+      shade: Shade[?, ?],
+      bindings: BindingSlots,
+  ): Unit =
+    if bindings.length > 0 && shade.valueBindGroupLayout.notNull then
+      val entries = Arr[js.Dynamic]()
+      var i = 0
+      while i < bindings.length do
+        val b = bindings(i)
+        if b != null then entries.push(bindingEntry(i, b))
+        i += 1
+      val bg = device.createBindGroup(
+        Obj.literal(layout = shade.valueBindGroupLayout, entries = entries),
+      )
+      pass.setBindGroup(0, bg)
+
+  private def setPanelBindGroup(
+      pass: GPURenderPassEncoder,
+      shade: Shade[?, ?],
+      panelBindings: Arr[Opt[Panel]],
+      srcView: Opt[GPUTextureView] = null,
+  ): Unit =
+    if shade.panelBindGroupLayout.notNull then
+      val entries = Arr[js.Dynamic]()
+      if srcView.notNull then
+        entries.push(Obj.literal(binding = 0, resource = srcView))
+      val startIdx = if srcView.notNull then 1 else 0
+      var k = startIdx
+      while k < panelBindings.length do
+        val p = panelBindings(k)
+        if p.notNull then
+          entries.push(Obj.literal(binding = k, resource = p.textureView))
+        k += 1
+      if entries.length > 0 then
+        val pg = device.createBindGroup(
+          Obj.literal(
+            layout = shade.panelBindGroupLayout,
+            entries = entries,
+          ),
+        )
+        pass.setBindGroup(1, pg)
+
+  // =========================================================================
   // Per-shape render pass helper (shared by draw() and paint())
   // =========================================================================
 
@@ -581,6 +702,7 @@ class Painter(
       shape: Shape[?, ?],
       depthTest: Boolean = false,
       multisample: Boolean = false,
+      panel: Opt[Panel] = null,
   ): Unit =
     val cacheKey =
       pipelineKeyStr(shape, preferredFormat, depthTest, multisample)
@@ -595,22 +717,33 @@ class Painter(
         p
 
     pass.setPipeline(pipeline)
-
-    if shape.bindings.length > 0 && shape.shade.valueBindGroupLayout.notNull
-    then
-      val bindGroup = createBindGroup(shape)
-      pass.setBindGroup(0, bindGroup)
-
-    if shape.panelBindings.length > 0 && shape.shade.panelBindGroupLayout.notNull
-    then
-      val panelGroup = createPanelBindGroup(
-        shape.shade.panelBindGroupLayout,
-        shape.panelBindings,
-      )
-      pass.setBindGroup(1, panelGroup)
-
     pass.setVertexBuffer(0, shape.form.vertexBuffer)
-    pass.draw(shape.form.vertexCount)
+
+    val instanceCount = shape.instances.length
+    val hasPanelBinds = hasPanelRuntimeBindings(panel)
+
+    if instanceCount == 0 then
+      if hasPanelBinds then
+        copyToWork(shape.bindings, shape.panelBindings)
+        applyPanelRuntimeBindings(panel, shape.shade, _workBindings, _workPanelBindings)
+        setValueBindGroup(pass, shape.shade, _workBindings)
+        setPanelBindGroup(pass, shape.shade, _workPanelBindings)
+      else
+        setValueBindGroup(pass, shape.shade, shape.bindings)
+        setPanelBindGroup(pass, shape.shade, shape.panelBindings)
+      pass.draw(shape.form.vertexCount)
+    else
+      var i = 0
+      while i < instanceCount do
+        val inst = shape.instances.items(i)
+        copyToWork(shape.bindings, shape.panelBindings)
+        if hasPanelBinds then
+          applyPanelRuntimeBindings(panel, shape.shade, _workBindings, _workPanelBindings)
+        applyInstanceBindings(inst, _workBindings, _workPanelBindings)
+        setValueBindGroup(pass, shape.shade, _workBindings)
+        setPanelBindGroup(pass, shape.shade, _workPanelBindings)
+        pass.draw(shape.form.vertexCount)
+        i += 1
 
   // =========================================================================
   // Per-layer render pass helper
@@ -622,6 +755,7 @@ class Painter(
       depthTest: Boolean = false,
       multisample: Boolean = false,
       srcView: Opt[GPUTextureView] = null,
+      panel: Opt[Panel] = null,
   ): Unit =
     val cacheKey =
       s"L|${layer.shade.id}|${layer.blendState.isNull}|$preferredFormat|$depthTest|$multisample"
@@ -637,48 +771,39 @@ class Painter(
 
     pass.setPipeline(pipeline)
 
-    if layer.bindings.length > 0 && layer.shade.valueBindGroupLayout.notNull
-    then
-      val entries = Arr[js.Dynamic]()
+    val instanceCount = layer.instances.length
+    val hasPanelBinds = hasPanelRuntimeBindings(panel)
+
+    if instanceCount == 0 then
+      if hasPanelBinds then
+        copyToWork(layer.bindings, layer.panelBindings)
+        applyPanelRuntimeBindings(panel, layer.shade, _workBindings, _workPanelBindings)
+        setValueBindGroup(pass, layer.shade, _workBindings)
+        val effectiveSrcView =
+          if _workPanelBindings.length > 0 && _workPanelBindings(0).notNull
+          then null
+          else srcView
+        setPanelBindGroup(pass, layer.shade, _workPanelBindings, effectiveSrcView)
+      else
+        setValueBindGroup(pass, layer.shade, layer.bindings)
+        setPanelBindGroup(pass, layer.shade, layer.panelBindings, srcView)
+      pass.draw(3)
+    else
       var i = 0
-      while i < layer.bindings.length do
-        val b = layer.bindings(i)
-        if b != null then entries.push(bindingEntry(i, b))
+      while i < instanceCount do
+        val inst = layer.instances.items(i)
+        copyToWork(layer.bindings, layer.panelBindings)
+        if hasPanelBinds then
+          applyPanelRuntimeBindings(panel, layer.shade, _workBindings, _workPanelBindings)
+        applyInstanceBindings(inst, _workBindings, _workPanelBindings)
+        setValueBindGroup(pass, layer.shade, _workBindings)
+        val effectiveSrcView =
+          if _workPanelBindings.length > 0 && _workPanelBindings(0).notNull
+          then null
+          else srcView
+        setPanelBindGroup(pass, layer.shade, _workPanelBindings, effectiveSrcView)
+        pass.draw(3)
         i += 1
-      val bindGroup = device.createBindGroup(
-        Obj.literal(
-          layout = layer.shade.valueBindGroupLayout,
-          entries = entries,
-        ),
-      )
-      pass.setBindGroup(0, bindGroup)
-
-    if layer.shade.panelBindGroupLayout.notNull then
-      val entries = Arr[js.Dynamic]()
-      // Slot 0: inject srcView when not manually bound (ping-pong)
-      if srcView.notNull then
-        entries.push(
-          Obj.literal(binding = 0, resource = srcView),
-        )
-      // Remaining slots (or all slots if no srcView injection)
-      val startIdx = if srcView.notNull then 1 else 0
-      var k = startIdx
-      while k < layer.panelBindings.length do
-        val p = layer.panelBindings(k)
-        if p.notNull then
-          entries.push(
-            Obj.literal(binding = k, resource = p.textureView),
-          )
-        k += 1
-      val panelGroup = device.createBindGroup(
-        Obj.literal(
-          layout = layer.shade.panelBindGroupLayout,
-          entries = entries,
-        ),
-      )
-      pass.setBindGroup(1, panelGroup)
-
-    pass.draw(3)
 
   private def createLayerPipeline(
       layer: Layer[?, ?],
@@ -784,35 +909,6 @@ class Painter(
         resource = Obj.literal(buffer = buffer.gpuBuffer),
       )
     else Obj.literal(binding = i, resource = b.asInstanceOf[GPUSampler])
-
-  private def createBindGroup(shape: Shape[?, ?]): GPUBindGroup =
-    val entries = Arr[js.Dynamic]()
-    var i = 0
-    while i < shape.bindings.length do
-      val b = shape.bindings(i)
-      if b != null then entries.push(bindingEntry(i, b))
-      i += 1
-    device.createBindGroup(
-      Obj.literal(
-        layout = shape.shade.valueBindGroupLayout,
-        entries = entries,
-      ),
-    )
-
-  private def createPanelBindGroup(
-      layout: GPUBindGroupLayout,
-      panelBindings: Arr[Opt[Panel]],
-  ): GPUBindGroup =
-    val entries = Arr[js.Dynamic]()
-    var i = 0
-    while i < panelBindings.length do
-      val p = panelBindings(i)
-      if p.notNull then
-        entries.push(
-          Obj.literal(binding = i, resource = p.textureView),
-        )
-      i += 1
-    device.createBindGroup(Obj.literal(layout = layout, entries = entries))
 
 object Painter:
   def init(canvas: HTMLCanvasElement): js.Promise[Painter] =

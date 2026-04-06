@@ -11,6 +11,7 @@ const encoder = new TextEncoder();
 const draftRoutes = new Set([
 	"blur",
 	"buffer_triangle",
+	"instances",
 	"painter_dsl",
 	"painter_triangle",
 	"painter_typed_bindings",

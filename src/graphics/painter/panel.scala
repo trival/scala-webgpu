@@ -1,9 +1,15 @@
 package graphics.painter
 
+import graphics.buffers.BufferBinding
+import graphics.buffers.UniformValue
 import trivalibs.utils.js.*
 import webgpu.*
 
+import scala.compiletime.summonFrom
+import scala.scalajs.js
+
 type ClearColor = (Double, Double, Double, Double)
+type PanelBindingValue = BufferBinding[?, ?] | GPUSampler | Panel
 
 class Panel(val painter: Painter):
   var specWidth: Int = 0
@@ -13,6 +19,7 @@ class Panel(val painter: Painter):
   var multisample: Boolean = false
   var shapes: Arr[Shape[?, ?]] = Arr()
   var layers: Arr[Layer[?, ?]] = Arr()
+  var runtimeBindings: js.Dictionary[PanelBindingValue] = js.Dictionary()
 
   private var _texture: Opt[GPUTexture] = null
   private var _textureView: Opt[GPUTextureView] = null
@@ -52,6 +59,208 @@ class Panel(val painter: Painter):
     multisample.foreach(v => this.multisample = v)
     shapes.foreach(v => this.shapes = v)
     layers.foreach(v => this.layers = v)
+    this
+
+  private inline def processPanelEntry[N <: String & Singleton, V](
+      pair: BindPair[N, V],
+  ): Unit =
+    inline pair.value match
+      case sampler: GPUSampler =>
+        runtimeBindings(pair.name) = sampler
+      case bb: BufferBinding[?, ?] =>
+        runtimeBindings(pair.name) = bb
+      case p: Panel =>
+        runtimeBindings(pair.name) = p
+      case rawValue =>
+        val existing = runtimeBindings.asInstanceOf[js.Dynamic]
+        if js.DynamicImplicits.truthValue(
+            existing.hasOwnProperty(pair.name),
+          ) && runtimeBindings(pair.name).isInstanceOf[BufferBinding[?, ?]]
+        then
+          runtimeBindings(pair.name)
+            .asInstanceOf[BufferBinding[V, ?]]
+            .set(rawValue)
+        else
+          summonFrom:
+            case uv: UniformValue[V, f] =>
+              val bb =
+                BufferBinding[V, f](painter.device, rawValue)(using uv)
+              runtimeBindings(pair.name) = bb
+
+  inline def bind[N1 <: String & Singleton, V1](
+      e1: BindPair[N1, V1],
+  ): this.type =
+    processPanelEntry(e1)
+    this
+
+  inline def bind[N1 <: String & Singleton, V1, N2 <: String & Singleton, V2](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+  ): this.type =
+    processPanelEntry(e1)
+    processPanelEntry(e2)
+    this
+
+  inline def bind[
+      N1 <: String & Singleton,
+      V1,
+      N2 <: String & Singleton,
+      V2,
+      N3 <: String & Singleton,
+      V3,
+  ](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+      e3: BindPair[N3, V3],
+  ): this.type =
+    processPanelEntry(e1)
+    processPanelEntry(e2)
+    processPanelEntry(e3)
+    this
+
+  inline def bind[
+      N1 <: String & Singleton,
+      V1,
+      N2 <: String & Singleton,
+      V2,
+      N3 <: String & Singleton,
+      V3,
+      N4 <: String & Singleton,
+      V4,
+  ](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+      e3: BindPair[N3, V3],
+      e4: BindPair[N4, V4],
+  ): this.type =
+    processPanelEntry(e1)
+    processPanelEntry(e2)
+    processPanelEntry(e3)
+    processPanelEntry(e4)
+    this
+
+  inline def bind[
+      N1 <: String & Singleton,
+      V1,
+      N2 <: String & Singleton,
+      V2,
+      N3 <: String & Singleton,
+      V3,
+      N4 <: String & Singleton,
+      V4,
+      N5 <: String & Singleton,
+      V5,
+  ](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+      e3: BindPair[N3, V3],
+      e4: BindPair[N4, V4],
+      e5: BindPair[N5, V5],
+  ): this.type =
+    processPanelEntry(e1)
+    processPanelEntry(e2)
+    processPanelEntry(e3)
+    processPanelEntry(e4)
+    processPanelEntry(e5)
+    this
+
+  inline def bind[
+      N1 <: String & Singleton,
+      V1,
+      N2 <: String & Singleton,
+      V2,
+      N3 <: String & Singleton,
+      V3,
+      N4 <: String & Singleton,
+      V4,
+      N5 <: String & Singleton,
+      V5,
+      N6 <: String & Singleton,
+      V6,
+  ](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+      e3: BindPair[N3, V3],
+      e4: BindPair[N4, V4],
+      e5: BindPair[N5, V5],
+      e6: BindPair[N6, V6],
+  ): this.type =
+    processPanelEntry(e1)
+    processPanelEntry(e2)
+    processPanelEntry(e3)
+    processPanelEntry(e4)
+    processPanelEntry(e5)
+    processPanelEntry(e6)
+    this
+
+  inline def bind[
+      N1 <: String & Singleton,
+      V1,
+      N2 <: String & Singleton,
+      V2,
+      N3 <: String & Singleton,
+      V3,
+      N4 <: String & Singleton,
+      V4,
+      N5 <: String & Singleton,
+      V5,
+      N6 <: String & Singleton,
+      V6,
+      N7 <: String & Singleton,
+      V7,
+  ](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+      e3: BindPair[N3, V3],
+      e4: BindPair[N4, V4],
+      e5: BindPair[N5, V5],
+      e6: BindPair[N6, V6],
+      e7: BindPair[N7, V7],
+  ): this.type =
+    processPanelEntry(e1)
+    processPanelEntry(e2)
+    processPanelEntry(e3)
+    processPanelEntry(e4)
+    processPanelEntry(e5)
+    processPanelEntry(e6)
+    processPanelEntry(e7)
+    this
+
+  inline def bind[
+      N1 <: String & Singleton,
+      V1,
+      N2 <: String & Singleton,
+      V2,
+      N3 <: String & Singleton,
+      V3,
+      N4 <: String & Singleton,
+      V4,
+      N5 <: String & Singleton,
+      V5,
+      N6 <: String & Singleton,
+      V6,
+      N7 <: String & Singleton,
+      V7,
+      N8 <: String & Singleton,
+      V8,
+  ](
+      e1: BindPair[N1, V1],
+      e2: BindPair[N2, V2],
+      e3: BindPair[N3, V3],
+      e4: BindPair[N4, V4],
+      e5: BindPair[N5, V5],
+      e6: BindPair[N6, V6],
+      e7: BindPair[N7, V7],
+      e8: BindPair[N8, V8],
+  ): this.type =
+    processPanelEntry(e1)
+    processPanelEntry(e2)
+    processPanelEntry(e3)
+    processPanelEntry(e4)
+    processPanelEntry(e5)
+    processPanelEntry(e6)
+    processPanelEntry(e7)
+    processPanelEntry(e8)
     this
 
   private def needsPong: Boolean =
