@@ -1,6 +1,7 @@
 package graphics.shader.dsl
 
 import graphics.math.gpu.*
+import graphics.shader.FragOut
 import trivalibs.utils.js.Arr
 import trivalibs.utils.js.Dict
 import scala.NamedTuple
@@ -8,7 +9,7 @@ import scala.NamedTuple.AnyNamedTuple
 import scala.scalajs.js
 
 // ---------------------------------------------------------------------------
-// Program[A, V, U] — DSL program builder with fully typed contexts
+// Program[A, V, U, P, FO] — DSL program builder with fully typed contexts
 //
 // Usage:
 //   val program = Program[Attribs, Varyings, Uniforms]()
@@ -23,7 +24,7 @@ import scala.scalajs.js
 //     )
 // ---------------------------------------------------------------------------
 
-class Program[A, V, U, P]:
+class Program[A, V, U, P, FO]:
   var vertBody: Block = Block.empty
   var fragBody: Block = Block.empty
   private val fnSrcs = Arr[String]()
@@ -64,19 +65,23 @@ class Program[A, V, U, P]:
     vertBody = body(ctx)
 
   /** Fragment shader with no typed locals. */
-  inline def frag(body: FragmentCtx[V, U, EmptyTuple, P] => Block): Unit =
+  inline def frag(
+      body: FragmentCtx[V, U, EmptyTuple, P, FO] => Block,
+  ): Unit =
     frag[EmptyTuple](body)
 
   /** Fragment shader with optional typed locals. */
   inline def frag[L](
-      body: FragmentCtx[V, U, L, P] => Block,
+      body: FragmentCtx[V, U, L, P, FO] => Block,
   ): Unit =
     val kinds = buildLocalKinds[L]
-    val ctx = FragmentCtx[V, U, L, P](
+    val ctx = FragmentCtx[V, U, L, P, FO](
       in = TypedExprAccessor[
         NamedTuple.Map[V & AnyNamedTuple, ToExpr],
       ]("in"),
-      out = TypedAssignAccessor[(color: AssignTarget)]("out"),
+      out = TypedAssignAccessor[
+        NamedTuple.Map[FO & AnyNamedTuple, ToAssign],
+      ]("out"),
       bindings =
         TypedExprAccessor[NamedTuple.Map[U & AnyNamedTuple, UniformToExpr]](""),
       locals =

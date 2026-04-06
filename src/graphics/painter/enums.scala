@@ -2,6 +2,12 @@ package graphics.painter
 
 import scala.scalajs.js
 
+opaque type FilterMode = String
+object FilterMode:
+  val Nearest: FilterMode = "nearest"
+  val Linear: FilterMode = "linear"
+  extension (f: FilterMode) inline def toJs: js.Any = f.asInstanceOf[js.Any]
+
 opaque type PrimitiveTopology = String
 object PrimitiveTopology:
   val TriangleList: PrimitiveTopology = "triangle-list"

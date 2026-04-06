@@ -134,6 +134,16 @@ extension (tex: Expr.Texture2D)
     Expr.Vec4Expr(s"textureSample(${tex.wgsl}, ${sampler.wgsl}, ${uv.wgsl})")
   def apply(uv: Expr.Vec2Expr, sampler: Expr.Sampler): Expr.Vec4Expr =
     Expr.Vec4Expr(s"textureSample(${tex.wgsl}, ${sampler.wgsl}, ${uv.wgsl})")
+  def sampleLevel(
+      uv: Expr.Vec2Expr,
+      sampler: Expr.Sampler,
+      level: Expr.FloatExpr,
+  ): Expr.Vec4Expr =
+    Expr.Vec4Expr(
+      s"textureSampleLevel(${tex.wgsl}, ${sampler.wgsl}, ${uv.wgsl}, ${level.wgsl})",
+    )
+  def numLevels: Expr.FloatExpr =
+    Expr.FloatExpr(s"f32(textureNumLevels(${tex.wgsl}))")
 
 export Expr.{
   FloatExpr,

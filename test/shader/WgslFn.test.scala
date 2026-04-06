@@ -1,7 +1,7 @@
 package graphics.shader.dsl
 
 import graphics.math.gpu.{*, given}
-import graphics.shader.{FragmentUniform, VertexUniform, given}
+import graphics.shader.{FragOut, FragmentUniform, VertexUniform, given}
 import munit.FunSuite
 
 class WgslFnTest extends FunSuite:
@@ -128,7 +128,7 @@ class WgslFnTest extends FunSuite:
   test("program.fn registers helper function"):
     type Attribs = (position: Vec2)
     type Uniforms = (angle: VertexUniform[Float])
-    val program = Program[Attribs, EmptyTuple, Uniforms, EmptyTuple]()
+    val program = Program[Attribs, EmptyTuple, Uniforms, EmptyTuple, FragOut]()
 
     val rotate: WgslFn[(v: Vec2, angle: Float), Vec2] =
       WgslFn.raw("rotate")("  return v;")
@@ -141,7 +141,7 @@ class WgslFnTest extends FunSuite:
 
   test("program.fn is idempotent — registering twice emits once"):
     type Attribs = (position: Vec2)
-    val program = Program[Attribs, EmptyTuple, EmptyTuple, EmptyTuple]()
+    val program = Program[Attribs, EmptyTuple, EmptyTuple, EmptyTuple, FragOut]()
 
     val fn: WgslFn[Float *: EmptyTuple, Float] =
       WgslFn.raw("my_fn")("  return x;")
@@ -153,7 +153,7 @@ class WgslFnTest extends FunSuite:
 
   test("program.fn accumulates multiple functions in order"):
     type Attribs = (position: Vec2)
-    val program = Program[Attribs, EmptyTuple, EmptyTuple, EmptyTuple]()
+    val program = Program[Attribs, EmptyTuple, EmptyTuple, EmptyTuple, FragOut]()
 
     val fn1: WgslFn[Float *: EmptyTuple, Float] =
       WgslFn.raw("fn_one")("  return x;")
@@ -174,7 +174,7 @@ class WgslFnTest extends FunSuite:
   test("WgslFn call expression integrates into vertex body"):
     type Attribs = (position: Vec2)
     type Uniforms = (angle: VertexUniform[Float])
-    val program = Program[Attribs, EmptyTuple, Uniforms, EmptyTuple]()
+    val program = Program[Attribs, EmptyTuple, Uniforms, EmptyTuple, FragOut]()
 
     val rotate: WgslFn[(v: Vec2, angle: Float), Vec2] =
       WgslFn.raw("rotate")("  return v;")

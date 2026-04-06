@@ -22,7 +22,7 @@ trait Bindable[U, P]:
   val painter: Painter
   inline def device: GPUDevice = painter.device
   var bindings: BindingSlots
-  var panelBindings: Arr[Opt[Panel]]
+  var panelBindings: Arr[Opt[PanelBinding]]
 
   inline def bind[N1 <: String & Singleton, V1](
       e1: BindPair[N1, V1],
@@ -233,13 +233,17 @@ trait Bindable[U, P]:
                 bindings(idx) = bb
     else inline if derive.containsName[N, P] then
       inline pair.value match
+        case pb: PanelBinding =>
+          val idx = shade.panelIndices(pair.name)
+          while panelBindings.length <= idx do panelBindings.push(null)
+          panelBindings(idx) = pb
         case p: Panel =>
           val idx = shade.panelIndices(pair.name)
           while panelBindings.length <= idx do panelBindings.push(null)
-          panelBindings(idx) = p
+          panelBindings(idx) = PanelBinding(p)
         case _ =>
           scala.compiletime.error(
-            "Panel binding value must be a Panel instance",
+            "Panel binding value must be a Panel or PanelBinding instance",
           )
     else
       scala.compiletime.error(
@@ -254,7 +258,7 @@ class Shape[U, P](
   var cullMode: CullMode = CullMode.None
   var blendState: Opt[BlendState] = null
   var bindings: BindingSlots = Arr()
-  var panelBindings: Arr[Opt[Panel]] = Arr()
+  var panelBindings: Arr[Opt[PanelBinding]] = Arr()
   val instances: InstanceList[U, P] = InstanceList[U, P](shade, painter)
 
   def set(

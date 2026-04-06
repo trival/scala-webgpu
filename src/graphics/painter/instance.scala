@@ -7,7 +7,7 @@ class Instance[U, P](
     val painter: Painter,
 ) extends Bindable[U, P]:
   var bindings: BindingSlots = Arr()
-  var panelBindings: Arr[Opt[Panel]] = Arr()
+  var panelBindings: Arr[Opt[PanelBinding]] = Arr()
 
 class InstanceList[U, P](val shade: Shade[U, P], val painter: Painter):
   val items: Arr[Instance[U, P]] = Arr()
