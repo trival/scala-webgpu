@@ -14,6 +14,7 @@ class PanelBinding(
     val panel: Panel,
     val index: Int = 0,
     val mipLevel: Int = -1,
+    val depth: Boolean = false,
 ) extends js.Object
 
 type PanelBindingValue = BufferBinding[?, ?] | GPUSampler | Panel | PanelBinding
@@ -37,6 +38,7 @@ class Panel(val painter: Painter):
   private var _pongViews: Arr[GPUTextureView] = Arr()
   private var _depthTexture: Opt[GPUTexture] = null
   private var _depthView: Opt[GPUTextureView] = null
+  private var _depthSamplable: Boolean = false
   private var _msaaTextures: Arr[GPUTexture] = Arr()
   private var _msaaViews: Arr[GPUTextureView] = Arr()
   private var _outputView: Opt[GPUTextureView] = null
@@ -86,8 +88,29 @@ class Panel(val painter: Painter):
   def pongViewAt(index: Int): GPUTextureView = _pongViews(index)
   def msaaViewAt(index: Int): GPUTextureView = _msaaViews(index)
 
-  def binding(index: Int = 0, mipLevel: Int = -1): PanelBinding =
-    new PanelBinding(this, index, mipLevel)
+  def depthSamplingView: GPUTextureView =
+    if !_depthSamplable && _depthTexture.notNull then
+      _depthTexture.get.destroy()
+      val depthTex = painter.device.createTexture(
+        Obj.literal(
+          size = Obj.literal(width = _width, height = _height),
+          format = "depth24plus",
+          usage =
+            GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
+          sampleCount = if multisample then 4 else 1,
+        ),
+      )
+      _depthTexture = depthTex
+      _depthView = depthTex.createView()
+      _depthSamplable = true
+    _depthView
+
+  def binding(
+      index: Int = 0,
+      mipLevel: Int = -1,
+      depth: Boolean = false,
+  ): PanelBinding =
+    new PanelBinding(this, index, mipLevel, depth)
 
   private[painter] def setOutputView(view: GPUTextureView): Unit =
     _outputView = view
@@ -420,11 +443,15 @@ class Panel(val painter: Painter):
         i += 1
 
       if depthTest then
+        val depthUsage =
+          if _depthSamplable then
+            GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+          else GPUTextureUsage.RENDER_ATTACHMENT
         val depthTex = painter.device.createTexture(
           Obj.literal(
             size = Obj.literal(width = targetW, height = targetH),
             format = "depth24plus",
-            usage = GPUTextureUsage.RENDER_ATTACHMENT,
+            usage = depthUsage,
             sampleCount = if multisample then 4 else 1,
           ),
         )

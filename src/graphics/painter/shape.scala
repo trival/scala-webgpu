@@ -10,7 +10,8 @@ import webgpu.GPUSampler
 import scala.compiletime.summonFrom
 import scala.scalajs.js
 
-type BindingSlots = Arr[BufferBinding[?, ?] | GPUSampler | Null] // Null = empty slot
+type BindingSlots =
+  Arr[BufferBinding[?, ?] | GPUSampler | Null] // Null = empty slot
 
 class BindPair[N <: String & Singleton, V](val name: N, val value: V)
 

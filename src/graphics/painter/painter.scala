@@ -609,7 +609,14 @@ class Painter(
 
     var i = 0
     while i < panel.shapes.length do
-      renderShapeOnPass(shapePass, panel.shapes(i), panel.depthTest, msaa, panelFormats, panel)
+      renderShapeOnPass(
+        shapePass,
+        panel.shapes(i),
+        panel.depthTest,
+        msaa,
+        panelFormats,
+        panel,
+      )
       i += 1
 
     shapePass.end()
@@ -659,10 +666,15 @@ class Painter(
             ),
           ),
         )
-        renderLayerOnPass(mipPass, layer, formats = panelFormats, srcView = mipSrcView, panel = panel)
+        renderLayerOnPass(
+          mipPass,
+          layer,
+          formats = panelFormats,
+          srcView = mipSrcView,
+          panel = panel,
+        )
         mipPass.end()
         queue.submit(Arr(enc.finish()))
-
       else if needsPingPong then
         hasPongLayers = true
         // End current pass if open, submit
@@ -684,7 +696,13 @@ class Painter(
             ),
           ),
         )
-        renderLayerOnPass(ppPass, layer, formats = panelFormats, srcView = srcView, panel = panel)
+        renderLayerOnPass(
+          ppPass,
+          layer,
+          formats = panelFormats,
+          srcView = srcView,
+          panel = panel,
+        )
         ppPass.end()
         queue.submit(Arr(enc.finish()))
 
@@ -988,7 +1006,9 @@ class Painter(
       while k < panelBindings.length do
         val pb = panelBindings(k)
         if pb.notNull then
-          val view = pb.panel.textureViewAt(pb.index, pb.mipLevel)
+          val view =
+            if pb.depth then pb.panel.depthSamplingView
+            else pb.panel.textureViewAt(pb.index, pb.mipLevel)
           entries.push(Obj.literal(binding = k, resource = view))
         k += 1
       if entries.length > 0 then
@@ -1013,17 +1033,16 @@ class Painter(
       panel: Opt[Panel] = null,
   ): Unit =
     val fmts = if formats != null then formats else Arr(preferredFormat)
-    val cacheKey =
-      pipelineKeyStr(shape, fmts, depthTest, multisample)
-    val pipeline =
-      if js.DynamicImplicits.truthValue(
-          pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(cacheKey),
-        )
-      then pipelineCache(cacheKey)
-      else
-        val p = createPipeline(shape, fmts, depthTest, multisample)
-        pipelineCache(cacheKey) = p
-        p
+    val pipeline = getPipeline(
+      shape.shade,
+      shape.blendState,
+      fmts,
+      depthTest,
+      multisample,
+      shape.form.topology,
+      shape.cullMode,
+      shape.form.frontFace,
+    )
 
     pass.setPipeline(pipeline)
     pass.setVertexBuffer(0, shape.form.vertexBuffer)
@@ -1034,7 +1053,12 @@ class Painter(
     if instanceCount == 0 then
       if hasPanelBinds then
         copyToWork(shape.bindings, shape.panelBindings)
-        applyPanelRuntimeBindings(panel, shape.shade, _workBindings, _workPanelBindings)
+        applyPanelRuntimeBindings(
+          panel,
+          shape.shade,
+          _workBindings,
+          _workPanelBindings,
+        )
         setValueBindGroup(pass, shape.shade, _workBindings)
         setPanelBindGroup(pass, shape.shade, _workPanelBindings)
       else
@@ -1047,7 +1071,12 @@ class Painter(
         val inst = shape.instances.items(i)
         copyToWork(shape.bindings, shape.panelBindings)
         if hasPanelBinds then
-          applyPanelRuntimeBindings(panel, shape.shade, _workBindings, _workPanelBindings)
+          applyPanelRuntimeBindings(
+            panel,
+            shape.shade,
+            _workBindings,
+            _workPanelBindings,
+          )
         applyInstanceBindings(inst, _workBindings, _workPanelBindings)
         setValueBindGroup(pass, shape.shade, _workBindings)
         setPanelBindGroup(pass, shape.shade, _workPanelBindings)
@@ -1068,17 +1097,13 @@ class Painter(
       panel: Opt[Panel] = null,
   ): Unit =
     val fmts = if formats != null then formats else Arr(preferredFormat)
-    val cacheKey =
-      s"L|${layer.shade.id}|${layer.blendState.isNull}|${fmts.join(",")}|$depthTest|$multisample"
-    val pipeline =
-      if js.DynamicImplicits.truthValue(
-          pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(cacheKey),
-        )
-      then pipelineCache(cacheKey)
-      else
-        val p = createLayerPipeline(layer, fmts, depthTest, multisample)
-        pipelineCache(cacheKey) = p
-        p
+    val pipeline = getPipeline(
+      layer.shade,
+      layer.blendState,
+      fmts,
+      depthTest,
+      multisample,
+    )
 
     pass.setPipeline(pipeline)
 
@@ -1088,13 +1113,23 @@ class Painter(
     if instanceCount == 0 then
       if hasPanelBinds then
         copyToWork(layer.bindings, layer.panelBindings)
-        applyPanelRuntimeBindings(panel, layer.shade, _workBindings, _workPanelBindings)
+        applyPanelRuntimeBindings(
+          panel,
+          layer.shade,
+          _workBindings,
+          _workPanelBindings,
+        )
         setValueBindGroup(pass, layer.shade, _workBindings)
         val effectiveSrcView =
           if _workPanelBindings.length > 0 && _workPanelBindings(0).notNull
           then null
           else srcView
-        setPanelBindGroup(pass, layer.shade, _workPanelBindings, effectiveSrcView)
+        setPanelBindGroup(
+          pass,
+          layer.shade,
+          _workPanelBindings,
+          effectiveSrcView,
+        )
       else
         setValueBindGroup(pass, layer.shade, layer.bindings)
         setPanelBindGroup(pass, layer.shade, layer.panelBindings, srcView)
@@ -1105,117 +1140,101 @@ class Painter(
         val inst = layer.instances.items(i)
         copyToWork(layer.bindings, layer.panelBindings)
         if hasPanelBinds then
-          applyPanelRuntimeBindings(panel, layer.shade, _workBindings, _workPanelBindings)
+          applyPanelRuntimeBindings(
+            panel,
+            layer.shade,
+            _workBindings,
+            _workPanelBindings,
+          )
         applyInstanceBindings(inst, _workBindings, _workPanelBindings)
         setValueBindGroup(pass, layer.shade, _workBindings)
         val effectiveSrcView =
           if _workPanelBindings.length > 0 && _workPanelBindings(0).notNull
           then null
           else srcView
-        setPanelBindGroup(pass, layer.shade, _workPanelBindings, effectiveSrcView)
+        setPanelBindGroup(
+          pass,
+          layer.shade,
+          _workPanelBindings,
+          effectiveSrcView,
+        )
         pass.draw(3)
         i += 1
-
-  private def createLayerPipeline(
-      layer: Layer[?, ?],
-      formats: Arr[String],
-      depthTest: Boolean = false,
-      multisample: Boolean = false,
-  ): GPURenderPipeline =
-    val shade = layer.shade
-    val targets = Arr[js.Dynamic]()
-    var ti = 0
-    while ti < formats.length do
-      val target =
-        if layer.blendState.isNull then Obj.literal(format = formats(ti))
-        else Obj.literal(format = formats(ti), blend = layer.blendState)
-      targets.push(target)
-      ti += 1
-    val desc = Obj.literal(
-      layout = shade.pipelineLayout,
-      vertex = Obj.literal(module = shade.shaderModule, entryPoint = "vs_main"),
-      fragment = Obj.literal(
-        module = shade.shaderModule,
-        entryPoint = "fs_main",
-        targets = targets,
-      ),
-      primitive = Obj.literal(topology = "triangle-list"),
-    )
-    if depthTest then
-      desc.depthStencil = Obj.literal(
-        format = "depth24plus",
-        depthWriteEnabled = true,
-        depthCompare = "less",
-      )
-    if multisample then desc.multisample = Obj.literal(count = 4)
-    device.createRenderPipeline(desc)
 
   // =========================================================================
   // Pipeline creation + caching
   // =========================================================================
 
-  private def pipelineKeyStr(
-      shape: Shape[?, ?],
+  private def blendKeyStr(bs: Opt[BlendState]): String =
+    if bs.isNull then "n"
+    else
+      val c = bs.color
+      val a = bs.alpha
+      s"${c.srcFactor}.${c.dstFactor}.${c.operation}|${a.srcFactor}.${a.dstFactor}.${a.operation}"
+
+  private def getPipeline(
+      shade: Shade[?, ?],
+      blendState: Opt[BlendState],
       formats: Arr[String],
       depthTest: Boolean,
       multisample: Boolean,
-  ): String =
-    val s = shape.shade
-    val f = shape.form
-    s"${s.id}|${shape.blendState.isNull}|${shape.cullMode}|${f.topology}|${f.frontFace}|${formats.join(",")}|${depthTest}|${multisample}"
-
-  private def createPipeline(
-      shape: Shape[?, ?],
-      formats: Arr[String],
-      depthTest: Boolean = false,
-      multisample: Boolean = false,
+      topology: PrimitiveTopology = PrimitiveTopology.TriangleList,
+      cullMode: CullMode = CullMode.None,
+      frontFace: FrontFace = FrontFace.CCW,
   ): GPURenderPipeline =
-    val shade = shape.shade
-
-    val targets = Arr[js.Dynamic]()
-    var ti = 0
-    while ti < formats.length do
-      val target =
-        if shape.blendState.isNull then Obj.literal(format = formats(ti))
-        else Obj.literal(format = formats(ti), blend = shape.blendState)
-      targets.push(target)
-      ti += 1
-
-    val vertexDescriptor =
-      if shade.vertexBufferLayout.notNull then
-        Obj.literal(
-          module = shade.shaderModule,
-          entryPoint = "vs_main",
-          buffers = Arr(shade.vertexBufferLayout),
-        )
-      else
-        Obj.literal(
-          module = shade.shaderModule,
-          entryPoint = "vs_main",
-        )
-
-    val desc = Obj.literal(
-      layout = shade.pipelineLayout,
-      vertex = vertexDescriptor,
-      fragment = Obj.literal(
-        module = shade.shaderModule,
-        entryPoint = "fs_main",
-        targets = targets,
-      ),
-      primitive = Obj.literal(
-        topology = shape.form.topology.toJs,
-        cullMode = shape.cullMode.toJs,
-        frontFace = shape.form.frontFace.toJs,
-      ),
-    )
-    if depthTest then
-      desc.depthStencil = Obj.literal(
-        format = "depth24plus",
-        depthWriteEnabled = true,
-        depthCompare = "less",
+    val key =
+      s"${shade.id}|${blendKeyStr(blendState)}|${formats.join(",")}|$depthTest|$multisample|${topology}|${cullMode}|${frontFace}"
+    if js.DynamicImplicits.truthValue(
+        pipelineCache.asInstanceOf[js.Dynamic].hasOwnProperty(key),
       )
-    if multisample then desc.multisample = Obj.literal(count = 4)
-    device.createRenderPipeline(desc)
+    then pipelineCache(key)
+    else
+      val targets = Arr[js.Dynamic]()
+      var ti = 0
+      while ti < formats.length do
+        val target =
+          if blendState.isNull then Obj.literal(format = formats(ti))
+          else Obj.literal(format = formats(ti), blend = blendState)
+        targets.push(target)
+        ti += 1
+
+      val vertexDescriptor =
+        if shade.vertexBufferLayout.notNull then
+          Obj.literal(
+            module = shade.shaderModule,
+            entryPoint = "vs_main",
+            buffers = Arr(shade.vertexBufferLayout),
+          )
+        else
+          Obj.literal(
+            module = shade.shaderModule,
+            entryPoint = "vs_main",
+          )
+
+      val desc = Obj.literal(
+        layout = shade.pipelineLayout,
+        vertex = vertexDescriptor,
+        fragment = Obj.literal(
+          module = shade.shaderModule,
+          entryPoint = "fs_main",
+          targets = targets,
+        ),
+        primitive = Obj.literal(
+          topology = topology.toJs,
+          cullMode = cullMode.toJs,
+          frontFace = frontFace.toJs,
+        ),
+      )
+      if depthTest then
+        desc.depthStencil = Obj.literal(
+          format = "depth24plus",
+          depthWriteEnabled = true,
+          depthCompare = "less",
+        )
+      if multisample then desc.multisample = Obj.literal(count = 4)
+      val p = device.createRenderPipeline(desc)
+      pipelineCache(key) = p
+      p
 
   // =========================================================================
   // Bind group creation

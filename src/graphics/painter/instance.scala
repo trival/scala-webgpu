@@ -18,22 +18,25 @@ class InstanceList[U, P](val shade: Shade[U, P], val painter: Painter):
 
   def clear(): Unit = items.length = 0
 
+  def add(): Int =
+    val inst = Instance(shade, painter)
+    items.push(inst)
+    items.length - 1
+
   inline def add[N1 <: String & Singleton, V1](
       e1: BindPair[N1, V1],
   ): Int =
-    val inst = Instance[U, P](shade, painter)
-    inst.bind(e1)
-    items.push(inst)
-    items.length - 1
+    val i = add()
+    items(i).bind(e1)
+    i
 
   inline def add[N1 <: String & Singleton, V1, N2 <: String & Singleton, V2](
       e1: BindPair[N1, V1],
       e2: BindPair[N2, V2],
   ): Int =
-    val inst = Instance[U, P](shade, painter)
-    inst.bind(e1, e2)
-    items.push(inst)
-    items.length - 1
+    val i = add()
+    items(i).bind(e1, e2)
+    i
 
   inline def add[
       N1 <: String & Singleton,
@@ -47,10 +50,9 @@ class InstanceList[U, P](val shade: Shade[U, P], val painter: Painter):
       e2: BindPair[N2, V2],
       e3: BindPair[N3, V3],
   ): Int =
-    val inst = Instance[U, P](shade, painter)
-    inst.bind(e1, e2, e3)
-    items.push(inst)
-    items.length - 1
+    val i = add()
+    items(i).bind(e1, e2, e3)
+    i
 
   inline def add[
       N1 <: String & Singleton,
@@ -67,10 +69,9 @@ class InstanceList[U, P](val shade: Shade[U, P], val painter: Painter):
       e3: BindPair[N3, V3],
       e4: BindPair[N4, V4],
   ): Int =
-    val inst = Instance[U, P](shade, painter)
-    inst.bind(e1, e2, e3, e4)
-    items.push(inst)
-    items.length - 1
+    val i = add()
+    items(i).bind(e1, e2, e3, e4)
+    i
 
   inline def add[
       N1 <: String & Singleton,
@@ -90,10 +91,9 @@ class InstanceList[U, P](val shade: Shade[U, P], val painter: Painter):
       e4: BindPair[N4, V4],
       e5: BindPair[N5, V5],
   ): Int =
-    val inst = Instance[U, P](shade, painter)
-    inst.bind(e1, e2, e3, e4, e5)
-    items.push(inst)
-    items.length - 1
+    val i = add()
+    items(i).bind(e1, e2, e3, e4, e5)
+    i
 
   inline def add[
       N1 <: String & Singleton,
@@ -116,10 +116,9 @@ class InstanceList[U, P](val shade: Shade[U, P], val painter: Painter):
       e5: BindPair[N5, V5],
       e6: BindPair[N6, V6],
   ): Int =
-    val inst = Instance[U, P](shade, painter)
-    inst.bind(e1, e2, e3, e4, e5, e6)
-    items.push(inst)
-    items.length - 1
+    val i = add()
+    items(i).bind(e1, e2, e3, e4, e5, e6)
+    i
 
   inline def add[
       N1 <: String & Singleton,
@@ -145,10 +144,9 @@ class InstanceList[U, P](val shade: Shade[U, P], val painter: Painter):
       e6: BindPair[N6, V6],
       e7: BindPair[N7, V7],
   ): Int =
-    val inst = Instance[U, P](shade, painter)
-    inst.bind(e1, e2, e3, e4, e5, e6, e7)
-    items.push(inst)
-    items.length - 1
+    val i = add()
+    items(i).bind(e1, e2, e3, e4, e5, e6, e7)
+    i
 
   inline def add[
       N1 <: String & Singleton,
@@ -177,7 +175,6 @@ class InstanceList[U, P](val shade: Shade[U, P], val painter: Painter):
       e7: BindPair[N7, V7],
       e8: BindPair[N8, V8],
   ): Int =
-    val inst = Instance[U, P](shade, painter)
-    inst.bind(e1, e2, e3, e4, e5, e6, e7, e8)
-    items.push(inst)
-    items.length - 1
+    val i = add()
+    items(i).bind(e1, e2, e3, e4, e5, e6, e7, e8)
+    i
