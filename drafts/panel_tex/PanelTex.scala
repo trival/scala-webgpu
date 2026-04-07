@@ -67,7 +67,7 @@ def main(): Unit =
     triVerts(0).set0(0.0, 1.0, 0.0); triVerts(0).set1(1.0, 0.2, 0.2)
     triVerts(1).set0(-0.87, -0.5, 0.0); triVerts(1).set1(0.9, 0.45, 0.1)
     triVerts(2).set0(0.87, -0.5, 0.0); triVerts(2).set1(1.0, 0.8, 0.15)
-    val triForm = painter.form().set(vertices = triVerts)
+    val triForm = painter.form(vertices = triVerts)
 
     // Blue quad (square, ±0.8)
     val quadVerts = allocateAttribs[ColorAttribs](6)
@@ -77,7 +77,7 @@ def main(): Unit =
     quadVerts(3).set0(-0.8, -0.8, 0.0); quadVerts(3).set1(0.1, 0.3, 1.0)
     quadVerts(4).set0(0.8, 0.8, 0.0); quadVerts(4).set1(0.5, 0.8, 1.0)
     quadVerts(5).set0(-0.8, 0.8, 0.0); quadVerts(5).set1(0.25, 0.5, 1.0)
-    val quadForm = painter.form().set(vertices = quadVerts)
+    val quadForm = painter.form(vertices = quadVerts)
 
     // -----------------------------------------------------------------------
     // Geometry — textured 3D quads for the canvas (local space, centered at
@@ -94,8 +94,8 @@ def main(): Unit =
       v(5).set0(-0.85, 0.85, 0.0); v(5).set1(0.0, 0.0)
       v
 
-    val leftTexForm = painter.form().set(vertices = makeTexQuadVerts())
-    val rightTexForm = painter.form().set(vertices = makeTexQuadVerts())
+    val leftTexForm = painter.form(vertices = makeTexQuadVerts())
+    val rightTexForm = painter.form(vertices = makeTexQuadVerts())
 
     // -----------------------------------------------------------------------
     // MVP bindings
@@ -123,8 +123,7 @@ def main(): Unit =
     // Panels
     // -----------------------------------------------------------------------
     val trianglePanel = painter
-      .panel()
-      .set(
+      .panel(
         width = 800,
         height = 800,
         clearColor = (0.04, 0.04, 0.26, 1.0),
@@ -133,8 +132,7 @@ def main(): Unit =
       )
 
     val quadPanel = painter
-      .panel()
-      .set(
+      .panel(
         width = 800,
         height = 800,
         clearColor = (0.04, 0.26, 0.04, 1.0),
@@ -146,8 +144,7 @@ def main(): Unit =
     quadTexShape.bind("colorTex" := quadPanel)
 
     val canvasPanel = painter
-      .panel()
-      .set(
+      .panel(
         clearColor = (0.03, 0.03, 0.05, 1.0),
         depthTest = true,
         multisample = true,

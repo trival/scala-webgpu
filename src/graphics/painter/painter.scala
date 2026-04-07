@@ -8,6 +8,7 @@ import graphics.shader.*
 import graphics.shader.dsl.LayerProgram
 import graphics.shader.dsl.Program
 import org.scalajs.dom.HTMLCanvasElement
+import trivalibs.bufferdata.StructArray
 import trivalibs.utils.js.*
 import webgpu.*
 
@@ -473,7 +474,11 @@ class Painter(
   // Form factory
   // =========================================================================
 
-  def form(): Form = Form(this)
+  def form[F <: Tuple](
+      vertices: Maybe[StructArray[F]] = Maybe.Not,
+      topology: Maybe[PrimitiveTopology] = Maybe.Not,
+      frontFace: Maybe[FrontFace] = Maybe.Not,
+  ): Form = Form(this).set(vertices, topology, frontFace)
 
   // =========================================================================
   // Binding factory
@@ -491,21 +496,41 @@ class Painter(
   // Shape factory
   // =========================================================================
 
-  def shape[U, P](shade: Shade[U, P], form: Form): Shape[U, P] =
-    Shape[U, P](this, shade, form)
+  def shape[U, P](
+      shade: Shade[U, P],
+      form: Form,
+      cullMode: Maybe[CullMode] = Maybe.Not,
+      blendState: Maybe[Opt[BlendState]] = Maybe.Not,
+  ): Shape[U, P] =
+    Shape[U, P](this, shade, form).set(cullMode, blendState)
 
   // =========================================================================
   // Layer factory
   // =========================================================================
 
-  def layer[U, P](shade: Shade[U, P]): Layer[U, P] =
-    Layer[U, P](this, shade)
+  def layer[U, P](
+      shade: Shade[U, P],
+      blendState: Maybe[Opt[BlendState]] = Maybe.Not,
+      mipSource: Maybe[Int] = Maybe.Not,
+      mipTarget: Maybe[Int] = Maybe.Not,
+  ): Layer[U, P] =
+    Layer[U, P](this, shade).set(blendState, mipSource, mipTarget)
 
   // =========================================================================
   // Panel factory
   // =========================================================================
 
-  def panel(): Panel = Panel(this)
+  def panel(
+      width: Maybe[Int] = Maybe.Not,
+      height: Maybe[Int] = Maybe.Not,
+      clearColor: Maybe[Opt[ClearColor]] = Maybe.Not,
+      depthTest: Maybe[Boolean] = Maybe.Not,
+      multisample: Maybe[Boolean] = Maybe.Not,
+      mipLevels: Maybe[Int] = Maybe.Not,
+      formats: Maybe[Arr[String]] = Maybe.Not,
+      shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
+      layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
+  ): Panel = Panel(this).set(width, height, clearColor, depthTest, multisample, mipLevels, formats, shapes, layers)
 
   // =========================================================================
   // draw() — direct-to-canvas rendering
