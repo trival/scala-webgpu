@@ -289,6 +289,53 @@ given [T] => Position[T] => PositionKey[T]:
 
 `Mesh` would then require `PositionKey[T]`.
 
+**Option C — three-level nested `Dict` tree** (no string allocation):
+
+Replace `Dict[Int]` with `Dict[Dict[Dict[Int]]]` — each dimension is a separate
+dictionary level keyed by the rounded integer coordinate:
+
+```scala
+type PosMap = Dict[Dict[Dict[Int]]]
+
+def posLookup(map: PosMap, v: Vec3): Opt[Int] =
+  val xi = (v.x * 10000).toInt.toString
+  val yi = (v.y * 10000).toInt.toString
+  val zi = (v.z * 10000).toInt.toString
+  val xd = map.get(xi).orNull
+  if xd == null then null
+  else
+    val yd = xd.get(yi).orNull
+    if yd == null then null
+    else yd.get(zi).orNull
+
+def posInsert(map: PosMap, v: Vec3, idx: Int): Unit =
+  val xi = (v.x * 10000).toInt.toString
+  val yi = (v.y * 10000).toInt.toString
+  val zi = (v.z * 10000).toInt.toString
+  if !map.contains(xi) then map(xi) = Dict()
+  val xd = map(xi)
+  if !xd.contains(yi) then xd(yi) = Dict()
+  xd(yi)(zi) = idx
+```
+
+Three short integer strings instead of one concatenated string — avoids the
+`s"$x,$y,$z"` interpolation overhead (extra allocation + string copy in V8).
+Still does three dictionary lookups. Worth benchmarking against Option A/B
+before adopting.
+
+**Option D — cache inside `Mesh`:** Two sub-variants, both deferred:
+
+- *`WeakMap` by object identity* — fails because the default `given [V] =>
+  Vec3Base[V] => Position[V]` creates a fresh `Vec3` on every `.pos` call, so
+  the same coordinate produces different instances and the cache always misses.
+- *`FaceWrapper[T]`* holding `(face: Face[T], vertexMeta: Arr[VertexMeta])`
+  with pre-computed keys per slot — avoids recomputation but adds an extra
+  object allocation per face and pointer indirection on every vertex access
+  (normal computation, buffer generation, adjacency queries). Indirection cost
+  on hot paths likely outweighs key savings that only occur during construction.
+
+Profile Options A–C before revisiting.
+
 ---
 
 ## Phase 4 — Buffer Generation (`buffers.scala`)
