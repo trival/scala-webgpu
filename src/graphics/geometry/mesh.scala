@@ -17,72 +17,73 @@ class FaceData(var normal: Opt[Vec3], val section: Int) extends js.Object
 opaque type MeshBufferType = Int
 
 object MeshBufferType:
-  val FaceVertices: MeshBufferType             = 0
-  val FaceVerticesWithFaceNormal: MeshBufferType  = 1
+  val FaceVertices: MeshBufferType = 0
+  val FaceVerticesWithFaceNormal: MeshBufferType = 1
   val FaceVerticesWithVertexNormal: MeshBufferType = 2
-  val CompactVertices: MeshBufferType          = 3
-  val CompactVerticesWithNormal: MeshBufferType   = 4
+  val CompactVertices: MeshBufferType = 3
+  val CompactVerticesWithNormal: MeshBufferType = 4
 
 class Mesh[T](using pos: Position[T]):
-  val faces: Arr[Face[T]]               = Arr()
-  val faceData: Arr[FaceData]           = Arr()
+  val faces: Arr[Face[T]] = Arr()
+  val faceData: Arr[FaceData] = Arr()
   val positions: Arr[VertexPosition[T]] = Arr()
-  val positionMap: Dict[Int]            = Dict()
+  val positionMap: Dict[Int] = Dict()
 
   def addFace(face: Face[T], normal: Opt[Vec3] = null, section: Int = 0): Unit =
     val faceIdx = faces.length
     faces.push(face)
     faceData.push(FaceData(normal, section))
     val arr = face.asInstanceOf[Arr[T]]
-    val n   = arr.length
+    val n = arr.length
     var slot = 0
     while slot < n do
-      val v   = arr(slot)
+      val v = arr(slot)
       val key = posKey(v.pos)
       if js.Object.hasProperty(positionMap.asInstanceOf[js.Object], key) then
         positions(positionMap(key)).faces.push(PositionFaceRef(faceIdx, slot))
       else
         val idx = positions.length
         positionMap(key) = idx
-        positions.push(VertexPosition(v.pos, Arr(PositionFaceRef(faceIdx, slot))))
+        positions.push(
+          VertexPosition(v.pos, Arr(PositionFaceRef(faceIdx, slot))),
+        )
       slot += 1
 
   def removeFace(faceIdx: Int): Unit =
     // Unregister position refs for the face being removed
     val arr = faces(faceIdx).asInstanceOf[Arr[T]]
-    val n   = arr.length
+    val n = arr.length
     var slot = 0
     while slot < n do
       val key = posKey(arr(slot).pos)
       if js.Object.hasProperty(positionMap.asInstanceOf[js.Object], key) then
         val vp = positions(positionMap(key))
-        var i  = 0
+        var i = 0
         while i < vp.faces.length do
           val ref = vp.faces(i)
           if ref.faceIndex == faceIdx && ref.vertexSlot == slot then
             vp.faces.splice(i, 1)
-          else
-            i += 1
+          else i += 1
       slot += 1
 
     val lastIdx = faces.length - 1
     if faceIdx != lastIdx then
       // Rewrite refs for the last face (it will be moved to faceIdx)
       val lastArr = faces(lastIdx).asInstanceOf[Arr[T]]
-      val lN      = lastArr.length
-      var ls      = 0
+      val lN = lastArr.length
+      var ls = 0
       while ls < lN do
         val key = posKey(lastArr(ls).pos)
         if js.Object.hasProperty(positionMap.asInstanceOf[js.Object], key) then
           val vp = positions(positionMap(key))
-          var i  = 0
+          var i = 0
           while i < vp.faces.length do
             val ref = vp.faces(i)
             if ref.faceIndex == lastIdx && ref.vertexSlot == ls then
               vp.faces(i) = PositionFaceRef(faceIdx, ls)
             i += 1
         ls += 1
-      faces(faceIdx)    = faces(lastIdx)
+      faces(faceIdx) = faces(lastIdx)
       faceData(faceIdx) = faceData(lastIdx)
 
     faces.pop()
@@ -99,7 +100,7 @@ class Mesh[T](using pos: Position[T]):
     if vp == null then Arr()
     else
       val result = Arr[Face[T]]()
-      var i      = 0
+      var i = 0
       while i < vp.faces.length do
         result.push(faces(vp.faces(i).faceIndex))
         i += 1
@@ -109,7 +110,7 @@ class Mesh[T](using pos: Position[T]):
   // Returns true if the mesh contains any quads.
   def ensureFaceNormals(): Boolean =
     var hasQuads = false
-    var i        = 0
+    var i = 0
     while i < faces.length do
       val arr = faces(i).asInstanceOf[Arr[T]]
       if arr.length == 4 then hasQuads = true
@@ -133,7 +134,7 @@ class Mesh[T](using pos: Position[T]):
     var i = 0
     while i < faces.length do
       val newFaces = f(faces(i))
-      var j        = 0
+      var j = 0
       while j < newFaces.length do
         m.addFace(newFaces(j), null, faceData(i).section)
         j += 1

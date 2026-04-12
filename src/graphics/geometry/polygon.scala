@@ -24,7 +24,9 @@ object Triangle:
       e1.cross(e2).normalize
 
     // Returns 0-2 triangles (clipped away, or split into 1 or 2 triangles).
-    def splitByPlane(plane: Plane)(using pos: Position[T], lerp: Lerp[T]): Arr[Triangle[T]] =
+    def splitByPlane(
+        plane: Plane,
+    )(using pos: Position[T], lerp: Lerp[T]): Arr[Triangle[T]] =
       val out = clipPolygon(tri, 3, plane)
       fanTriangulate(out)
 
@@ -61,9 +63,11 @@ object Quad:
       (Triangle(q.bl, q.br, q.tr), Triangle(q.bl, q.tr, q.tl))
 
     // Returns 0, 1 Triangle, 1 Quad, or 1 Quad + 1 Triangle (5-vert clip output).
-    def splitByPlane(plane: Plane)(using pos: Position[T], lerp: Lerp[T]): Arr[Triangle[T] | Quad[T]] =
+    def splitByPlane(
+        plane: Plane,
+    )(using pos: Position[T], lerp: Lerp[T]): Arr[Triangle[T] | Quad[T]] =
       val out = clipPolygon(q, 4, plane)
-      val n   = out.length
+      val n = out.length
       if n == 0 then Arr()
       else if n == 3 then Arr(Triangle(out(0), out(1), out(2)))
       else if n == 4 then Arr(Quad(out(0), out(1), out(2), out(3)))
@@ -79,22 +83,22 @@ object Quad:
 // ---------------------------------------------------------------------------
 
 private def clipPolygon[T](
-  verts: Arr[T],
-  n: Int,
-  plane: Plane,
+    verts: Arr[T],
+    n: Int,
+    plane: Plane,
 )(using pos: Position[T], lerp: Lerp[T]): Arr[T] =
   val out = Arr[T]()
-  var i   = 0
+  var i = 0
   while i < n do
-    val curr   = verts(i)
-    val next   = verts((i + 1) % n)
+    val curr = verts(i)
+    val next = verts((i + 1) % n)
     val currIn = !curr.pos.behind(plane)
     val nextIn = !next.pos.behind(plane)
     if currIn then out.push(curr)
     if currIn != nextIn then
       val dc = plane.signedDist(curr.pos)
       val dn = plane.signedDist(next.pos)
-      val t  = dc / (dc - dn)
+      val t = dc / (dc - dn)
       out.push(curr.lerp(next, t))
     i += 1
   out
@@ -105,7 +109,7 @@ private def fanTriangulate[T](out: Arr[T]): Arr[Triangle[T]] =
   if n < 3 then Arr()
   else
     val tris = Arr[Triangle[T]]()
-    var i    = 1
+    var i = 1
     while i < n - 1 do
       tris.push(Triangle(out(0), out(i), out(i + 1)))
       i += 1

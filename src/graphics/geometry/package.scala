@@ -22,7 +22,7 @@ class Plane(val normal: Vec3, val d: Double) extends js.Object:
   def signedDist(p: Vec3): Double = normal.dot(p) - d
 
 private inline val ROUNDING = 10000.0
-private inline val DELTA    = 1.0 / ROUNDING
+private inline val DELTA = 1.0 / ROUNDING
 
 def posKey(v: Vec3): String =
   s"${(v.x * ROUNDING).toInt},${(v.y * ROUNDING).toInt},${(v.z * ROUNDING).toInt}"
@@ -34,4 +34,4 @@ extension (v: Vec3)
       (v.z * ROUNDING).toInt == (w.z * ROUNDING).toInt
   def onPlane(p: Plane): Boolean = math.abs(p.signedDist(v)) < DELTA
   def inFront(p: Plane): Boolean = p.signedDist(v) > DELTA
-  def behind(p: Plane): Boolean  = p.signedDist(v) < -DELTA
+  def behind(p: Plane): Boolean = p.signedDist(v) < -DELTA
