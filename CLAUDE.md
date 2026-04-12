@@ -138,3 +138,8 @@ features. Every runtime construct must compile to minimal JS:
   Clear colors are `Vec4Tuple`, not a dedicated Color type.
 - **Draft examples**: Each implementation step gets a new draft in `drafts/`.
   Previous drafts are never deleted and must keep compiling.
+
+## Scala Conventions
+
+- make use of named tuples @trivalibs/documents/scala-reference/named-tuples.md
+- use new given syntax: @trivalibs/documents/scala-reference/given-syntax.md
