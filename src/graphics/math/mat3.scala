@@ -74,19 +74,31 @@ trait Mat3Mutable[Mat] extends Mat3Base[Mat]:
 
     // Column setters
     inline def col0_=(c: (Double, Double, Double)): Unit =
-      m.m00 = c._1; m.m01 = c._2; m.m02 = c._3
+      m.m00 = c._1
+      m.m01 = c._2
+      m.m02 = c._3
     inline def col1_=(c: (Double, Double, Double)): Unit =
-      m.m10 = c._1; m.m11 = c._2; m.m12 = c._3
+      m.m10 = c._1
+      m.m11 = c._2
+      m.m12 = c._3
     inline def col2_=(c: (Double, Double, Double)): Unit =
-      m.m20 = c._1; m.m21 = c._2; m.m22 = c._3
+      m.m20 = c._1
+      m.m21 = c._2
+      m.m22 = c._3
 
     // Row setters
     inline def row0_=(r: (Double, Double, Double)): Unit =
-      m.m00 = r._1; m.m10 = r._2; m.m20 = r._3
+      m.m00 = r._1
+      m.m10 = r._2
+      m.m20 = r._3
     inline def row1_=(r: (Double, Double, Double)): Unit =
-      m.m01 = r._1; m.m11 = r._2; m.m21 = r._3
+      m.m01 = r._1
+      m.m11 = r._2
+      m.m21 = r._3
     inline def row2_=(r: (Double, Double, Double)): Unit =
-      m.m02 = r._1; m.m12 = r._2; m.m22 = r._3
+      m.m02 = r._1
+      m.m12 = r._2
+      m.m22 = r._3
 
 // format: off
 trait Mat3ImmutableOps[Mat]:
@@ -105,15 +117,21 @@ trait Mat3ImmutableOps[Mat]:
     )
 
   def fromRotationX(angle: Double): Mat =
-    val c = angle.cos; val s = angle.sin; val ns = -s
+    val c = angle.cos
+    val s = angle.sin
+    val ns = -s
     create(1.0, 0.0, 0.0, 0.0, c, s, 0.0, ns, c)
 
   def fromRotationY(angle: Double): Mat =
-    val c = angle.cos; val s = angle.sin; val ns = -s
+    val c = angle.cos
+    val s = angle.sin
+    val ns = -s
     create(c, 0.0, ns, 0.0, 1.0, 0.0, s, 0.0, c)
 
   def fromRotationZ(angle: Double): Mat =
-    val c = angle.cos; val s = angle.sin; val ns = -s
+    val c = angle.cos
+    val s = angle.sin
+    val ns = -s
     create(c, s, 0.0, ns, c, 0.0, 0.0, 0.0, 1.0)
 
   def identity: Mat =
@@ -123,12 +141,24 @@ trait Mat3ImmutableOps[Mat]:
 
     @scala.annotation.targetName("matMul")
     def *(other: Mat): Mat =
-      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
-      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
-      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
-      val b00 = other.m00; val b01 = other.m01; val b02 = other.m02
-      val b10 = other.m10; val b11 = other.m11; val b12 = other.m12
-      val b20 = other.m20; val b21 = other.m21; val b22 = other.m22
+      val a00 = m.m00
+      val a01 = m.m01
+      val a02 = m.m02
+      val a10 = m.m10
+      val a11 = m.m11
+      val a12 = m.m12
+      val a20 = m.m20
+      val a21 = m.m21
+      val a22 = m.m22
+      val b00 = other.m00
+      val b01 = other.m01
+      val b02 = other.m02
+      val b10 = other.m10
+      val b11 = other.m11
+      val b12 = other.m12
+      val b20 = other.m20
+      val b21 = other.m21
+      val b22 = other.m22
       create(
         a00 * b00 + a10 * b01 + a20 * b02,
         a01 * b00 + a11 * b01 + a21 * b02,
@@ -156,9 +186,15 @@ trait Mat3ImmutableOps[Mat]:
     )
 
     def inverse: Mat =
-      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
-      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
-      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
+      val a00 = m.m00
+      val a01 = m.m01
+      val a02 = m.m02
+      val a10 = m.m10
+      val a11 = m.m11
+      val a12 = m.m12
+      val a20 = m.m20
+      val a21 = m.m21
+      val a22 = m.m22
       val c00 = a11 * a22 - a12 * a21
       val c01 = -(a10 * a22 - a12 * a20)
       val c02 = a10 * a21 - a11 * a20
@@ -177,7 +213,9 @@ trait Mat3ImmutableOps[Mat]:
       )
 
     def rotateX(angle: Double): Mat =
-      val c = angle.cos; val s = angle.sin; val ns = -s
+      val c = angle.cos
+      val s = angle.sin
+      val ns = -s
       create(
         m.m00, m.m01, m.m02,
         c * m.m10 + ns * m.m20, c * m.m11 + ns * m.m21, c * m.m12 + ns * m.m22,
@@ -185,7 +223,9 @@ trait Mat3ImmutableOps[Mat]:
       )
 
     def rotateY(angle: Double): Mat =
-      val c = angle.cos; val s = angle.sin; val ns = -s
+      val c = angle.cos
+      val s = angle.sin
+      val ns = -s
       create(
         c * m.m00 + s * m.m20,  c * m.m01 + s * m.m21,  c * m.m02 + s * m.m22,
         m.m10, m.m11, m.m12,
@@ -193,7 +233,9 @@ trait Mat3ImmutableOps[Mat]:
       )
 
     def rotateZ(angle: Double): Mat =
-      val c = angle.cos; val s = angle.sin; val ns = -s
+      val c = angle.cos
+      val s = angle.sin
+      val ns = -s
       create(
         c * m.m00 + ns * m.m10, c * m.m01 + ns * m.m11, c * m.m02 + ns * m.m12,
         s * m.m00 + c * m.m10,  s * m.m01 + c * m.m11,  s * m.m02 + c * m.m12,
@@ -204,31 +246,61 @@ trait Mat3MutableOps[Mat]:
 
   extension (m: Mat)(using mb: Mat3Mutable[Mat])
     def set[Mat3_](other: Mat3_)(using Mat3Base[Mat3_]): Unit =
-      m.m00 = other.m00; m.m01 = other.m01; m.m02 = other.m02
-      m.m10 = other.m10; m.m11 = other.m11; m.m12 = other.m12
-      m.m20 = other.m20; m.m21 = other.m21; m.m22 = other.m22
+      m.m00 = other.m00
+      m.m01 = other.m01
+      m.m02 = other.m02
+      m.m10 = other.m10
+      m.m11 = other.m11
+      m.m12 = other.m12
+      m.m20 = other.m20
+      m.m21 = other.m21
+      m.m22 = other.m22
     def :=[Mat3_](other: Mat3_)(using Mat3Base[Mat3_]): Unit =
       m.set(other)
 
     def setIdentity(): Unit =
-      m.m00 = 1.0; m.m01 = 0.0; m.m02 = 0.0
-      m.m10 = 0.0; m.m11 = 1.0; m.m12 = 0.0
-      m.m20 = 0.0; m.m21 = 0.0; m.m22 = 1.0
+      m.m00 = 1.0
+      m.m01 = 0.0
+      m.m02 = 0.0
+      m.m10 = 0.0
+      m.m11 = 1.0
+      m.m12 = 0.0
+      m.m20 = 0.0
+      m.m21 = 0.0
+      m.m22 = 1.0
 
     def transposeTo(out: Mat): Mat =
-      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
-      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
-      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
-      out.m00 = a00; out.m01 = a10; out.m02 = a20
-      out.m10 = a01; out.m11 = a11; out.m12 = a21
-      out.m20 = a02; out.m21 = a12; out.m22 = a22
+      val a00 = m.m00
+      val a01 = m.m01
+      val a02 = m.m02
+      val a10 = m.m10
+      val a11 = m.m11
+      val a12 = m.m12
+      val a20 = m.m20
+      val a21 = m.m21
+      val a22 = m.m22
+      out.m00 = a00
+      out.m01 = a10
+      out.m02 = a20
+      out.m10 = a01
+      out.m11 = a11
+      out.m12 = a21
+      out.m20 = a02
+      out.m21 = a12
+      out.m22 = a22
       out
     inline def transposeSelf: Mat = m.transposeTo(m)
 
     def inverseTo(out: Mat): Mat =
-      val a00 = m.m00; val a01 = m.m01; val a02 = m.m02
-      val a10 = m.m10; val a11 = m.m11; val a12 = m.m12
-      val a20 = m.m20; val a21 = m.m21; val a22 = m.m22
+      val a00 = m.m00
+      val a01 = m.m01
+      val a02 = m.m02
+      val a10 = m.m10
+      val a11 = m.m11
+      val a12 = m.m12
+      val a20 = m.m20
+      val a21 = m.m21
+      val a22 = m.m22
       val c00 = a11 * a22 - a12 * a21
       val c01 = -(a10 * a22 - a12 * a20)
       val c02 = a10 * a21 - a11 * a20
@@ -240,41 +312,83 @@ trait Mat3MutableOps[Mat]:
       val c22 = a00 * a11 - a01 * a10
       val det = a00 * c00 + a10 * c10 + a20 * c20
       val invDet = 1.0 / det
-      out.m00 = c00 * invDet; out.m01 = c10 * invDet; out.m02 = c20 * invDet
-      out.m10 = c01 * invDet; out.m11 = c11 * invDet; out.m12 = c21 * invDet
-      out.m20 = c02 * invDet; out.m21 = c12 * invDet; out.m22 = c22 * invDet
+      out.m00 = c00 * invDet
+      out.m01 = c10 * invDet
+      out.m02 = c20 * invDet
+      out.m10 = c01 * invDet
+      out.m11 = c11 * invDet
+      out.m12 = c21 * invDet
+      out.m20 = c02 * invDet
+      out.m21 = c12 * invDet
+      out.m22 = c22 * invDet
       out
     inline def inverseSelf: Mat = m.inverseTo(m)
 
     def rotateXTo(out: Mat, angle: Double): Mat =
-      val c = angle.cos; val s = angle.sin; val ns = -s
-      val t10 = m.m10; val t11 = m.m11; val t12 = m.m12
-      val t20 = m.m20; val t21 = m.m21; val t22 = m.m22
-      out.m00 = m.m00; out.m01 = m.m01; out.m02 = m.m02
-      out.m10 = c * t10 + ns * t20; out.m11 = c * t11 + ns * t21; out.m12 = c * t12 + ns * t22
-      out.m20 = s * t10 + c * t20;  out.m21 = s * t11 + c * t21;  out.m22 = s * t12 + c * t22
+      val c = angle.cos
+      val s = angle.sin
+      val ns = -s
+      val t10 = m.m10
+      val t11 = m.m11
+      val t12 = m.m12
+      val t20 = m.m20
+      val t21 = m.m21
+      val t22 = m.m22
+      out.m00 = m.m00
+      out.m01 = m.m01
+      out.m02 = m.m02
+      out.m10 = c * t10 + ns * t20
+      out.m11 = c * t11 + ns * t21
+      out.m12 = c * t12 + ns * t22
+      out.m20 = s * t10 + c * t20
+      out.m21 = s * t11 + c * t21
+      out.m22 = s * t12 + c * t22
       out
     inline def rotateXSelf(angle: Double): Mat =
       m.rotateXTo(m, angle)
 
     def rotateYTo(out: Mat, angle: Double): Mat =
-      val c = angle.cos; val s = angle.sin; val ns = -s
-      val t00 = m.m00; val t01 = m.m01; val t02 = m.m02
-      val t20 = m.m20; val t21 = m.m21; val t22 = m.m22
-      out.m00 = c * t00 + s * t20;  out.m01 = c * t01 + s * t21;  out.m02 = c * t02 + s * t22
-      out.m10 = m.m10; out.m11 = m.m11; out.m12 = m.m12
-      out.m20 = ns * t00 + c * t20; out.m21 = ns * t01 + c * t21; out.m22 = ns * t02 + c * t22
+      val c = angle.cos
+      val s = angle.sin
+      val ns = -s
+      val t00 = m.m00
+      val t01 = m.m01
+      val t02 = m.m02
+      val t20 = m.m20
+      val t21 = m.m21
+      val t22 = m.m22
+      out.m00 = c * t00 + s * t20
+      out.m01 = c * t01 + s * t21
+      out.m02 = c * t02 + s * t22
+      out.m10 = m.m10
+      out.m11 = m.m11
+      out.m12 = m.m12
+      out.m20 = ns * t00 + c * t20
+      out.m21 = ns * t01 + c * t21
+      out.m22 = ns * t02 + c * t22
       out
     inline def rotateYSelf(angle: Double): Mat =
       m.rotateYTo(m, angle)
 
     def rotateZTo(out: Mat, angle: Double): Mat =
-      val c = angle.cos; val s = angle.sin; val ns = -s
-      val t00 = m.m00; val t01 = m.m01; val t02 = m.m02
-      val t10 = m.m10; val t11 = m.m11; val t12 = m.m12
-      out.m00 = c * t00 + ns * t10; out.m01 = c * t01 + ns * t11; out.m02 = c * t02 + ns * t12
-      out.m10 = s * t00 + c * t10;  out.m11 = s * t01 + c * t11;  out.m12 = s * t02 + c * t12
-      out.m20 = m.m20; out.m21 = m.m21; out.m22 = m.m22
+      val c = angle.cos
+      val s = angle.sin
+      val ns = -s
+      val t00 = m.m00
+      val t01 = m.m01
+      val t02 = m.m02
+      val t10 = m.m10
+      val t11 = m.m11
+      val t12 = m.m12
+      out.m00 = c * t00 + ns * t10
+      out.m01 = c * t01 + ns * t11
+      out.m02 = c * t02 + ns * t12
+      out.m10 = s * t00 + c * t10
+      out.m11 = s * t01 + c * t11
+      out.m12 = s * t02 + c * t12
+      out.m20 = m.m20
+      out.m21 = m.m21
+      out.m22 = m.m22
       out
     inline def rotateZSelf(angle: Double): Mat =
       m.rotateZTo(m, angle)

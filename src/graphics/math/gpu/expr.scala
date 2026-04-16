@@ -627,21 +627,21 @@ given Mat3ImmutableOpsG[FloatExpr, Mat3Expr]:
 given Mat4BaseG[FloatExpr, Mat4Expr] =
   new Mat4BaseG[FloatExpr, Mat4Expr]:
     extension (m: Mat4Expr)
-      def m00: FloatExpr = FloatExpr(s"${m.wgsl}[0][0]");
+      def m00: FloatExpr = FloatExpr(s"${m.wgsl}[0][0]")
       def m01: FloatExpr = FloatExpr(s"${m.wgsl}[0][1]")
-      def m02: FloatExpr = FloatExpr(s"${m.wgsl}[0][2]");
+      def m02: FloatExpr = FloatExpr(s"${m.wgsl}[0][2]")
       def m03: FloatExpr = FloatExpr(s"${m.wgsl}[0][3]")
-      def m10: FloatExpr = FloatExpr(s"${m.wgsl}[1][0]");
+      def m10: FloatExpr = FloatExpr(s"${m.wgsl}[1][0]")
       def m11: FloatExpr = FloatExpr(s"${m.wgsl}[1][1]")
-      def m12: FloatExpr = FloatExpr(s"${m.wgsl}[1][2]");
+      def m12: FloatExpr = FloatExpr(s"${m.wgsl}[1][2]")
       def m13: FloatExpr = FloatExpr(s"${m.wgsl}[1][3]")
-      def m20: FloatExpr = FloatExpr(s"${m.wgsl}[2][0]");
+      def m20: FloatExpr = FloatExpr(s"${m.wgsl}[2][0]")
       def m21: FloatExpr = FloatExpr(s"${m.wgsl}[2][1]")
-      def m22: FloatExpr = FloatExpr(s"${m.wgsl}[2][2]");
+      def m22: FloatExpr = FloatExpr(s"${m.wgsl}[2][2]")
       def m23: FloatExpr = FloatExpr(s"${m.wgsl}[2][3]")
-      def m30: FloatExpr = FloatExpr(s"${m.wgsl}[3][0]");
+      def m30: FloatExpr = FloatExpr(s"${m.wgsl}[3][0]")
       def m31: FloatExpr = FloatExpr(s"${m.wgsl}[3][1]")
-      def m32: FloatExpr = FloatExpr(s"${m.wgsl}[3][2]");
+      def m32: FloatExpr = FloatExpr(s"${m.wgsl}[3][2]")
       def m33: FloatExpr = FloatExpr(s"${m.wgsl}[3][3]")
       def determinant: FloatExpr =
         FloatExpr(s"determinant(${m.wgsl})")

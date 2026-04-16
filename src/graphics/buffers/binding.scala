@@ -44,7 +44,9 @@ object UniformValue:
   // --- Vec3 — uses Vec4Buffer for std140 padding; w component ignored ---
   given UniformValue[Vec3, Vec4Buffer]:
     inline def write(ref: StructRef[Vec4Buffer], value: Vec3): Unit =
-      ref.x = value.x; ref.y = value.y; ref.z = value.z
+      ref.x = value.x
+      ref.y = value.y
+      ref.z = value.z
     inline def read(ref: StructRef[Vec4Buffer]): Vec3 =
       Vec3(ref.x, ref.y, ref.z)
 

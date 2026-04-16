@@ -59,9 +59,12 @@ def main(): Unit =
     // -----------------------------------------------------------------------
 
     val verts = allocateAttribs[Attribs](3)
-    verts(0).set0(0.0, 0.7); verts(0).set1(1.0, 0.2, 0.2)
-    verts(1).set0(-0.7, -0.5); verts(1).set1(0.2, 1.0, 0.2)
-    verts(2).set0(0.7, -0.5); verts(2).set1(0.2, 0.2, 1.0)
+    verts(0).set0(0.0, 0.7)
+    verts(0).set1(1.0, 0.2, 0.2)
+    verts(1).set0(-0.7, -0.5)
+    verts(1).set1(0.2, 1.0, 0.2)
+    verts(2).set0(0.7, -0.5)
+    verts(2).set1(0.2, 0.2, 1.0)
     val form = painter.form().set(vertices = verts)
     val shape = painter.shape(shapeShade, form)
 

@@ -197,7 +197,10 @@ trait Vec4MutableOps[Vec]:
 
   extension (v: Vec)(using Vec4Mutable[Vec])
     def set[Vec4_](other: Vec4_)(using Vec4Base[Vec4_]): Unit =
-      v.x = other.x; v.y = other.y; v.z = other.z; v.w = other.w
+      v.x = other.x
+      v.y = other.y
+      v.z = other.z
+      v.w = other.w
     def :=[Vec4_](other: Vec4_)(using Vec4Base[Vec4_]): Unit =
       v.set(other)
 

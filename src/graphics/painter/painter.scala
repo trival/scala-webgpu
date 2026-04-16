@@ -731,7 +731,9 @@ class Painter(
         ppPass.end()
         queue.submit(Arr(enc.finish()))
 
-        val tmp = srcView; srcView = dstView; dstView = tmp
+        val tmp = srcView
+        srcView = dstView
+        dstView = tmp
       else
         // Lazily open a pass on srcView if none is open
         if curPass.isNull then

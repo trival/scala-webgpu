@@ -43,7 +43,10 @@ class PerspectiveCamera(
   ): Unit =
     val needsProj = fov != this.fov || aspect != this.aspect ||
       near != this.near || far != this.far
-    this.fov = fov; this.aspect = aspect; this.near = near; this.far = far
+    this.fov = fov
+    this.aspect = aspect
+    this.near = near
+    this.far = far
     if needsProj then recalculateProjection()
 
   // ---- Rotation constraints ----

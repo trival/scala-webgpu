@@ -84,11 +84,15 @@ object Mat3Tuple extends Mat3ImmutableOps[Mat3Tuple]:
 
   given Mat3Base[Mat3Tuple]:
     extension (m: Mat3Tuple)
-      // format: off
-      inline def m00 = m._1; inline def m01 = m._2; inline def m02 = m._3
-      inline def m10 = m._4; inline def m11 = m._5; inline def m12 = m._6
-      inline def m20 = m._7; inline def m21 = m._8; inline def m22 = m._9
-      // format: on
+      inline def m00 = m._1
+      inline def m01 = m._2
+      inline def m02 = m._3
+      inline def m10 = m._4
+      inline def m11 = m._5
+      inline def m12 = m._6
+      inline def m20 = m._7
+      inline def m21 = m._8
+      inline def m22 = m._9
 
 
 // format: off

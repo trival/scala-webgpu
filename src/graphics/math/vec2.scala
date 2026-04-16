@@ -168,7 +168,8 @@ trait Vec2MutableOps[Vec]:
 
   extension (v: Vec)(using Vec2Mutable[Vec])
     def set[Vec2_](other: Vec2_)(using Vec2Base[Vec2_]): Unit =
-      v.x = other.x; v.y = other.y
+      v.x = other.x
+      v.y = other.y
     def :=[Vec2_](other: Vec2_)(using Vec2Base[Vec2_]): Unit =
       v.set(other)
 

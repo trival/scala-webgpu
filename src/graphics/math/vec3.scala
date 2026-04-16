@@ -183,7 +183,9 @@ trait Vec3MutableOps[Vec]:
 
   extension (v: Vec)(using Vec3Mutable[Vec])
     def set[Vec3_](other: Vec3_)(using Vec3Base[Vec3_]): Unit =
-      v.x = other.x; v.y = other.y; v.z = other.z
+      v.x = other.x
+      v.y = other.y
+      v.z = other.z
     def :=[Vec3_](other: Vec3_)(using Vec3Base[Vec3_]): Unit =
       v.set(other)
 

@@ -18,7 +18,9 @@ object Triangle:
     def c: T = tri(2)
 
     def normal(using pos: Position[T]): Vec3 =
-      val pa = tri.a.pos; val pb = tri.b.pos; val pc = tri.c.pos
+      val pa = tri.a.pos
+      val pb = tri.b.pos
+      val pc = tri.c.pos
       val e1 = Vec3(pb.x - pa.x, pb.y - pa.y, pb.z - pa.z)
       val e2 = Vec3(pc.x - pa.x, pc.y - pa.y, pc.z - pa.z)
       e1.cross(e2).normalize

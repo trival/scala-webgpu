@@ -47,15 +47,24 @@ trait QuatImmutableOps[Q]:
 
     def slerp(p: Q, t: Double): Q =
       var cosH = q.x * p.x + q.y * p.y + q.z * p.z + q.w * p.w
-      var px = p.x; var py = p.y
-      var pz = p.z; var pw = p.w
+      var px = p.x
+      var py = p.y
+      var pz = p.z
+      var pw = p.w
       if cosH < 0.0 then
-        cosH = -cosH; px = -px; py = -py; pz = -pz; pw = -pw
-      val qx = q.x; val qy = q.y
-      val qz = q.z; val qw = q.w
+        cosH = -cosH
+        px = -px
+        py = -py
+        pz = -pz
+        pw = -pw
+      val qx = q.x
+      val qy = q.y
+      val qz = q.z
+      val qw = q.w
       val (s0, s1) =
         if 1.0 - cosH > 1e-10 then
-          val a = cosH.acos; val sa = a.sin
+          val a = cosH.acos
+          val sa = a.sin
           (((1.0 - t) * a).sin / sa, (t * a).sin / sa)
         else (1.0 - t, t)
       create(
@@ -65,20 +74,31 @@ trait QuatImmutableOps[Q]:
         s0 * qw + s1 * pw,
       )
 
-    // format: off
     def toMat4: Mat4 =
-      val x = q.x; val y = q.y; val z = q.z; val w = q.w
-      val x2 = x+x; val y2 = y+y; val z2 = z+z
-      val xx = x*x2; val xy = x*y2; val xz = x*z2
-      val yy = y*y2; val yz = y*z2; val zz = z*z2
-      val wx = w*x2; val wy = w*y2; val wz = w*z2
+      val x = q.x
+      val y = q.y
+      val z = q.z
+      val w = q.w
+      val x2 = x+x
+      val y2 = y+y
+      val z2 = z+z
+      val xx = x*x2
+      val xy = x*y2
+      val xz = x*z2
+      val yy = y*y2
+      val yz = y*z2
+      val zz = z*z2
+      val wx = w*x2
+      val wy = w*y2
+      val wz = w*z2
+      // format: off
       Mat4.create(
         1-(yy+zz), xy+wz,     xz-wy,     0.0,
         xy-wz,     1-(xx+zz), yz+wx,     0.0,
         xz+wy,     yz-wx,     1-(xx+yy), 0.0,
         0.0,       0.0,       0.0,       1.0,
       )
-    // format: on
+      // format: on
 
 // ---------------------------------------------------------------------------
 // QuatMutableOps — in-place operations
@@ -94,33 +114,58 @@ trait QuatMutableOps[Q]:
       val ny = p.w * q.y - p.x * q.z + p.y * q.w + p.z * q.x
       val nz = p.w * q.z + p.x * q.y - p.y * q.x + p.z * q.w
       val nw = p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z
-      q.x = nx; q.y = ny; q.z = nz; q.w = nw
+      q.x = nx
+      q.y = ny
+      q.z = nz
+      q.w = nw
 
-    def conjugateSelf: Unit = { q.x = -q.x; q.y = -q.y; q.z = -q.z }
+    def conjugateSelf: Unit =
+      q.x = -q.x
+      q.y = -q.y
+      q.z = -q.z
 
     def inverseSelf: Unit =
       val n2 = q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w
-      q.x = -q.x / n2; q.y = -q.y / n2; q.z = -q.z / n2; q.w = q.w / n2
+      q.x = -q.x / n2
+      q.y = -q.y / n2
+      q.z = -q.z / n2
+      q.w = q.w / n2
 
     def normalizeSelf: Unit =
       val len = (q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w).sqrt
-      q.x = q.x / len; q.y = q.y / len; q.z = q.z / len; q.w = q.w / len
+      q.x = q.x / len
+      q.y = q.y / len
+      q.z = q.z / len
+      q.w = q.w / len
 
     def setFromRotationX(angle: Double): Unit =
       val a = angle * 0.5
-      q.x = a.sin; q.y = 0.0; q.z = 0.0; q.w = a.cos
+      q.x = a.sin
+      q.y = 0.0
+      q.z = 0.0
+      q.w = a.cos
 
     def setFromRotationY(angle: Double): Unit =
       val a = angle * 0.5
-      q.x = 0.0; q.y = a.sin; q.z = 0.0; q.w = a.cos
+      q.x = 0.0
+      q.y = a.sin
+      q.z = 0.0
+      q.w = a.cos
 
     def setFromRotationZ(angle: Double): Unit =
       val a = angle * 0.5
-      q.x = 0.0; q.y = 0.0; q.z = a.sin; q.w = a.cos
+      q.x = 0.0
+      q.y = 0.0
+      q.z = a.sin
+      q.w = a.cos
 
     def setFromAxisAngle[V](axis: V, angle: Double)(using Vec3Base[V]): Unit =
-      val a = angle * 0.5; val s = a.sin
-      q.x = axis.x * s; q.y = axis.y * s; q.z = axis.z * s; q.w = a.cos
+      val a = angle * 0.5
+      val s = a.sin
+      q.x = axis.x * s
+      q.y = axis.y * s
+      q.z = axis.z * s
+      q.w = a.cos
 
     def setFromLookRotation[V](fwd: V, up: V)(using Vec3Base[V]): Unit =
       val r = Quat.fromLookRotationDoubles(
@@ -131,7 +176,10 @@ trait QuatMutableOps[Q]:
         up.y,
         up.z,
       )
-      q.x = r.x; q.y = r.y; q.z = r.z; q.w = r.w
+      q.x = r.x
+      q.y = r.y
+      q.z = r.z
+      q.w = r.w
 
 // ---------------------------------------------------------------------------
 // Concrete Quat — mutable class with both op sets + operator aliases
@@ -180,12 +228,16 @@ object Quat:
   ): Quat =
     // bz = normalize(fwd), bx = normalize(cross(up, bz)), by = cross(bz, bx)
     val fLen = (fx * fx + fy * fy + fz * fz).sqrt
-    val bzx = fx / fLen; val bzy = fy / fLen; val bzz = fz / fLen
-    var bxx = uy * bzz - uz * bzy; var bxy = uz * bzx - ux * bzz;
+    val bzx = fx / fLen
+    val bzy = fy / fLen
+    val bzz = fz / fLen
+    var bxx = uy * bzz - uz * bzy
+    var bxy = uz * bzx - ux * bzz
     var bxz = ux * bzy - uy * bzx
     val bxLen = (bxx * bxx + bxy * bxy + bxz * bxz).sqrt
     bxx /= bxLen; bxy /= bxLen; bxz /= bxLen
-    val byx = bzy * bxz - bzz * bxy; val byy = bzz * bxx - bzx * bxz;
+    val byx = bzy * bxz - bzz * bxy
+    val byy = bzz * bxx - bzx * bxz
     val byz = bzx * bxy - bzy * bxx
     // Rotation matrix → quaternion (Shoemake). R[row][col] diagonal = (bxx, byy, bzz)
     val trace = bxx + byy + bzz

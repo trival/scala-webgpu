@@ -77,12 +77,22 @@ object Mat4Tuple extends Mat4ImmutableOps[Mat4Tuple]:
 
   given Mat4Base[Mat4Tuple]:
     extension (m: Mat4Tuple)
-      // format: off
-      inline def m00 = m._1;  inline def m01 = m._2;  inline def m02 = m._3;  inline def m03 = m._4
-      inline def m10 = m._5;  inline def m11 = m._6;  inline def m12 = m._7;  inline def m13 = m._8
-      inline def m20 = m._9;  inline def m21 = m._10; inline def m22 = m._11; inline def m23 = m._12
-      inline def m30 = m._13; inline def m31 = m._14; inline def m32 = m._15; inline def m33 = m._16
-      // format: on
+      inline def m00 = m._1
+      inline def m01 = m._2
+      inline def m02 = m._3
+      inline def m03 = m._4
+      inline def m10 = m._5
+      inline def m11 = m._6
+      inline def m12 = m._7
+      inline def m13 = m._8
+      inline def m20 = m._9
+      inline def m21 = m._10
+      inline def m22 = m._11
+      inline def m23 = m._12
+      inline def m30 = m._13
+      inline def m31 = m._14
+      inline def m32 = m._15
+      inline def m33 = m._16
 
 
 // format: off
@@ -111,11 +121,22 @@ object Mat4 extends Mat4ImmutableOps[Mat4]:
   /** Build a TRS model matrix directly from translation, rotation (Quat), and scale. */
   // format: off
   def fromTranslationRotationScale(t: Vec3, r: Quat, s: Vec3): Mat4 =
-    val x = r.x; val y = r.y; val z = r.z; val w = r.w
-    val x2 = x+x; val y2 = y+y; val z2 = z+z
-    val xx = x*x2; val xy = x*y2; val xz = x*z2
-    val yy = y*y2; val yz = y*z2; val zz = z*z2
-    val wx = w*x2; val wy = w*y2; val wz = w*z2
+    val x = r.x
+    val y = r.y
+    val z = r.z
+    val w = r.w
+    val x2 = x+x
+    val y2 = y+y
+    val z2 = z+z
+    val xx = x*x2
+    val xy = x*y2
+    val xz = x*z2
+    val yy = y*y2
+    val yz = y*z2
+    val zz = z*z2
+    val wx = w*x2
+    val wy = w*y2
+    val wz = w*z2
     create(
       (1-(yy+zz))*s.x, (xy+wz)*s.x,     (xz-wy)*s.x,     0.0,
       (xy-wz)*s.y,     (1-(xx+zz))*s.y, (yz+wx)*s.y,     0.0,

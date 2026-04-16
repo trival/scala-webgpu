@@ -51,15 +51,19 @@ trait Mat2Mutable[Mat] extends Mat2Base[Mat]:
 
     // Column setters (derived from abstract mNN_= setters)
     inline def col0_=(c: (Double, Double)): Unit =
-      m.m00 = c._1; m.m01 = c._2
+      m.m00 = c._1
+      m.m01 = c._2
     inline def col1_=(c: (Double, Double)): Unit =
-      m.m10 = c._1; m.m11 = c._2
+      m.m10 = c._1
+      m.m11 = c._2
 
     // Row setters (derived from abstract mNN_= setters)
     inline def row0_=(r: (Double, Double)): Unit =
-      m.m00 = r._1; m.m10 = r._2
+      m.m00 = r._1
+      m.m10 = r._2
     inline def row1_=(r: (Double, Double)): Unit =
-      m.m01 = r._1; m.m11 = r._2
+      m.m01 = r._1
+      m.m11 = r._2
 
 // format: off
 trait Mat2ImmutableOps[Mat]:
@@ -120,27 +124,42 @@ trait Mat2MutableOps[Mat]:
 
   extension (m: Mat)(using mb: Mat2Mutable[Mat])
     def set[Mat2_](other: Mat2_)(using Mat2Base[Mat2_]): Unit =
-      m.m00 = other.m00; m.m01 = other.m01
-      m.m10 = other.m10; m.m11 = other.m11
+      m.m00 = other.m00
+      m.m01 = other.m01
+      m.m10 = other.m10
+      m.m11 = other.m11
     def :=[Mat2_](other: Mat2_)(using Mat2Base[Mat2_]): Unit =
       m.set(other)
 
     def setIdentity(): Unit =
-      m.m00 = 1.0; m.m01 = 0.0
-      m.m10 = 0.0; m.m11 = 1.0
+      m.m00 = 1.0
+      m.m01 = 0.0
+      m.m10 = 0.0
+      m.m11 = 1.0
 
     def transposeTo(out: Mat): Mat =
-      val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
-      out.m00 = t00; out.m01 = t10; out.m10 = t01; out.m11 = t11
+      val t00 = m.m00
+      val t01 = m.m01
+      val t10 = m.m10
+      val t11 = m.m11
+      out.m00 = t00
+      out.m01 = t10
+      out.m10 = t01
+      out.m11 = t11
       out
     inline def transposeSelf: Mat = m.transposeTo(m)
 
     def inverseTo(out: Mat): Mat =
       val det = m.m00 * m.m11 - m.m10 * m.m01
       val invDet = 1.0 / det
-      val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
-      out.m00 =  t11 * invDet; out.m01 = -t01 * invDet
-      out.m10 = -t10 * invDet; out.m11 =  t00 * invDet
+      val t00 = m.m00
+      val t01 = m.m01
+      val t10 = m.m10
+      val t11 = m.m11
+      out.m00 =  t11 * invDet
+      out.m01 = -t01 * invDet
+      out.m10 = -t10 * invDet
+      out.m11 =  t00 * invDet
       out
     inline def inverseSelf: Mat = m.inverseTo(m)
 
@@ -148,9 +167,14 @@ trait Mat2MutableOps[Mat]:
       val c = angle.cos
       val s = angle.sin
       val ns = -s
-      val t00 = m.m00; val t01 = m.m01; val t10 = m.m10; val t11 = m.m11
-      out.m00 = c * t00 + ns * t01; out.m01 = s * t00 + c * t01
-      out.m10 = c * t10 + ns * t11; out.m11 = s * t10 + c * t11
+      val t00 = m.m00
+      val t01 = m.m01
+      val t10 = m.m10
+      val t11 = m.m11
+      out.m00 = c * t00 + ns * t01
+      out.m01 = s * t00 + c * t01
+      out.m10 = c * t10 + ns * t11
+      out.m11 = s * t10 + c * t11
       out
     inline def rotateSelf(angle: Double): Mat =
       m.rotateTo(m, angle)

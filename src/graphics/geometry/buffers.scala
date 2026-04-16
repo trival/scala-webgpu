@@ -19,12 +19,12 @@ class BufferedGeometry[F <: Tuple](
 // allowing StructArray.allocate[F] to evaluate constValue[TupleSize[F]].
 // ---------------------------------------------------------------------------
 
-transparent inline def toBufferedGeometry[T, F <: Tuple](
+transparent inline def toBufferedGeometry[T: Position, F <: Tuple](
     mesh: Mesh[T],
     bufferType: MeshBufferType,
     writer: VertexWriter[T, F],
     writerN: Opt[VertexWriterN[T, F]] = null,
-)(using pos: Position[T]): BufferedGeometry[F] =
+): BufferedGeometry[F] =
   if bufferType == MeshBufferType.FaceVertices then
     buildFaceVertices(mesh, writer)
   else if bufferType == MeshBufferType.FaceVerticesWithFaceNormal then
@@ -39,10 +39,10 @@ transparent inline def toBufferedGeometry[T, F <: Tuple](
 // Strategy implementations (also transparent inline — each calls allocate[F])
 // ---------------------------------------------------------------------------
 
-transparent inline def buildFaceVertices[T, F <: Tuple](
+transparent inline def buildFaceVertices[T: Position, F <: Tuple](
     mesh: Mesh[T],
     writer: VertexWriter[T, F],
-)(using pos: Position[T]): BufferedGeometry[F] =
+): BufferedGeometry[F] =
   // Count vertices and check for quads
   var vertexCount = 0
   var hasQuads = false
@@ -64,7 +64,8 @@ transparent inline def buildFaceVertices[T, F <: Tuple](
       var si = 0
       while si < arr.length do
         writer(arr(si), verts(vi))
-        vi += 1; si += 1
+        vi += 1
+        si += 1
       fi += 1
     BufferedGeometry(verts, null)
   else
@@ -78,7 +79,8 @@ transparent inline def buildFaceVertices[T, F <: Tuple](
       var si = 0
       while si < n do
         writer(arr(si), verts(vi))
-        vi += 1; si += 1
+        vi += 1
+        si += 1
       if n == 3 then idxBuf.push(base, base + 1, base + 2)
       else
         idxBuf.push(base, base + 1, base + 2)
@@ -87,10 +89,10 @@ transparent inline def buildFaceVertices[T, F <: Tuple](
       fi += 1
     BufferedGeometry(verts, makeIndexArray(idxBuf, vertexCount))
 
-transparent inline def buildFaceVerticesWithFaceNormal[T, F <: Tuple](
+transparent inline def buildFaceVerticesWithFaceNormal[T: Position, F <: Tuple](
     mesh: Mesh[T],
     writer: VertexWriterN[T, F],
-)(using pos: Position[T]): BufferedGeometry[F] =
+): BufferedGeometry[F] =
   mesh.ensureFaceNormals()
 
   var vertexCount = 0
@@ -113,7 +115,8 @@ transparent inline def buildFaceVerticesWithFaceNormal[T, F <: Tuple](
       var si = 0
       while si < arr.length do
         writer(arr(si), normal, verts(vi))
-        vi += 1; si += 1
+        vi += 1
+        si += 1
       fi += 1
     BufferedGeometry(verts, null)
   else
@@ -127,7 +130,8 @@ transparent inline def buildFaceVerticesWithFaceNormal[T, F <: Tuple](
       var si = 0
       while si < n do
         writer(arr(si), normal, verts(vi))
-        vi += 1; si += 1
+        vi += 1
+        si += 1
       if n == 3 then idxBuf.push(base, base + 1, base + 2)
       else
         idxBuf.push(base, base + 1, base + 2)
@@ -136,10 +140,13 @@ transparent inline def buildFaceVerticesWithFaceNormal[T, F <: Tuple](
       fi += 1
     BufferedGeometry(verts, makeIndexArray(idxBuf, vertexCount))
 
-transparent inline def buildFaceVerticesWithVertexNormal[T, F <: Tuple](
+transparent inline def buildFaceVerticesWithVertexNormal[
+    T: Position,
+    F <: Tuple,
+](
     mesh: Mesh[T],
     writer: VertexWriterN[T, F],
-)(using pos: Position[T]): BufferedGeometry[F] =
+): BufferedGeometry[F] =
   mesh.ensureFaceNormals()
 
   var vertexCount = 0
@@ -164,7 +171,8 @@ transparent inline def buildFaceVerticesWithVertexNormal[T, F <: Tuple](
         val v = arr(si)
         val normal = calcVertexNormal(mesh, v.pos, section)
         writer(v, normal, verts(vi))
-        vi += 1; si += 1
+        vi += 1
+        si += 1
       fi += 1
     BufferedGeometry(verts, null)
   else
@@ -180,7 +188,8 @@ transparent inline def buildFaceVerticesWithVertexNormal[T, F <: Tuple](
         val v = arr(si)
         val normal = calcVertexNormal(mesh, v.pos, section)
         writer(v, normal, verts(vi))
-        vi += 1; si += 1
+        vi += 1
+        si += 1
       if n == 3 then idxBuf.push(base, base + 1, base + 2)
       else
         idxBuf.push(base, base + 1, base + 2)
@@ -189,10 +198,10 @@ transparent inline def buildFaceVerticesWithVertexNormal[T, F <: Tuple](
       fi += 1
     BufferedGeometry(verts, makeIndexArray(idxBuf, vertexCount))
 
-transparent inline def buildCompactVertices[T, F <: Tuple](
+transparent inline def buildCompactVertices[T: Position, F <: Tuple](
     mesh: Mesh[T],
     writer: VertexWriter[T, F],
-)(using pos: Position[T]): BufferedGeometry[F] =
+): BufferedGeometry[F] =
   val vertexCount = mesh.positions.length
   val verts = StructArray.allocate[F](vertexCount)
 
@@ -228,10 +237,10 @@ transparent inline def buildCompactVertices[T, F <: Tuple](
 
   BufferedGeometry(verts, makeIndexArray(idxBuf, vertexCount))
 
-transparent inline def buildCompactVerticesWithNormal[T, F <: Tuple](
+transparent inline def buildCompactVerticesWithNormal[T: Position, F <: Tuple](
     mesh: Mesh[T],
     writer: VertexWriterN[T, F],
-)(using pos: Position[T]): BufferedGeometry[F] =
+): BufferedGeometry[F] =
   mesh.ensureFaceNormals()
   val vertexCount = mesh.positions.length
   val verts = StructArray.allocate[F](vertexCount)
@@ -272,11 +281,15 @@ transparent inline def buildCompactVerticesWithNormal[T, F <: Tuple](
 // Helpers
 // ---------------------------------------------------------------------------
 
-private def calcVertexNormal[T](mesh: Mesh[T], p: Vec3, section: Int)(using
-    pos: Position[T],
+private def calcVertexNormal[T: Position](
+    mesh: Mesh[T],
+    p: Vec3,
+    section: Int,
 ): Vec3 =
   import graphics.math.cpu.given
-  var sx = 0.0; var sy = 0.0; var sz = 0.0
+  var sx = 0.0
+  var sy = 0.0
+  var sz = 0.0
   val vp = mesh.getPosition(p)
   if vp != null then
     var i = 0
@@ -285,7 +298,9 @@ private def calcVertexNormal[T](mesh: Mesh[T], p: Vec3, section: Int)(using
       if mesh.faceData(ref.faceIndex).section == section then
         val n = mesh.faceData(ref.faceIndex).normal
         if n != null then
-          sx += n.get.x; sy += n.get.y; sz += n.get.z
+          sx += n.get.x
+          sy += n.get.y
+          sz += n.get.z
       i += 1
   val len = math.sqrt(sx * sx + sy * sy + sz * sz)
   if len < 1e-10 then Vec3(0, 0, 0)
@@ -300,11 +315,13 @@ private def makeIndexArray(
     val ua = new Uint16Array(idxBuf.length)
     var i = 0
     while i < idxBuf.length do
-      ua(i) = idxBuf(i); i += 1
+      ua(i) = idxBuf(i)
+      i += 1
     ua
   else
     val ua = new Uint32Array(idxBuf.length)
     var i = 0
     while i < idxBuf.length do
-      ua(i) = idxBuf(i); i += 1
+      ua(i) = idxBuf(i)
+      i += 1
     ua
