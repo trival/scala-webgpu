@@ -117,7 +117,10 @@ features. Every runtime construct must compile to minimal JS:
   on `Arr` (in trivalibs) that compile to raw `js.Array` methods — never Scala
   collection traits. Add new helpers in trivalibs as needed.
 - **JS-native classes for structured data**: `class Foo(...) extends js.Object`
-  preserves field names in JS output with zero overhead.
+  preserves field names in JS output with zero overhead. But try pure scala
+  classes without js.Object first, to let the scala compiler apply its full set
+  of optimisations. If we observe compile size regressions or need runtime field
+  names, we can resolve to js.Object extension.
 - **`js.Dynamic` / `Obj.literal`** fine internally; user-facing API typed.
 - **Trivalibs helpers everywhere**: `Arr`, `Dict`, `Obj.literal`, `Opt`,
   `Opt.Null`, `maybe()`.

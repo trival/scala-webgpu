@@ -18,8 +18,9 @@ given [V] => Vec3Base[V] => Position[V]:
 given [V] => Vec3Base[V] => Vec3ImmutableOps[V] => Lerp[V]:
   extension (a: V) def lerp(b: V, t: Double): V = a.mix(b, t)
 
-class Plane(val normal: Vec3, val d: Double) extends js.Object:
+class Plane(val normal: Vec3, val d: Double):
   def signedDist(p: Vec3): Double = normal.dot(p) - d
+  def flip: Plane = Plane(-normal, -d)
 
 private inline val ROUNDING = 10000.0
 private inline val DELTA = 1.0 / ROUNDING

@@ -7,12 +7,11 @@ import trivalibs.utils.js.*
 
 type Face[T] = Triangle[T] | Quad[T]
 
-class PositionFaceRef(val faceIndex: Int, val vertexSlot: Int) extends js.Object
+class PositionFaceRef(val faceIndex: Int, val vertexSlot: Int)
 
 class VertexPosition[T](val position: Vec3, val faces: Arr[PositionFaceRef])
-    extends js.Object
 
-class FaceData(var normal: Opt[Vec3], val section: Int) extends js.Object
+class FaceData(var normal: Opt[Vec3], val section: Int)
 
 opaque type MeshBufferType = Int
 
@@ -23,7 +22,7 @@ object MeshBufferType:
   val CompactVertices: MeshBufferType = 3
   val CompactVerticesWithNormal: MeshBufferType = 4
 
-class Mesh[T](using pos: Position[T]):
+class Mesh[T: Position]:
   val faces: Arr[Face[T]] = Arr()
   val faceData: Arr[FaceData] = Arr()
   val positions: Arr[VertexPosition[T]] = Arr()
@@ -113,11 +112,13 @@ class Mesh[T](using pos: Position[T]):
     var i = 0
     while i < faces.length do
       val arr = faces(i).asInstanceOf[Arr[T]]
-      if arr.length == 4 then hasQuads = true
       if faceData(i).normal == null then
         faceData(i).normal =
           if arr.length == 3 then faces(i).asInstanceOf[Triangle[T]].normal
-          else faces(i).asInstanceOf[Quad[T]].normal
+          else
+            hasQuads = true
+            faces(i).asInstanceOf[Quad[T]].normal
+
       i += 1
     hasQuads
 
