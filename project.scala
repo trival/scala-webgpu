@@ -1,8 +1,8 @@
-//> using scala 3.8.2
+//> using scala 3.8.3
 //> using platform js
 
 //> using jsVersion 1.20.2
-//> using jsMode full // fast
+//> using jsMode full
 //> using jsModuleKind es
 //> using jsEsVersionStr es2021
 //> using jsModuleSplitStyleStr fewestmodules
