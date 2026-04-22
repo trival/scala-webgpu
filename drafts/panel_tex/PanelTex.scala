@@ -22,13 +22,13 @@ def main(): Unit =
   val canvas =
     document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
 
-  Painter.init(canvas): painter =>
+  Painter.init(canvas): p =>
     // color shade
 
     type ColorAttribs = (position: Vec3, color: Vec3)
     type MvpUniforms = (mvp: VertexUniform[Mat4])
 
-    val colorShade = painter.shade[ColorAttribs, (color: Vec3), MvpUniforms]:
+    val colorShade = p.shade[ColorAttribs, (color: Vec3), MvpUniforms]:
       program =>
         program.vert: ctx =>
           Block(
@@ -48,7 +48,7 @@ def main(): Unit =
     type TexPanels = (colorTex: FragmentPanel)
 
     val texShade =
-      painter.shade[TexAttribs, (uv: Vec2), TexUniforms, TexPanels]: program =>
+      p.shade[TexAttribs, (uv: Vec2), TexUniforms, TexPanels]: program =>
         program.vert: ctx =>
           Block(
             ctx.out.uv := ctx.in.uv,
@@ -70,7 +70,7 @@ def main(): Unit =
     triVerts(1).set1(0.9, 0.45, 0.1)
     triVerts(2).set0(0.87, -0.5, 0.0)
     triVerts(2).set1(1.0, 0.8, 0.15)
-    val triForm = painter.form(vertices = triVerts)
+    val triForm = p.form(vertices = triVerts)
 
     // Blue quad (square, ±0.8)
     val quadVerts = allocateAttribs[ColorAttribs](6)
@@ -86,7 +86,7 @@ def main(): Unit =
     quadVerts(4).set1(0.5, 0.8, 1.0)
     quadVerts(5).set0(-0.8, 0.8, 0.0)
     quadVerts(5).set1(0.25, 0.5, 1.0)
-    val quadForm = painter.form(vertices = quadVerts)
+    val quadForm = p.form(vertices = quadVerts)
 
     // -----------------------------------------------------------------------
     // Geometry — textured 3D quads for the canvas (local space, centered at
@@ -109,35 +109,35 @@ def main(): Unit =
       v(5).set1(0.0, 0.0)
       v
 
-    val leftTexForm = painter.form(vertices = makeTexQuadVerts())
-    val rightTexForm = painter.form(vertices = makeTexQuadVerts())
+    val leftTexForm = p.form(vertices = makeTexQuadVerts())
+    val rightTexForm = p.form(vertices = makeTexQuadVerts())
 
     // -----------------------------------------------------------------------
     // MVP bindings
     // -----------------------------------------------------------------------
-    val triMvp = painter.binding[Mat4]
-    val quadMvp = painter.binding[Mat4]
-    val leftMvp = painter.binding[Mat4]
-    val rightMvp = painter.binding[Mat4]
+    val triMvp = p.binding[Mat4]
+    val quadMvp = p.binding[Mat4]
+    val leftMvp = p.binding[Mat4]
+    val rightMvp = p.binding[Mat4]
 
     // -----------------------------------------------------------------------
     // Shapes
     // -----------------------------------------------------------------------
-    val triShape = painter.shape(colorShade, triForm).bind("mvp" := triMvp)
-    val quadShape = painter.shape(colorShade, quadForm).bind("mvp" := quadMvp)
+    val triShape = p.shape(colorShade, triForm).bind("mvp" := triMvp)
+    val quadShape = p.shape(colorShade, quadForm).bind("mvp" := quadMvp)
 
-    val triangleTexShape = painter
+    val triangleTexShape = p
       .shape(texShade, leftTexForm)
-      .bind("mvp" := leftMvp, "texSampler" := painter.samplerNearest)
+      .bind("mvp" := leftMvp, "texSampler" := p.samplerNearest)
 
-    val quadTexShape = painter
+    val quadTexShape = p
       .shape(texShade, rightTexForm)
-      .bind("mvp" := rightMvp, "texSampler" := painter.samplerLinear)
+      .bind("mvp" := rightMvp, "texSampler" := p.samplerLinear)
 
     // -----------------------------------------------------------------------
     // Panels
     // -----------------------------------------------------------------------
-    val trianglePanel = painter
+    val trianglePanel = p
       .panel(
         width = 800,
         height = 800,
@@ -146,7 +146,7 @@ def main(): Unit =
         shapes = Arr(triShape),
       )
 
-    val quadPanel = painter
+    val quadPanel = p
       .panel(
         width = 800,
         height = 800,
@@ -158,7 +158,7 @@ def main(): Unit =
     triangleTexShape.bind("colorTex" := trianglePanel)
     quadTexShape.bind("colorTex" := quadPanel)
 
-    val canvasPanel = painter
+    val canvasPanel = p
       .panel(
         clearColor = (0.03, 0.03, 0.05, 1.0),
         depthTest = true,
@@ -173,22 +173,19 @@ def main(): Unit =
     // Camera for the colored 3D shapes inside the intermediate panels (square)
     val shapeCam = PerspectiveCamera(
       fov = math.Pi / 3.0,
-      aspect = 1.0,
-      near = 0.1,
-      far = 100.0,
+      pos = Vec3(0.0, 1, 2.6),
+      rotV = -0.3,
     )
-    shapeCam.resetTransform(Vec3(0.0, 1, 2.6), 0.0, -0.3)
 
     // Camera for the canvas (sees both floating textured quads side by side)
-    val aspect =
-      canvas.clientWidth.toDouble / math.max(canvas.clientHeight.toDouble, 1.0)
     val canvasCam = PerspectiveCamera(
       fov = math.Pi / 3.5,
-      aspect = aspect,
-      near = 0.1,
-      far = 100.0,
+      pos = Vec3(0.0, 0.3, 2.8),
+      rotV = -0.08,
     )
-    canvasCam.resetTransform(Vec3(0.0, 0.3, 2.8), 0.0, -0.08)
+
+    p.onResize: (w, h) =>
+      canvasCam(aspect = w / h)
 
     // -----------------------------------------------------------------------
     // Transforms for 3D shapes (world-space, rotated each frame)
@@ -238,7 +235,5 @@ def main(): Unit =
       leftMvp.set(canvasPV * leftTransform.toMatrix)
       rightMvp.set(canvasPV * rightTransform.toMatrix)
 
-      painter.paint(trianglePanel)
-      painter.paint(quadPanel)
-      painter.paint(canvasPanel)
-      painter.show(canvasPanel)
+      p.paint(trianglePanel, quadPanel, canvasPanel)
+      p.show(canvasPanel)

@@ -141,3 +141,6 @@ features. Every runtime construct must compile to minimal JS:
   don't want semicolons anywhere.
 - when working with typeclasses, use [T: Typeclass] notation instead of
   [T](using Typeclass[T]) where possible
+- When doing floating point math, prefer trivalibs NumExt extensions instead of
+  math library methods if possible. I.e. `x.sin` instead of `math.sin(x)`,
+  `x.sqrt` instead of `math.sqrt(x)`, etc.

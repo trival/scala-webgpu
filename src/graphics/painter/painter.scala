@@ -530,7 +530,17 @@ class Painter(
       formats: Maybe[Arr[String]] = Maybe.Not,
       shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
       layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
-  ): Panel = Panel(this).set(width, height, clearColor, depthTest, multisample, mipLevels, formats, shapes, layers)
+  ): Panel = Panel(this).set(
+    width,
+    height,
+    clearColor,
+    depthTest,
+    multisample,
+    mipLevels,
+    formats,
+    shapes,
+    layers,
+  )
 
   // =========================================================================
   // draw() — direct-to-canvas rendering
@@ -572,7 +582,7 @@ class Painter(
   // paint() / show() — Panel-based rendering
   // =========================================================================
 
-  def paint(panel: Panel): Unit =
+  private def paintPanel(panel: Panel): Unit =
     val w = width
     val h = height
     panel.ensureSize(w, h)
@@ -763,6 +773,12 @@ class Painter(
 
     // Generate mipmaps if configured
     if panel.mipLevelCount > 1 then generateMipmaps(panel)
+
+  def paint(panels: Panel*): Unit =
+    var i = 0
+    while i < panels.length do
+      paintPanel(panels(i))
+      i += 1
 
   def show(panel: Panel): Unit =
     val encoder = device.createCommandEncoder()
