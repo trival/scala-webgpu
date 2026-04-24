@@ -325,14 +325,15 @@ before adopting.
 
 **Option D — cache inside `Mesh`:** Two sub-variants, both deferred:
 
-- *`WeakMap` by object identity* — fails because the default `given [V] =>
-  Vec3Base[V] => Position[V]` creates a fresh `Vec3` on every `.pos` call, so
-  the same coordinate produces different instances and the cache always misses.
-- *`FaceWrapper[T]`* holding `(face: Face[T], vertexMeta: Arr[VertexMeta])`
-  with pre-computed keys per slot — avoids recomputation but adds an extra
-  object allocation per face and pointer indirection on every vertex access
-  (normal computation, buffer generation, adjacency queries). Indirection cost
-  on hot paths likely outweighs key savings that only occur during construction.
+- _`WeakMap` by object identity_ — fails because the default
+  `given [V] => Vec3Base[V] => Position[V]` creates a fresh `Vec3` on every
+  `.pos` call, so the same coordinate produces different instances and the cache
+  always misses.
+- _`FaceWrapper[T]`_ holding `(face: Face[T], vertexMeta: Arr[VertexMeta])` with
+  pre-computed keys per slot — avoids recomputation but adds an extra object
+  allocation per face and pointer indirection on every vertex access (normal
+  computation, buffer generation, adjacency queries). Indirection cost on hot
+  paths likely outweighs key savings that only occur during construction.
 
 Profile Options A–C before revisiting.
 
@@ -443,7 +444,8 @@ else
 ### Core idea
 
 `T` in `Mesh[T]` can be a case class. `NamedTuple.From[T]` (SIP-58, shipped in
-Scala 3.8) converts any case class to its named-tuple equivalent at compile time:
+Scala 3.8) converts any case class to its named-tuple equivalent at compile
+time:
 
 ```scala
 case class MyVertex(position: Vec3, uv: Vec2, color: Vec3)
@@ -497,8 +499,8 @@ val form  = painter.form[FinalAttribs]().set(vertices = geom.vertices)
 val shade = painter.shade[FinalAttribs, Varyings, Uniforms]: program => ...
 ```
 
-This closes the loop: the mesh vertex type IS the shader attribute type. Separate
-milestone after the base geometry library is working.
+This closes the loop: the mesh vertex type IS the shader attribute type.
+Separate milestone after the base geometry library is working.
 
 ---
 
@@ -506,8 +508,7 @@ milestone after the base geometry library is working.
 
 1. `expr.scala` — `lerp` aliases for Vec2/3/4Expr and FloatExpr
 2. `package.scala` — Position (generic via Vec3Base), Lerp (generic via
-   Vec3ImmutableOps), Plane, Vec3 extensions
-   → `test/geometry/Plane.test.scala`
+   Vec3ImmutableOps), Plane, Vec3 extensions → `test/geometry/Plane.test.scala`
 3. `polygon.scala` — Triangle and Quad → `test/geometry/Polygon.test.scala`
 4. `mesh.scala` → `test/geometry/Mesh.test.scala`
 5. `buffers.scala` → `test/geometry/Buffers.test.scala`
@@ -522,12 +523,12 @@ Phases 1–5 are pure CPU, testable without WebGPU.
 
 Add `//> using file ../src/graphics/geometry` to `test/test-setup.scala`.
 
-| File                   | Key cases                                                                        |
-| ---------------------- | -------------------------------------------------------------------------------- |
-| `Plane.test.scala`     | signedDist signs; approxEq boundary (0.00009 → equal, 0.00012 → not); onPlane/inFront/behind |
-| `Polygon.test.scala`   | Triangle: normal +Z for CCW XY; splitByPlane 0/1/2/3 in-front. Quad: normal +Z; subdivideH/V midpoints; toTriangles CCW; splitByPlane 0/3/4/5-vert outputs |
-| `Mesh.test.scala`      | addFace builds positionMap; adjacentFaces; removeFace keeps refs; ensureFaceNormals |
-| `Buffers.test.scala`   | vertex/index counts per strategy; CompactVertices deduplicates; mixed tri+quad FaceVertices index output |
+| File                 | Key cases                                                                                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Plane.test.scala`   | signedDist signs; approxEq boundary (0.00009 → equal, 0.00012 → not); onPlane/inFront/behind                                                               |
+| `Polygon.test.scala` | Triangle: normal +Z for CCW XY; splitByPlane 0/1/2/3 in-front. Quad: normal +Z; subdivideH/V midpoints; toTriangles CCW; splitByPlane 0/3/4/5-vert outputs |
+| `Mesh.test.scala`    | addFace builds positionMap; adjacentFaces; removeFace keeps refs; ensureFaceNormals                                                                        |
+| `Buffers.test.scala` | vertex/index counts per strategy; CompactVertices deduplicates; mixed tri+quad FaceVertices index output                                                   |
 
 ---
 

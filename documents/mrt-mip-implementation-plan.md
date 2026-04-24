@@ -403,7 +403,8 @@ case (deferred lighting with explicit panel bindings) without added complexity.
   `Arr[Opt[PanelBinding]]` in shape, layer, instance, painter
 - `processEntry` (shape) and `processPanelEntry` (panel) accept both `Panel`
   (auto-wrapped) and `PanelBinding`
-- `setPanelBindGroup` resolves `PanelBinding` → `panel.textureViewAt(pb.index, pb.mipLevel)`
+- `setPanelBindGroup` resolves `PanelBinding` →
+  `panel.textureViewAt(pb.index, pb.mipLevel)`
 - `applyPanelRuntimeBindings` handles both `Panel` and `PanelBinding` in union
 - All existing drafts compile and run; all 62 tests pass
 
@@ -429,9 +430,9 @@ case (deferred lighting with explicit panel bindings) without added complexity.
 - `formats` field + `effectiveFormats`/`targetCount` helpers on Panel
 - Multi-texture storage: `_textures`, `_textureViews`, `_samplingViews`,
   `_pongTextures`, `_pongViews`, `_msaaTextures`, `_msaaViews` all as `Arr`
-- `renderViewAt(index)` accessor for single-mip render views (used by
-  `paint()` color attachments to avoid accidentally binding all-mip sampling
-  views as render attachments)
+- `renderViewAt(index)` accessor for single-mip render views (used by `paint()`
+  color attachments to avoid accidentally binding all-mip sampling views as
+  render attachments)
 - `ensureSize` loops over `effectiveFormats`, one texture set per format
 - `paint()` builds `colorAttachments` array with one entry per `targetCount`
 - `renderShapeOnPass` and `renderLayerOnPass` accept `formats: Arr[String]`
@@ -444,8 +445,9 @@ case (deferred lighting with explicit panel bindings) without added complexity.
   overloads default to `FragOut` for backward compatibility
 - `shadeFromWgslFO` and `layerShadeFromWgslFO` use `Shader.full` with custom FO
 - `drafts/deferred/` example: G-buffer with 2 targets (`rgba8unorm` albedo +
-  `rgba16float` normals), MRT shade with `GBufferOut = (color: Vec4, normal: Vec4)`,
-  lighting layer composites with animated directional light using typed locals
+  `rgba16float` normals), MRT shade with
+  `GBufferOut = (color: Vec4, normal: Vec4)`, lighting layer composites with
+  animated directional light using typed locals
 - No ping-pong for MRT panels (MVP, matches Rust library behavior)
 - All 62 tests pass; all existing + new drafts compile
 
@@ -463,7 +465,8 @@ case (deferred lighting with explicit panel bindings) without added complexity.
 - [x] New `drafts/mipmaps/` example renders and shows mip level differences
 - [x] Panel with `mipLevels = 0` generates full chain
 - [x] `panel.binding(mipLevel = 3)` correctly binds that mip level
-- [x] `painter.sampler(mipmapFilter = FilterMode.Linear)` creates correct sampler
+- [x] `painter.sampler(mipmapFilter = FilterMode.Linear)` creates correct
+      sampler
 - [x] Layer with `mipTarget` renders to specific mip without ping-pong
 
 ### After Phase 2

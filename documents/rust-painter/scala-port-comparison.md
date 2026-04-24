@@ -7,42 +7,42 @@ Companion documents:
 
 - [painter_technical_overview.md](painter_technical_overview.md) — architecture
   of the Rust painter library.
-- [repomix-painter.xml](repomix-painter.xml) — full Rust source bundle
-  (painter crate + examples).
+- [repomix-painter.xml](repomix-painter.xml) — full Rust source bundle (painter
+  crate + examples).
 - [../../CLAUDE.md](../../CLAUDE.md) — Scala project conventions.
 
 This guide is structured for a reader who already knows the Rust painter API.
 Scope is API mapping only — not WGSL, not WebGPU fundamentals, not Scala
 teaching.
 
-> **Naming flip (read first):** Rust `Layer` is Scala `Panel`; Rust `Effect`
-> is Scala `Layer`. Every example that follows honours this flip.
+> **Naming flip (read first):** Rust `Layer` is Scala `Panel`; Rust `Effect` is
+> Scala `Layer`. Every example that follows honours this flip.
 
 ---
 
 ## 1. Vocabulary & the Naming Flip
 
-| Rust term             | Scala term               | File                                                                     | Role                                                                |
-| --------------------- | ------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| `Painter`             | `Painter`                | [painter.scala](../../src/graphics/painter/painter.scala)                | Central registry + frame driver.                                    |
-| `Shade`               | `Shade[U, P]`            | [shade.scala](../../src/graphics/painter/shade.scala)                    | Shader module + bind-group layouts + pipeline layout.               |
-| `Form`                | `Form`                   | [form.scala](../../src/graphics/painter/form.scala)                      | Vertex buffer + topology / front face.                              |
-| `Shape`               | `Shape[U, P]`            | [shape.scala](../../src/graphics/painter/shape.scala)                    | Drawable: Form + Shade + bindings + instances.                      |
-| `Effect`              | **`Layer[U, P]`**        | [layer.scala](../../src/graphics/painter/layer.scala)                    | Fullscreen post-processing pass (no Form, fragment-only Shade).     |
-| `Layer`               | **`Panel`**              | [panel.scala](../../src/graphics/painter/panel.scala)                    | Render target: textures + ordered shapes + ordered layers.          |
-| `BindingBuffer<T>`    | `BufferBinding[T, F]`    | [buffers/binding.scala](../../src/graphics/buffers/binding.scala)        | Typed uniform buffer (CPU `StructRef` + GPU `GPUBuffer`).           |
-| `ValueBinding`        | named-tuple bind entry   | n/a                                                                      | Dispatched in `Shape.bind(...)` by runtime type.                    |
-| `LayerBinding`        | `PanelBinding` / `Panel` | [panel.scala](../../src/graphics/painter/panel.scala) (lines 13-20)      | Texture view bound as shader input.                                 |
-| `InstanceBinding`     | `Instance[U, P]`         | [instance.scala](../../src/graphics/painter/instance.scala)              | Per-draw-call binding overrides.                                    |
-| `CanvasApp<E>` trait  | `animate(...)` + closure | [utils/animate.scala](../../src/graphics/utils/animate.scala)            | Frame loop driver. See [§7](#7-app-loop--events) for the gap on events. |
+| Rust term            | Scala term               | File                                                                | Role                                                                    |
+| -------------------- | ------------------------ | ------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `Painter`            | `Painter`                | [painter.scala](../../src/graphics/painter/painter.scala)           | Central registry + frame driver.                                        |
+| `Shade`              | `Shade[U, P]`            | [shade.scala](../../src/graphics/painter/shade.scala)               | Shader module + bind-group layouts + pipeline layout.                   |
+| `Form`               | `Form`                   | [form.scala](../../src/graphics/painter/form.scala)                 | Vertex buffer + topology / front face.                                  |
+| `Shape`              | `Shape[U, P]`            | [shape.scala](../../src/graphics/painter/shape.scala)               | Drawable: Form + Shade + bindings + instances.                          |
+| `Effect`             | **`Layer[U, P]`**        | [layer.scala](../../src/graphics/painter/layer.scala)               | Fullscreen post-processing pass (no Form, fragment-only Shade).         |
+| `Layer`              | **`Panel`**              | [panel.scala](../../src/graphics/painter/panel.scala)               | Render target: textures + ordered shapes + ordered layers.              |
+| `BindingBuffer<T>`   | `BufferBinding[T, F]`    | [buffers/binding.scala](../../src/graphics/buffers/binding.scala)   | Typed uniform buffer (CPU `StructRef` + GPU `GPUBuffer`).               |
+| `ValueBinding`       | named-tuple bind entry   | n/a                                                                 | Dispatched in `Shape.bind(...)` by runtime type.                        |
+| `LayerBinding`       | `PanelBinding` / `Panel` | [panel.scala](../../src/graphics/painter/panel.scala) (lines 13-20) | Texture view bound as shader input.                                     |
+| `InstanceBinding`    | `Instance[U, P]`         | [instance.scala](../../src/graphics/painter/instance.scala)         | Per-draw-call binding overrides.                                        |
+| `CanvasApp<E>` trait | `animate(...)` + closure | [utils/animate.scala](../../src/graphics/utils/animate.scala)       | Frame loop driver. See [§7](#7-app-loop--events) for the gap on events. |
 
 **Visibility constants.** Rust has the `BINDING_BUFFER_VERT` /
 `BINDING_BUFFER_FRAG` / `BINDING_BUFFER_BOTH` / `BINDING_SAMPLER_*` /
 `BINDING_LAYER_*` constants that declare a binding's shader-stage visibility
-when building a `Shade`. The Scala port derives all visibility information
-from the uniform **named-tuple type**: wrap a field in `VertexUniform[T]` or
-`FragmentUniform[T]` (or leave it bare, which defaults to vertex+fragment),
-and the layout is computed by compile-time reflection. See
+when building a `Shade`. The Scala port derives all visibility information from
+the uniform **named-tuple type**: wrap a field in `VertexUniform[T]` or
+`FragmentUniform[T]` (or leave it bare, which defaults to vertex+fragment), and
+the layout is computed by compile-time reflection. See
 [§5](#5-binding-translation) and
 [layouts.scala](../../src/graphics/shader/layouts.scala).
 
@@ -82,9 +82,9 @@ def main(): Unit =
   Painter.init(canvas): painter =>
     // --- init ---
     val shade   = painter.shade[Attribs, Varyings, Uniforms](...)
-    val form    = painter.form().set(vertices = vs)
+    val form    = painter.form(vertices = vs)
     val shape   = painter.shape(shade, form).bind("u" := someBinding)
-    val canvasP = painter.panel().set(shapes = Arr(shape))
+    val canvasP = painter.panel(shape = shape)
 
     painter.onResize: (w, h) =>
       // viewProj / uniforms that depend on aspect
@@ -102,12 +102,12 @@ Differences:
   closure.
 - `canvas` is an existing `<canvas>` element passed in (browser owns the DOM,
   not the painter).
-- `painter.onResize(cb)` registers a callback invoked both now (with the
-  current size) and on every `ResizeObserver` tick. This covers Rust's
-  `resize`.
+- `painter.onResize(cb)` registers a callback invoked both now (with the current
+  size) and on every `ResizeObserver` tick. This covers Rust's `resize`.
 - No event pipeline. See [§7](#7-app-loop--events).
-- `animate(tpf => ...)` from [animate.scala](../../src/graphics/utils/animate.scala)
-  drives `requestAnimationFrame` and logs FPS. There is no equivalent to
+- `animate(tpf => ...)` from
+  [animate.scala](../../src/graphics/utils/animate.scala) drives
+  `requestAnimationFrame` and logs FPS. There is no equivalent to
   `painter.request_next_frame()` (WebGPU rendering is always in the browser's
   rAF loop unless you stop the animator).
 
@@ -125,31 +125,31 @@ Rust: `p.form(...)`, `p.shade(...)`, `p.shade_effect()`, `p.shape(form, shade)`,
 Scala: all factories live on the `Painter` instance too, but names align with
 the Scala naming flip.
 
-| Rust                             | Scala                                                                    |
-| -------------------------------- | ------------------------------------------------------------------------ |
-| `p.form(verts).create()`         | `painter.form().set(vertices = verts)` (or `painter.form(vertices = v)`) |
-| `p.shade([...]).with_bindings(...).create()` | `painter.shade[A, V, U](vertWgsl, fragWgsl)` or DSL overload |
-| `p.shade_effect()`               | `painter.layerShade[U]` (or `[U, P]` / `[U, P, FO]`)                     |
-| `p.shape(form, shade)`           | `painter.shape(shade, form)` — **note the arg order flip**               |
-| `p.effect(shade)`                | `painter.layer(shade)`                                                   |
-| `p.layer()`                      | `painter.panel()`                                                        |
-| `p.single_effect_layer(shade)`   | not yet (construct `panel().set(layers = Arr(painter.layer(shade)))`)    |
-| `p.sampler_nearest()`            | `painter.samplerNearest` (lazy val)                                      |
-| `p.sampler_linear()`             | `painter.samplerLinear` (lazy val)                                       |
-| `p.sampler()` with options       | `painter.sampler(magFilter, minFilter, mipmapFilter)`                    |
-| `p.bind_mat4()`                  | `painter.binding[Mat4]`                                                  |
-| `p.bind_const_vec3(v)`           | `painter.binding(v)` (single-param overload; auto-infers `Vec3`)         |
-| `p.paint(&layer)`                | `painter.paint(panel)` (varargs: `painter.paint(p1, p2, p3)`)            |
-| `p.show(&layer)`                 | `painter.show(panel)`                                                    |
-| `p.paint_and_show(&layer)`       | `painter.paint(panel); painter.show(panel)` — no convenience wrapper     |
-| `p.compose(&[&a, &b])`           | `painter.paint(a, b)` (varargs form of `paint`)                          |
-| `p.request_next_frame()`         | n/a — `animate` is always running while it's not stopped                 |
-| `p.canvas_size()`                | `painter.width` / `painter.height`                                       |
+| Rust                                         | Scala                                                                                                                        |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `p.form(verts).create()`                     | `painter.form(vertices = verts)` (or with topology/frontFace: `painter.form(vertices = v, topology = ..., frontFace = ...)`) |
+| `p.shade([...]).with_bindings(...).create()` | `painter.shade[A, V, U](vertWgsl, fragWgsl)` or DSL overload                                                                 |
+| `p.shade_effect()`                           | `painter.layerShade[U]` (or `[U, P]` / `[U, P, FO]`)                                                                         |
+| `p.shape(form, shade)`                       | `painter.shape(shade, form)` — **note the arg order flip**                                                                   |
+| `p.effect(shade)`                            | `painter.layer(shade)`                                                                                                       |
+| `p.layer()`                                  | `painter.panel()`                                                                                                            |
+| `p.single_effect_layer(shade)`               | not yet (construct `painter.panel(layer = painter.layer(shade))`)                                                            |
+| `p.sampler_nearest()`                        | `painter.samplerNearest` (lazy val)                                                                                          |
+| `p.sampler_linear()`                         | `painter.samplerLinear` (lazy val)                                                                                           |
+| `p.sampler()` with options                   | `painter.sampler(magFilter, minFilter, mipmapFilter)`                                                                        |
+| `p.bind_mat4()`                              | `painter.binding[Mat4]`                                                                                                      |
+| `p.bind_const_vec3(v)`                       | `painter.binding(v)` (single-param overload; auto-infers `Vec3`)                                                             |
+| `p.paint(&layer)`                            | `painter.paint(panel)` (varargs: `painter.paint(p1, p2, p3)`)                                                                |
+| `p.show(&layer)`                             | `painter.show(panel)`                                                                                                        |
+| `p.paint_and_show(&layer)`                   | `painter.paint(panel)` then `painter.show(panel)` — no convenience wrapper                                                   |
+| `p.compose(&[&a, &b])`                       | `painter.paint(a, b)` (varargs form of `paint`)                                                                              |
+| `p.request_next_frame()`                     | n/a — `animate` is always running while it's not stopped                                                                     |
+| `p.canvas_size()`                            | `painter.width` / `painter.height`                                                                                           |
 
-Scala adds one factory not present in Rust: **`painter.draw(shape, clearColor)`**
-is a direct-to-canvas shortcut that renders a Shape straight to the swap chain
-without needing a Panel. Used by `painter_triangle`, `painter_dsl`,
-`painter_typed_bindings`.
+Scala adds one factory not present in Rust:
+**`painter.draw(shape, clearColor)`** is a direct-to-canvas shortcut that
+renders a Shape straight to the swap chain without needing a Panel. Used by
+`painter_triangle`, `painter_dsl`, `painter_typed_bindings`.
 
 ### Shade
 
@@ -169,8 +169,8 @@ load_fragment_shader!(shade, p, "./shader/fs.spv");
 ```
 
 Scala declares the attribute layout, varyings, uniforms, and panel bindings as
-named-tuple type parameters, then provides the shader body either as raw WGSL
-or via the DSL.
+named-tuple type parameters, then provides the shader body either as raw WGSL or
+via the DSL.
 
 ```scala
 type Attribs  = (position: Vec3, color: Vec3)
@@ -190,23 +190,26 @@ val shade = painter.shade[Attribs, Varyings, Uniforms](
 
 Mapping rules:
 
-- Ordered attributes list (Rust) ↔ ordered fields of the `Attribs` named
-  tuple (Scala); field name becomes the WGSL variable name.
+- Ordered attributes list (Rust) ↔ ordered fields of the `Attribs` named tuple
+  (Scala); field name becomes the WGSL variable name.
 - `BINDING_BUFFER_VERT` ↔ `VertexUniform[T]` wrapper; `..._FRAG` ↔
-  `FragmentUniform[T]`; `..._BOTH` ↔ plain `T` (default visibility in the
-  Scala DSL is vertex+fragment).
-- `BINDING_SAMPLER_FRAG` ↔ `FragmentUniform[Sampler]` (Sampler is a marker
-  type in the DSL).
+  `FragmentUniform[T]`; `..._BOTH` ↔ plain `T` (default visibility in the Scala
+  DSL is vertex+fragment).
+- `BINDING_SAMPLER_FRAG` ↔ `FragmentUniform[Sampler]` (Sampler is a marker type
+  in the DSL).
 - `BINDING_LAYER_FRAG` ↔ a separate `P` (panels) type parameter, declared as
   `type Panels = (nameA: FragmentPanel, ...)`.
 
-Three Scala overloads, five total:
+Five Scala overloads:
 
-1. `painter.shade[A, V, U](vertWgsl, fragWgsl)` — WGSL strings, no panel bindings.
+1. `painter.shade[A, V, U](vertWgsl, fragWgsl)` — WGSL strings, no panel
+   bindings.
 2. `painter.shade[A, V, U, P](vertWgsl, fragWgsl)` — add panel bindings.
-3. `painter.shade[A, V, U](program => ...)` — DSL program builder, no panel bindings.
+3. `painter.shade[A, V, U](program => ...)` — DSL program builder, no panel
+   bindings.
 4. `painter.shade[A, V, U, P](program => ...)` — DSL + panels.
-5. `painter.shade[A, V, U, P, FO](program => ...)` — DSL + panels + custom fragment output (MRT).
+5. `painter.shade[A, V, U, P, FO](program => ...)` — DSL + panels + custom
+   fragment output (MRT).
 
 ### Form
 
@@ -222,21 +225,21 @@ let form = p.form(&vertices)
 Scala:
 
 ```scala
-val form = painter.form().set(
-  vertices  = verts,                 // StructArray[F]
+val form = painter.form(
+  vertices  = verts,                          // StructArray[F]
   topology  = PrimitiveTopology.TriangleList,
   frontFace = FrontFace.CCW,
 )
-// …or, equivalently:
+// all params have defaults, so the common case is just:
 val form = painter.form(vertices = verts)
 ```
 
-Reassigning geometry: call `form.set(vertices = newVerts)`. The old GPU
-buffer is destroyed and a new one allocated (no in-place resize yet).
+Reassigning geometry after creation: call `form.set(vertices = newVerts)`. The
+old GPU buffer is destroyed and a new one allocated (no in-place resize yet).
 
 Index buffers are not supported by `Form` yet — both the
-`examples/buffer_triangle` and the raw simple triangle draw non-indexed. If
-you need indexed draws today, you fall through to the raw WebGPU path as in
+`examples/buffer_triangle` and the raw simple triangle draw non-indexed. If you
+need indexed draws today, you fall through to the raw WebGPU path as in
 [BufferTriangle.scala](../../examples/buffer_triangle/BufferTriangle.scala).
 
 ### Shape
@@ -260,8 +263,7 @@ Scala binds by **name** (field of the uniform named tuple), using `BindPair`
 sugar `"name" := value`:
 
 ```scala
-val shape = painter.shape(shade, form, cullMode = CullMode.None)
-  .set(blendState = BlendState.Alpha)
+val shape = painter.shape(shade, form, cullMode = CullMode.None, blendState = BlendState.Alpha)
   .bind(
     "viewProj" := cam,
     "model"    := modelMat,
@@ -281,19 +283,21 @@ uniform field (auto-boxed into a `BufferBinding`), a `Panel`, or a
 
 Rust `Layer` constructor options:
 
-| Rust builder method                   | Scala equivalent                                |
-| ------------------------------------- | ----------------------------------------------- |
-| `.with_shape(s)` / `.with_shapes(vs)` | `panel.set(shapes = Arr(s, ...))`               |
-| `.with_effect(e)` / `.with_effects()` | `panel.set(layers = Arr(l, ...))`               |
-| `.with_size(w, h)`                    | `panel.set(width = w, height = h)`              |
-| `.with_clear_color(c)`                | `panel.set(clearColor = (r, g, b, a))`          |
-| `.with_multisampling()`               | `panel.set(multisample = true)`                 |
-| `.with_depth_test()`                  | `panel.set(depthTest = true)`                   |
-| `.with_mips()`                        | `panel.set(mipLevels = 0)` (0 = full chain)     |
-| `.with_format(fmt)`                   | `panel.set(formats = Arr("rgba16float"))`       |
-| `.with_mrt_formats([a, b, c])` / `with_formats` | `panel.set(formats = Arr("rgba8unorm", "rgba16float", "rgba16float"))` |
-| `.with_static_texture_data(bytes)`    | **not yet** (see [§13](#13-known-gaps--workarounds)) |
-| `.set_layer_bindings(...)` / `.set_value_bindings(...)` | `panel.bind("name" := value, ...)`   |
+| Rust builder method                                     | Scala equivalent                                                                             |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `.with_shape(s)`                                        | `panel.set(shape = s)` (singular; plural `shapes = Arr(...)` takes precedence)               |
+| `.with_shapes(vs)`                                      | `panel.set(shapes = Arr(s, ...))`                                                            |
+| `.with_effect(e)`                                       | `panel.set(layer = l)` (singular; plural `layers = Arr(...)` takes precedence)               |
+| `.with_effects()`                                       | `panel.set(layers = Arr(l, ...))`                                                            |
+| `.with_size(w, h)`                                      | `panel.set(width = w, height = h)`                                                           |
+| `.with_clear_color(c)`                                  | `panel.set(clearColor = (r, g, b, a))`                                                       |
+| `.with_multisampling()`                                 | `panel.set(multisample = true)`                                                              |
+| `.with_depth_test()`                                    | `panel.set(depthTest = true)`                                                                |
+| `.with_mips()`                                          | `panel.set(mipLevels = 0)` (0 = full chain)                                                  |
+| `.with_format(fmt)`                                     | `panel.set(format = "rgba16float")` (singular; plural `formats = Arr(...)` takes precedence) |
+| `.with_mrt_formats([a, b, c])` / `with_formats`         | `panel.set(formats = Arr("rgba8unorm", "rgba16float", "rgba16float"))`                       |
+| `.with_static_texture_data(bytes)`                      | **not yet** (see [§12](#12-known-gaps--workarounds))                                         |
+| `.set_layer_bindings(...)` / `.set_value_bindings(...)` | `panel.bind("name" := value, ...)`                                                           |
 
 The Scala Panel's constructor also accepts all of the above as constructor
 kwargs:
@@ -303,7 +307,7 @@ val canvas = painter.panel(
   clearColor  = (0.02, 0.02, 0.06, 1.0),
   depthTest   = true,
   multisample = true,
-  shapes      = Arr(someShape),
+  shape       = someShape,
 )
 ```
 
@@ -325,8 +329,7 @@ Scala:
 
 ```scala
 val lightLayer = painter
-  .layer(lightShade, blendState = BlendState.Additive)
-  .set(mipSource = -1, mipTarget = -1)            // defaults: -1 means "none"
+  .layer(lightShade, blendState = BlendState.Additive, mipSource = -1, mipTarget = -1)
   .bind(
     "lightDir"    := Vec3(0.5, 0.7, 1.0),
     "texSampler"  := painter.samplerNearest,
@@ -341,16 +344,16 @@ lightLayer.instances.add(
 ```
 
 Both `mipSource` and `mipTarget` take an int mip-level or `-1` to disable (no
-`Option`). Effects that target a mip level skip ping-pong, just like in the
-Rust original.
+`Option`). Effects that target a mip level skip ping-pong, just like in the Rust
+original.
 
 ### Instance
 
-Rust `InstanceBinding` is a struct with `bindings: HashMap<u32,
-ValueBinding>` and `layers: HashMap<u32, LayerBinding>`. Scala `Instance` is
-produced via `shape.instances.add(...)` or `layer.instances.add(...)`, taking
-up to 8 `BindPair` entries. Same runtime semantics: per-draw-call overrides
-of the shape/layer bindings.
+Rust `InstanceBinding` is a struct with `bindings: HashMap<u32, ValueBinding>`
+and `layers: HashMap<u32, LayerBinding>`. Scala `Instance` is produced via
+`shape.instances.add(...)` or `layer.instances.add(...)`, taking up to 8
+`BindPair` entries. Same runtime semantics: per-draw-call overrides of the
+shape/layer bindings.
 
 ```rust
 // Rust — deferred lighting (one instance per light)
@@ -372,23 +375,23 @@ for i <- 0 until 10 do
 
 ### BufferBinding
 
-| Rust                                   | Scala                                  |
-| -------------------------------------- | -------------------------------------- |
-| `let m = p.bind_mat4();`               | `val m = painter.binding[Mat4]`        |
-| `let m = p.bind_const_mat4(initial);`  | `val m = painter.binding(initial)`     |
-| `m.update(p, new_value)`               | `m.set(new_value)` or `m := new_value` |
-| n/a                                    | `m.update(ref => ref.x = 1.0f)`        |
-| `m.binding()` (to pass to Shape)       | pass `m` directly in `"name" := m`     |
-| n/a                                    | `m.get` (CPU-side read, no GPU fetch)  |
+| Rust                                  | Scala                                  |
+| ------------------------------------- | -------------------------------------- |
+| `let m = p.bind_mat4();`              | `val m = painter.binding[Mat4]`        |
+| `let m = p.bind_const_mat4(initial);` | `val m = painter.binding(initial)`     |
+| `m.update(p, new_value)`              | `m.set(new_value)` or `m := new_value` |
+| n/a                                   | `m.update(ref => ref.x = 1.0f)`        |
+| `m.binding()` (to pass to Shape)      | pass `m` directly in `"name" := m`     |
+| n/a                                   | `m.get` (CPU-side read, no GPU fetch)  |
 
 See [buffers/binding.scala:110-122](../../src/graphics/buffers/binding.scala)
 for `set` / `:=` / `update` / `get`.
 
 ### Sampler
 
-Rust `p.sampler_linear()` returns a `Sampler` that produces a `ValueBinding`
-via `.binding()`. Scala samplers are plain `GPUSampler` values — pass them
-directly as bindings.
+Rust `p.sampler_linear()` returns a `Sampler` that produces a `ValueBinding` via
+`.binding()`. Scala samplers are plain `GPUSampler` values — pass them directly
+as bindings.
 
 ```scala
 val s   = painter.samplerLinear
@@ -405,9 +408,9 @@ shape.bind("texSampler" := s)
 
 ## 4. Shader Migration
 
-Rust painter always loads SPIR-V modules compiled from `rust-gpu` / Cargo
-shader crates. The Scala port runs WGSL in the browser — there are two
-migration routes.
+Rust painter always loads SPIR-V modules compiled from `rust-gpu` / Cargo shader
+crates. The Scala port runs WGSL in the browser — there are two migration
+routes.
 
 ### Route A — keep the body as WGSL
 
@@ -427,14 +430,15 @@ val shade = painter.shade[Attribs, Varyings, Uniforms](
 )
 ```
 
-`in.<name>`, `out.<name>`, and each uniform field (`viewProj`, `model`,
-`tint`) are declared automatically. **You do not write any `@group` /
-`@binding` / `@location` decorations** — they are emitted by compile-time
-reflection on the `Attribs`/`Varyings`/`Uniforms` types. See
+`in.<name>`, `out.<name>`, and each uniform field (`viewProj`, `model`, `tint`)
+are declared automatically. **You do not write any `@group` / `@binding` /
+`@location` decorations** — they are emitted by compile-time reflection on the
+`Attribs`/`Varyings`/`Uniforms` types. See
 [layouts.scala](../../src/graphics/shader/layouts.scala) and
 [derive.scala](../../src/graphics/shader/derive.scala).
 
-Examples: [painter_triangle](../../examples/painter_triangle/PainterTriangle.scala),
+Examples:
+[painter_triangle](../../examples/painter_triangle/PainterTriangle.scala),
 [painter_typed_bindings](../../examples/painter_typed_bindings/TypedBindings.scala),
 [instances](../../examples/instances/Instances.scala).
 
@@ -499,8 +503,8 @@ for DSL fragment shaders with typed locals.
 
 ### `shade_effect` / `layerShade`
 
-Rust's `p.shade_effect()` drops the vertex shader and uses a built-in
-fullscreen triangle. Scala equivalent:
+Rust's `p.shade_effect()` drops the vertex shader and uses a built-in fullscreen
+triangle. Scala equivalent:
 
 ```scala
 val shade = painter.layerShade[Uniforms]: program =>
@@ -527,24 +531,24 @@ the only example that does.
 
 ### `bind_*` method table
 
-| Rust                               | Scala                                                |
-| ---------------------------------- | ---------------------------------------------------- |
-| `p.bind_f32()`                     | `painter.binding[Float]`                             |
-| `p.bind_u32()`                     | not yet ported (use raw `BufferBinding[Int, U32]`?)  |
-| `p.bind_vec2()` / `bind_vec3()` / `bind_vec4()` | `painter.binding[Vec2]` / `[Vec3]` / `[Vec4]` |
-| `p.bind_uvec2()`                   | not yet                                              |
-| `p.bind_mat2()` / `bind_mat3()` / `bind_mat4()` | `painter.binding[Mat2]` / `[Mat3]` / `[Mat4]` |
-| `p.bind_quat()`                    | not yet (use `BufferBinding[Quat]` once a `UniformValue[Quat]` exists — gap) |
-| `p.bind_buff::<T>(initial)`        | `painter.binding[T](initial)` if `UniformLayout[T]` given; else construct `BufferBinding[T, F](device)` directly |
-| `p.bind_const_vec3(v)`             | `painter.binding(v)` — produces a **mutable** binding pre-set to `v`. To freeze the binding, just don't call `.set` again. |
-| `p.bind_const_f32(f)`              | `painter.binding(f.toFloat)`                         |
-| `p.sampler_linear().binding()`     | `painter.samplerLinear` (pass directly)              |
-| `p.sampler_nearest().binding()`    | `painter.samplerNearest`                             |
+| Rust                                            | Scala                                                                                                                              |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `p.bind_f32()`                                  | `painter.binding[Float]`                                                                                                           |
+| `p.bind_u32()`                                  | not yet ported (use raw `BufferBinding[Int, U32]`?)                                                                                |
+| `p.bind_vec2()` / `bind_vec3()` / `bind_vec4()` | `painter.binding[Vec2]` / `[Vec3]` / `[Vec4]`                                                                                      |
+| `p.bind_uvec2()`                                | not yet                                                                                                                            |
+| `p.bind_mat2()` / `bind_mat3()` / `bind_mat4()` | `painter.binding[Mat2]` / `[Mat3]` / `[Mat4]`                                                                                      |
+| `p.bind_quat()`                                 | won't be ported — WGSL has no quaternion type. Use a rotation matrix binding (`Mat3` / `Mat4`) in shaders.                         |
+| `p.bind_buff::<T>(initial)`                     | `painter.binding[T](initial)` if `UniformLayout[T]` given; else construct `BufferBinding[T, F](device)` directly                   |
+| `p.bind_const_vec3(v)`                          | `painter.binding(v)` — produces a **mutable** binding pre-set to `v`. To freeze the binding, just don't call `.set` again.         |
+| `p.bind_const_f32(f)`                           | `painter.binding(d)` — pass a `Double` directly. Scala.js compiles to JS numbers (doubles), so CPU-side code mainly uses `Double`. |
+| `p.sampler_linear().binding()`                  | `painter.samplerLinear` (pass directly)                                                                                            |
+| `p.sampler_nearest().binding()`                 | `painter.samplerNearest`                                                                                                           |
 
-**`bind_const_*` semantics difference.** Rust's `bind_const_*` methods return
-a `ValueBinding` and the user does not keep the buffer handle. Scala's
-`painter.binding(v)` returns a full `BufferBinding` that you can update later
-— the "const-ness" is by convention, not type.
+**`bind_const_*` semantics difference.** Rust's `bind_const_*` methods return a
+`ValueBinding` and the user does not keep the buffer handle. Scala's
+`painter.binding(v)` returns a full `BufferBinding` that you can update later —
+the "const-ness" is by convention, not type.
 
 ### Visibility constants
 
@@ -561,9 +565,19 @@ type Uniforms = (
 )
 ```
 
-Wrappers live in [graphics/shader/types.scala](../../src/graphics/shader/types.scala)
-and generate the correct `GPUShaderStage` flags. There is no
+Wrappers live in
+[graphics/shader/types.scala](../../src/graphics/shader/types.scala) and
+generate the correct `GPUShaderStage` flags. There is no
 `VertexFragmentUniform[T]` — a bare `T` is the vertex+fragment default.
+
+**Exception: `layerShade`.** For layer (post-processing) shades there is no
+vertex stage the user controls, so every uniform is fragment-only by
+construction. `layerShade` applies `NamedTuple.Map[U, WrapFragment]` internally
+(see [painter.scala:361](../../src/graphics/painter/painter.scala#L361) and
+[derive.scala:247](../../src/graphics/shader/derive.scala#L247)): bare types are
+auto-wrapped in `FragmentUniform[T]`, already-wrapped types pass through. So for
+layer uniforms you can just write bare types — no `FragmentUniform[...]` wrapper
+needed.
 
 ### Value-binding map → named-tuple bind
 
@@ -587,15 +601,15 @@ and generate the correct `GPUShaderStage` flags. There is no
 
 ### Panel (Rust `LayerBinding`) variants
 
-Rust `LayerBinding` has four variants; Scala uses `PanelBinding(panel, index,
-mipLevel, depth)`.
+Rust `LayerBinding` has four variants; Scala uses
+`PanelBinding(panel, index, mipLevel, depth)`.
 
-| Rust `LayerBinding`                 | Scala                                                |
-| ----------------------------------- | ---------------------------------------------------- |
-| `LayerBinding::Source(layer)`       | `panel` (bare Panel — wraps to `PanelBinding(panel)`) |
-| `LayerBinding::AtIndex(layer, i)`   | `panel.binding(index = i)`                            |
-| `LayerBinding::SourceAtMipLevel(layer, m)` | `panel.binding(mipLevel = m)`                  |
-| `LayerBinding::Depth(layer)`        | `panel.binding(depth = true)`                         |
+| Rust `LayerBinding`                        | Scala                                                 |
+| ------------------------------------------ | ----------------------------------------------------- |
+| `LayerBinding::Source(layer)`              | `panel` (bare Panel — wraps to `PanelBinding(panel)`) |
+| `LayerBinding::AtIndex(layer, i)`          | `panel.binding(index = i)`                            |
+| `LayerBinding::SourceAtMipLevel(layer, m)` | `panel.binding(mipLevel = m)`                         |
+| `LayerBinding::Depth(layer)`               | `panel.binding(depth = true)`                         |
 
 Example (deferred lighting reads G-buffer at indices 0 and 1):
 
@@ -641,12 +655,12 @@ shape.instances(i).bind("model" := newModelMat)
 
 ### Per-frame orchestration
 
-| Rust                           | Scala                                            |
-| ------------------------------ | ------------------------------------------------ |
-| `p.paint(&layer)`              | `painter.paint(panel)`                           |
-| `p.compose(&[&a, &b, &c])`     | `painter.paint(a, b, c)` (`paint` is varargs)    |
-| `p.show(&layer)`               | `painter.show(panel)`                            |
-| `p.paint_and_show(&layer)`     | `painter.paint(panel); painter.show(panel)`      |
+| Rust                       | Scala                                             |
+| -------------------------- | ------------------------------------------------- |
+| `p.paint(&layer)`          | `painter.paint(panel)`                            |
+| `p.compose(&[&a, &b, &c])` | `painter.paint(a, b, c)` (`paint` is varargs)     |
+| `p.show(&layer)`           | `painter.show(panel)`                             |
+| `p.paint_and_show(&layer)` | `painter.paint(panel)` then `painter.show(panel)` |
 
 Chained passes (deferred rendering):
 
@@ -665,9 +679,9 @@ texture feedback across three panels.
 
 ### Direct-to-canvas `draw`
 
-Scala-only shortcut for simple demos: render a single shape to the swap
-chain with no Panel. Supports an optional clear color; subsequent calls load
-the previous contents.
+Scala-only shortcut for simple demos: render a single shape to the swap chain
+with no Panel. Supports an optional clear color; subsequent calls load the
+previous contents.
 
 ```scala
 painter.draw(shape1, clearColor = (0.1, 0.1, 0.1, 1.0))
@@ -681,16 +695,16 @@ See [examples/painter_dsl](../../examples/painter_dsl/PainterDsl.scala) and
 
 ## 7. App Loop & Events
 
-| `CanvasApp` hook      | Scala mechanism                                                              |
-| --------------------- | ---------------------------------------------------------------------------- |
-| `fn init(...)`        | code inside the `Painter.init(canvas) { painter => ... }` closure            |
-| `fn resize(w, h)`     | `painter.onResize((w, h) => ...)` — callback runs now + on every resize      |
-| `fn frame(tpf)`       | `animate(tpf => ...)` callback (tpf is ms, not s — beware units)             |
-| `fn event(e)`         | **gap** — no pipeline; attach raw DOM listeners to `painter.canvas`          |
-| `AppConfig.show_fps`  | `animate` logs FPS automatically; no toggle                                  |
-| `AppConfig.use_vsync` | browser-controlled; no knob                                                  |
-| `AppConfig.remember_window_dimensions` | **gap** — no persistence                                    |
-| `request_next_frame`  | n/a — `animate` runs continuously until `animator.stop()`                    |
+| `CanvasApp` hook                       | Scala mechanism                                                         |
+| -------------------------------------- | ----------------------------------------------------------------------- |
+| `fn init(...)`                         | code inside the `Painter.init(canvas) { painter => ... }` closure       |
+| `fn resize(w, h)`                      | `painter.onResize((w, h) => ...)` — callback runs now + on every resize |
+| `fn frame(tpf)`                        | `animate(tpf => ...)` callback (tpf is ms, not s — beware units)        |
+| `fn event(e)`                          | **gap** — no pipeline; attach raw DOM listeners to `painter.canvas`     |
+| `AppConfig.show_fps`                   | `animate` logs FPS automatically; no toggle                             |
+| `AppConfig.use_vsync`                  | browser-controlled; no knob                                             |
+| `AppConfig.remember_window_dimensions` | **gap** — no persistence                                                |
+| `request_next_frame`                   | n/a — `animate` runs continuously until `animator.stop()`               |
 
 ### Minimal recipe
 
@@ -720,9 +734,9 @@ painter.canvas.addEventListener[PointerEvent]("pointermove", (e: PointerEvent) =
 ```
 
 Keyboard, pointer button, wheel — all via standard DOM events on `canvas` or
-`window`. This is verbose compared to Rust's `Event<UserEvent>` enum. Until
-the library adds a unified event pipeline, keep event handling out of the
-frame-loop closure so the `animate` body stays tight.
+`window`. This is verbose compared to Rust's `Event<UserEvent>` enum. Until the
+library adds a unified event pipeline, keep event handling out of the frame-loop
+closure so the `animate` body stays tight.
 
 ---
 
@@ -730,50 +744,50 @@ frame-loop closure so the `animate` body stays tight.
 
 Scala exposes every math type in three representations:
 
-1. **Mutable class** (e.g. `Vec3`, `Mat4`) — CPU workhorse, zero-alloc
-   in-place ops (`.rotateSelf`, `.mulSelf`, etc.).
+1. **Mutable class** (e.g. `Vec3`, `Mat4`) — CPU workhorse, zero-alloc in-place
+   ops (`.rotateSelf`, `.mulSelf`, etc.).
 2. **Immutable tuple** (`Vec3Tuple`) — cheap to construct and destructure.
 3. **Buffer type** (`Vec3Buffer`, `Mat4Buffer`) — the layout the GPU sees, used
    by `StructRef` / `StructArray` for zero-cost typed access.
 
-All three share method names where it matters; conversions are implicit in
-most cases via `given`s in [graphics/math/cpu/](../../src/graphics/math/cpu/).
+All three share method names where it matters; conversions are implicit in most
+cases via `given`s in [graphics/math/cpu/](../../src/graphics/math/cpu/).
 
-GPU-side `Expr[T]` in [graphics/math/gpu/](../../src/graphics/math/gpu/)
-exposes the same surface (`+`, `-`, `*`, `.normalize`, `.dot`, `.length`,
-`.sin`, `.cos`, `.sqrt`, …) so the DSL reads like CPU code — see
+GPU-side `Expr[T]` in [graphics/math/gpu/](../../src/graphics/math/gpu/) exposes
+the same surface (`+`, `-`, `*`, `.normalize`, `.dot`, `.length`, `.sin`,
+`.cos`, `.sqrt`, …) so the DSL reads like CPU code — see
 [painter_dsl](../../examples/painter_dsl/PainterDsl.scala),
 [panel_layer](../../examples/panel_layer/PanelLayer.scala).
 
 ### glam → Scala math
 
-| glam                          | Scala                                    |
-| ----------------------------- | ---------------------------------------- |
-| `Vec2` / `Vec3` / `Vec4`      | `Vec2` / `Vec3` / `Vec4` (mutable class) |
-| `Mat2` / `Mat3` / `Mat4`      | `Mat2` / `Mat3` / `Mat4`                 |
-| `Quat`                        | `Quat` (in `graphics.math.cpu`)          |
-| `vec3(x, y, z)`               | `Vec3(x, y, z)`                          |
-| `Mat4::perspective(fov, a, n, f)` | `Mat4.perspective(fov, a, near, far)` |
-| `Mat4::look_at_rh`            | `Mat4.lookAt(...)`                       |
-| `Transform::from_translation(v)` | `Transform.fromTranslation(v)`        |
-| `Transform::rotate_y(angle)`  | `t.rotation.setFromRotationY(angle)` on the mutable `Transform` |
-| `PerspectiveCamera::create(CamProps {...})` | `PerspectiveCamera(fov = ..., aspect = ..., pos = Vec3(...))` |
-| `cam.view_proj_mat()`         | `cam.viewProjMat`                        |
-| `cam.set_aspect_ratio(a)`     | `cam(aspect = a)` — `PerspectiveCamera.apply` is a setter   |
-| `SceneObject` trait           | `SceneObject[T]` given instance (typeclass style) — [scene_object.scala](../../src/graphics/scene/scene_object.scala) |
-| `obj.model_mat()`             | `obj.modelMat` (via the `SceneObject` extension)                                                                     |
+| glam                                        | Scala                                                                                                                 |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `Vec2` / `Vec3` / `Vec4`                    | `Vec2` / `Vec3` / `Vec4` (mutable class)                                                                              |
+| `Mat2` / `Mat3` / `Mat4`                    | `Mat2` / `Mat3` / `Mat4`                                                                                              |
+| `Quat`                                      | `Quat` (in `graphics.math.cpu`)                                                                                       |
+| `vec3(x, y, z)`                             | `Vec3(x, y, z)` on CPU; `vec3(x, y, z)` (lowercase) in the GPU DSL                                                    |
+| `Mat4::perspective(fov, a, n, f)`           | `Mat4.perspective(fov, a, near, far)`                                                                                 |
+| `Mat4::look_at_rh`                          | `Mat4.lookAt(...)`                                                                                                    |
+| `Transform::from_translation(v)`            | `Transform.fromTranslation(v)`                                                                                        |
+| `Transform::rotate_y(angle)`                | `t.rotation.setFromRotationY(angle)` on the mutable `Transform`                                                       |
+| `PerspectiveCamera::create(CamProps {...})` | `PerspectiveCamera(fov = ..., aspect = ..., pos = Vec3(...))`                                                         |
+| `cam.view_proj_mat()`                       | `cam.viewProjMat`                                                                                                     |
+| `cam.set_aspect_ratio(a)`                   | `cam(aspect = a)` — `PerspectiveCamera.apply` is a setter                                                             |
+| `SceneObject` trait                         | `SceneObject[T]` given instance (typeclass style) — [scene_object.scala](../../src/graphics/scene/scene_object.scala) |
+| `obj.model_mat()`                           | `obj.modelMat` (via the `SceneObject` extension)                                                                      |
 
 Scala `Transform` is a **mutable** TRS triple (`translation`, `rotation`,
-`scale`), matching Rust's API shape but without the builder `.with_*` methods
-— mutate the field directly or use the `Transform.from*` factories. See
+`scale`), matching Rust's API shape but without the builder `.with_*` methods —
+mutate the field directly or use the `Transform.from*` factories. See
 [scene/transform.scala](../../src/graphics/scene/transform.scala).
 
 ---
 
 ## 9. Geometry & Meshes
 
-Rust examples build vertex data via `#[apply(gpu_data)]` structs and hand it
-to `p.form(&data).create()`.
+Rust examples build vertex data via `#[apply(gpu_data)]` structs and hand it to
+`p.form(&data).create()`.
 
 ```rust
 #[apply(gpu_data)]
@@ -785,68 +799,76 @@ let form = p.form(TRIANGLE).create();
 Scala — `allocateAttribs[T](count)` from
 [buffers/attributes.scala](../../src/graphics/buffers/attributes.scala) sizes a
 `StructArray` whose layout is derived from the `Attribs` named tuple. Write
-vertices by index with `.set0(...)`, `.set1(...)` etc., or with the `:=` ops
-on each tuple field.
+vertices by index with `.set0(...)`, `.set1(...)` etc., or with the `:=` ops on
+each tuple field.
 
 ```scala
 type V = (position: Vec2, uv: Vec2)
 val verts = allocateAttribs[V](3)
-verts(0).set0(-0.7, -0.7); verts(0).set1(0.0, 1.0)
-verts(1).set0( 0.7, -0.7); verts(1).set1(1.0, 1.0)
-verts(2).set0( 0.0,  0.7); verts(2).set1(0.5, 0.0)
-val form = painter.form().set(vertices = verts)
+verts(0).set0(-0.7, -0.7)
+verts(0).set1(0.0, 1.0)
+verts(1).set0(0.7, -0.7)
+verts(1).set1(1.0, 1.0)
+verts(2).set0(0.0, 0.7)
+verts(2).set1(0.5, 0.0)
+val form = painter.form(vertices = verts)
 ```
 
-Mesh / polygon utilities live in [graphics/geometry/](../../src/graphics/geometry/)
-with `Mesh[F]` and `Polygon` helpers. These are lightweight — nothing like
-the procedural sphere / cube / quad generators from
-`trivalibs::rendering::scene::SceneObject` is ported yet, so each example
-still hand-builds its geometry.
+Mesh / polygon utilities live in
+[graphics/geometry/](../../src/graphics/geometry/) with `Mesh[F]` and `Polygon`
+helpers. Procedural builders (Grid, 2D lines, Cuboid, sphere) and the surface
+helpers that Rust sketches reach for are not yet ported; see
+[mesh-geometry-port-plan.md](../mesh-geometry-port-plan.md) for the tracked
+status and phased plan.
 
 ---
 
 ## 10. trivalibs Utility Mapping
 
-| Rust path                                    | Scala path                                               | Status    | Notes                                                     |
-| -------------------------------------------- | -------------------------------------------------------- | --------- | --------------------------------------------------------- |
-| `trivalibs_core::glam::*`                    | [graphics/math/cpu/](../../src/graphics/math/cpu/)       | Ported    | Vec2-4, Mat2-4, Quat; three representations each.         |
-| `trivalibs::math::transform::Transform`      | [scene/transform.scala](../../src/graphics/scene/transform.scala) | Ported | Mutable TRS; `from*` factories; `toMatrix` extension.     |
-| `trivalibs::rendering::camera::{PerspectiveCamera, CamProps}` | [scene/camera.scala](../../src/graphics/scene/camera.scala) | Ported | FPS-style; cached projection; no second `CamProps` type. |
-| `trivalibs::rendering::scene::SceneObject`   | [scene/scene_object.scala](../../src/graphics/scene/scene_object.scala) | Ported | Scala typeclass: `given SceneObject[T]` with `.modelMat`, `.modelViewProjMat(cam)`. |
-| `trivalibs_nostd::color::hsv2rgb`            | —                                                        | Not yet   | Inline the 6-line WGSL fn where needed.                   |
-| `trivalibs_nostd::random::hash::hash`        | —                                                        | Not yet   | One-liner WGSL hash, port inline.                         |
-| `trivalibs_nostd::num_ext::NumExt`           | [trivalibs/utils/numbers.scala](../../trivalibs/src/utils/numbers.scala) | Partial | CPU-side Scala NumExt is ported; GPU-side shader extensions (`.fit0111()`, `.frct()`) are not. |
-| `trivalibs_nostd::vec_ext::VecExt`           | —                                                        | Not yet   | GPU-side vector extensions missing.                       |
-| `trivalibs_nostd::blur::{gaussian_blur, gaussian_blur_9, gaussian_blur_13}` | — | Not yet | [examples/blur](../../examples/blur/Blur.scala) inlines `WgslFn.raw("gaussian_blur_9", ...)`. |
-| `trivalibs::prelude::*`                      | —                                                        | N/A       | Use explicit imports; no prelude wildcard on Scala side.  |
-| `trivalibs::map!` macro                      | named-tuple `bind(...)` / `Arr(...)`                     | N/A       | No macro needed.                                          |
-| `Arr`, `Dict`, `Opt`, `Obj.literal`          | [trivalibs/utils/js.scala](../../trivalibs/src/utils/js.scala) | Ported | `Arr[T] = js.Array[T]`, `Dict[V] = js.Dictionary[V]`, `Opt[T] = T \| Null`. |
-| `StructArray`, `StructRef`                   | [trivalibs/utils/bufferdata.scala](../../trivalibs/src/utils/bufferdata.scala) | Ported | Zero-cost typed binary buffers (F32/F64/U8/U16/U32/I8/I16/I32). |
-| `Random` (`rand_range`, `rand_sign`, `rand_vec3`) | [trivalibs/utils/random.scala](../../trivalibs/src/utils/random.scala) | Partial | `rand()`, `randInRange(lo, hi)` available; `rand_vec3_range` etc. not yet. |
+For the `trivalibs_nostd::*` rows (hash, color, coords, num_ext, vec_ext,
+simplex noise, blur) the tracked status and phased port plan live in
+[trivalibs-nostd-port-plan.md](../trivalibs-nostd-port-plan.md).
+
+| Rust path                                                                   | Scala path                                                                     | Status  | Notes                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `trivalibs_core::glam::*`                                                   | [graphics/math/cpu/](../../src/graphics/math/cpu/)                             | Ported  | Vec2-4, Mat2-4, Quat; three representations each.                                                                                                                                                                                                                                                                                               |
+| `trivalibs::math::transform::Transform`                                     | [scene/transform.scala](../../src/graphics/scene/transform.scala)              | Ported  | Mutable TRS; `from*` factories; `toMatrix` extension.                                                                                                                                                                                                                                                                                           |
+| `trivalibs::rendering::camera::{PerspectiveCamera, CamProps}`               | [scene/camera.scala](../../src/graphics/scene/camera.scala)                    | Ported  | FPS-style; cached projection; no second `CamProps` type.                                                                                                                                                                                                                                                                                        |
+| `trivalibs::rendering::scene::SceneObject`                                  | [scene/scene_object.scala](../../src/graphics/scene/scene_object.scala)        | Ported  | Scala typeclass: `given SceneObject[T]` with `.modelMat`, `.modelViewProjMat(cam)`.                                                                                                                                                                                                                                                             |
+| `trivalibs_nostd::color::hsv2rgb`                                           | —                                                                              | Not yet | Inline the 6-line WGSL fn where needed.                                                                                                                                                                                                                                                                                                         |
+| `trivalibs_nostd::random::hash::hash`                                       | —                                                                              | Not yet | One-liner WGSL hash, port inline.                                                                                                                                                                                                                                                                                                               |
+| `trivalibs_nostd::num_ext::NumExt`                                          | [trivalibs/utils/numbers.scala](../../trivalibs/src/utils/numbers.scala)       | Partial | CPU-side scalar `NumExt` is ported (incl. `fract`, `fit0111`, `fit1101`). GPU DSL has `fract` on `Float/Vec2/Vec3/Vec4` Exprs and `fit0111`/`fit1101` on `FloatExpr`; vector overloads of `fit0111` / `fit1101` are still missing on both CPU vectors and GPU vector Exprs — see [scala-webgpu-review-todo.md](../scala-webgpu-review-todo.md). |
+| `trivalibs_nostd::vec_ext::VecExt`                                          | —                                                                              | Not yet | GPU-side vector extensions missing.                                                                                                                                                                                                                                                                                                             |
+| `trivalibs_nostd::blur::{gaussian_blur, gaussian_blur_9, gaussian_blur_13}` | —                                                                              | Not yet | [examples/blur](../../examples/blur/Blur.scala) inlines `WgslFn.raw("gaussian_blur_9", ...)`.                                                                                                                                                                                                                                                   |
+| `trivalibs::prelude::*`                                                     | —                                                                              | N/A     | Use explicit imports; no prelude wildcard on Scala side.                                                                                                                                                                                                                                                                                        |
+| `trivalibs::map!` macro                                                     | named-tuple `bind(...)` / `Arr(...)`                                           | N/A     | No macro needed.                                                                                                                                                                                                                                                                                                                                |
+| `Arr`, `Dict`, `Opt`, `Obj.literal`                                         | [trivalibs/utils/js.scala](../../trivalibs/src/utils/js.scala)                 | Ported  | `Arr[T] = js.Array[T]`, `Dict[V] = js.Dictionary[V]`, `Opt[T] = T \| Null`.                                                                                                                                                                                                                                                                     |
+| `StructArray`, `StructRef`                                                  | [trivalibs/utils/bufferdata.scala](../../trivalibs/src/utils/bufferdata.scala) | Ported  | Zero-cost typed binary buffers (F32/F64/U8/U16/U32/I8/I16/I32).                                                                                                                                                                                                                                                                                 |
+| `Random` (`rand_range`, `rand_sign`, `rand_vec3`)                           | [trivalibs/utils/random.scala](../../trivalibs/src/utils/random.scala)         | Partial | `rand()`, `randInRange(lo, hi)` available; `rand_vec3_range` etc. not yet.                                                                                                                                                                                                                                                                      |
 
 ---
 
 ## 11. Example-by-Example Mapping
 
-| Rust example       | Scala example                                                         | Status     | Notes                                                                       |
-| ------------------ | --------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
-| `simple_triangle`  | [simple_triangle](../../examples/simple_triangle/)                    | Ported     | Raw WebGPU (no painter). First-read sanity check.                           |
-| `triangle`         | [painter_triangle](../../examples/painter_triangle/) / [painter_dsl](../../examples/painter_dsl/) / [painter_typed_bindings](../../examples/painter_typed_bindings/) | Ported | Three flavours; start from `painter_triangle` then branch to `painter_dsl`. |
-| `base_effect`      | [panel_layer](../../examples/panel_layer/)                            | Ported     | Single full-screen `Layer` with time + resolution uniforms.                 |
-| `instances`        | [instances](../../examples/instances/)                                | Ported     | 100 rotating triangles w/ per-instance model matrix.                        |
-| `layer_tex`        | [panel_tex](../../examples/panel_tex/)                                | Ported     | Two off-screen panels used as textures on a third canvas panel; camera + `Transform`. |
-| `blur`             | [blur](../../examples/blur/)                                          | Ported     | `WgslFn.raw` inlines the gaussian kernel; `bind_const_f32/vec2` → `binding(...)`. |
-| `deferred_light`   | [deferred](../../examples/deferred/)                                  | Ported     | MRT panel + instance-based lighting layer w/ `BlendState.Additive`.         |
-| `mipmap`           | [mipmaps](../../examples/mipmaps/)                                    | Ported     | `mipLevels = 0` for full chain; `sampleLevel` in DSL.                       |
-| `random_lines`     | —                                                                     | **Not yet** | Would need a line-primitive example + per-frame geometry updates.          |
-| `ball`             | —                                                                     | **Not yet** | 3D sphere + normal-mapped lighting; needs ball geometry generator.          |
-| `geometries`       | —                                                                     | **Not yet** | Depends on pre-built cube/sphere/plane generators (not ported).             |
-| `dynamic_shapes`   | —                                                                     | **Not yet** | Runtime `form.set(vertices = ...)` works, but no example yet.               |
-| `dynamic_texture`  | —                                                                     | **Not yet** | Render-to-texture feedback loop.                                            |
-| `shader_image`     | —                                                                     | **Not yet** | Procedural image shader — trivial once samplers/panel-as-source are used.   |
-| `mouse_color`      | —                                                                     | **Not yet** | Blocked on the event-pipeline gap ([§7](#7-app-loop--events)).              |
-| `render_to_mip`    | partial via [mipmaps](../../examples/mipmaps/)                        | Partial     | `mipSource`/`mipTarget` fields exist on `Layer` but no dedicated example yet. |
-| `noise_tests`      | —                                                                     | **Not yet** | Blocked on `hash` / noise utils not being ported.                           |
+| Rust example      | Scala example                                                                                                                                                        | Status      | Notes                                                                                   |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
+| `simple_triangle` | [simple_triangle](../../examples/simple_triangle/)                                                                                                                   | Ported      | Raw WebGPU (no painter). First-read sanity check.                                       |
+| `triangle`        | [painter_triangle](../../examples/painter_triangle/) / [painter_dsl](../../examples/painter_dsl/) / [painter_typed_bindings](../../examples/painter_typed_bindings/) | Ported      | Three flavours; start from `painter_triangle` then branch to `painter_dsl`.             |
+| `base_effect`     | [panel_layer](../../examples/panel_layer/)                                                                                                                           | Ported      | Single full-screen `Layer` with time + resolution uniforms.                             |
+| `instances`       | [instances](../../examples/instances/)                                                                                                                               | Ported      | 100 rotating triangles w/ per-instance model matrix.                                    |
+| `layer_tex`       | [panel_tex](../../examples/panel_tex/)                                                                                                                               | Ported      | Two off-screen panels used as textures on a third canvas panel; camera + `Transform`.   |
+| `blur`            | [blur](../../examples/blur/)                                                                                                                                         | Ported      | `WgslFn.raw` inlines the gaussian kernel; `bind_const_f32/vec2` → `binding(...)`.       |
+| `deferred_light`  | [deferred](../../examples/deferred/)                                                                                                                                 | Ported      | MRT panel + instance-based lighting layer w/ `BlendState.Additive`.                     |
+| `mipmap`          | [mipmaps](../../examples/mipmaps/)                                                                                                                                   | Ported      | `mipLevels = 0` for full chain; `sampleLevel` in DSL.                                   |
+| `random_lines`    | —                                                                                                                                                                    | **Not yet** | Would need a line-primitive example + per-frame geometry updates.                       |
+| `ball`            | —                                                                                                                                                                    | **Not yet** | 3D sphere + normal-mapped lighting; needs ball geometry generator.                      |
+| `geometries`      | —                                                                                                                                                                    | **Not yet** | Depends on pre-built cube/sphere/plane generators (not ported).                         |
+| `dynamic_shapes`  | —                                                                                                                                                                    | **Not yet** | Runtime `form.set(vertices = ...)` works, but no example yet.                           |
+| `dynamic_texture` | —                                                                                                                                                                    | **Not yet** | Render-to-texture feedback loop.                                                        |
+| `shader_image`    | —                                                                                                                                                                    | **Not yet** | Procedural image shader — trivial once samplers/panel-as-source are used.               |
+| `mouse_color`     | —                                                                                                                                                                    | Skipped     | Not worth porting — trivial demo of the event-pipeline gap ([§7](#7-app-loop--events)). |
+| `render_to_mip`   | partial via [mipmaps](../../examples/mipmaps/)                                                                                                                       | Partial     | `mipSource`/`mipTarget` fields exist on `Layer` but no dedicated example yet.           |
+| `noise_tests`     | —                                                                                                                                                                    | **Not yet** | Blocked on `hash` / noise utils not being ported.                                       |
 
 If you're porting your first Rust file and want a richly featured template,
 start from [painter_dsl](../../examples/painter_dsl/PainterDsl.scala) — it
@@ -859,39 +881,38 @@ updates, and `painter.draw`.
 
 ### Trivial workaround (port now)
 
-- **`paint_and_show(layer)`** — two calls: `painter.paint(panel); painter.show(panel)`.
-- **Sampler constructor** — all three forms exist (`samplerNearest`,
-  `samplerLinear`, `sampler(mag, min, mipmap)`). No gap.
-- **`bind_const_*`** — use `painter.binding(v)` and just don't call `.set`
-  afterwards.
+- **`paint_and_show(layer)`** — two calls: `painter.paint(panel)` then
+  `painter.show(panel)`.
 - **`hsv2rgb`, `hash`** — inline the WGSL fn with `WgslFn.raw`. See
   [examples/blur](../../examples/blur/Blur.scala) for the pattern.
 - **`gaussian_blur_9/13`** — inline the kernel as `WgslFn.raw`, same as
   `examples/blur`.
-- **`map! { 0 => a, 1 => b }`** — use named-tuple `bind("nameA" := a, "nameB" := b)`.
+- **`map! { 0 => a, 1 => b }`** — use named-tuple
+  `bind("nameA" := a, "nameB" := b)`.
 
 ### Blocked on library work
 
-- **`CanvasApp` event pipeline.** Only `onResize` is wired; pointer / keyboard
-  / user events must go through raw DOM listeners on `painter.canvas`. A
-  unified event abstraction is a future milestone.
+- **`CanvasApp` event pipeline.** Only `onResize` is wired; pointer / keyboard /
+  user events must go through raw DOM listeners on `painter.canvas`. A unified
+  event abstraction is a future milestone.
 - **Shader hot reload / `ShaderReloadEvent`.** Not plumbed. Requires a dev
   WebSocket + module invalidation path — deferred.
 - **Compute shaders, indirect draws, async buffer readback, `BufferMapping`.**
   Facades in [webgpu/facades.scala](../../src/webgpu/facades.scala) cover
   render-pass-only code.
-- **`with_static_texture_data(bytes)` on Panel.** No direct API — currently
-  must create a `GPUTexture` with usage `COPY_DST | TEXTURE_BINDING` through
-  the device and bind it manually.
+- **`with_static_texture_data(bytes)` on Panel.** No direct API — currently must
+  create a `GPUTexture` with usage `COPY_DST | TEXTURE_BINDING` through the
+  device and bind it manually.
 - **`bind_uvec2`, `bind_quat`.** Need `UniformValue[UVec2]` /
   `UniformValue[Quat]` givens. Straightforward to add.
 - **Pre-built mesh generators** (sphere, cube, plane, grid, icosphere). Blocks
   `geometries` / `ball` examples.
-- **`NumExt` / `VecExt` GPU shader extensions.** `.fit0111()`, `.frct()`,
-  etc. not in the DSL. Workaround: write inline expressions.
+- **`NumExt` / `VecExt` GPU shader extensions.** `.fit0111()`, `.frct()`, etc.
+  not in the DSL. Workaround: write inline expressions.
 - **Random helpers.** `rand_vec3_range`, `rand_sign`, `rand_vec4` are missing;
   compose them from `rand()` / `randInRange(a, b)`.
-- **`remember_window_dimensions`.** No persistence layer.
+- **`remember_window_dimensions`.** Not planned — the browser already persists
+  window dimensions across sessions, so no Scala-side equivalent is needed.
 - **`AppConfig.show_fps` toggle.** FPS logging is always on inside `Animator`.
 
 ---
@@ -906,9 +927,10 @@ Work top-to-bottom for a methodical port:
    `Painter.init(canvas) { painter => ... }` closure.
 3. Translate the shader:
    - `p.shade([Float32xN, ...])` → declare `type Attribs = (field: VecN, ...)`.
-   - `.with_bindings([...])` → declare `type Uniforms = (field: ...[T], ...)` with
-     `VertexUniform` / `FragmentUniform` wrappers where needed.
-   - `.with_layers([...])` → declare `type Panels = (field: FragmentPanel, ...)`.
+   - `.with_bindings([...])` → declare `type Uniforms = (field: ...[T], ...)`
+     with `VertexUniform` / `FragmentUniform` wrappers where needed.
+   - `.with_layers([...])` → declare
+     `type Panels = (field: FragmentPanel, ...)`.
    - `load_*_shader!` macros → either paste WGSL into `vertWgsl`/`fragWgsl`
      strings or port to the DSL with `.vert` / `.frag`.
 4. Translate each `p.bind_*` call to `painter.binding[...]` (or
@@ -923,10 +945,10 @@ Work top-to-bottom for a methodical port:
    **not** need an equivalent — the Scala string / DSL is evaluated inline.
 8. Move `fn init` body above `animate(tpf => ...)`.
 9. Move `fn resize(w, h)` body inside `painter.onResize((w, h) => ...)`.
-10. Move `fn frame(tpf)` body inside `animate(tpf => ...)` — remember
-    **`tpf` is milliseconds on Scala side**, not seconds; adjust scale.
-11. Replace `p.paint_and_show(layer)` with
-    `painter.paint(panel); painter.show(panel)`.
+10. Move `fn frame(tpf)` body inside `animate(tpf => ...)` — remember **`tpf` is
+    milliseconds on Scala side**, not seconds; adjust scale.
+11. Replace `p.paint_and_show(layer)` with `painter.paint(panel)` then
+    `painter.show(panel)`.
 12. Move `fn event(...)` body into raw DOM `addEventListener` calls on
     `painter.canvas`. Match on `type` of the DOM event.
 13. Replace `trivalibs_nostd::...` imports with either Scala trivalibs imports
@@ -951,14 +973,14 @@ Work top-to-bottom for a methodical port:
   [shader/types.scala](../../src/graphics/shader/types.scala) that encode
   shader-stage visibility on a uniform field. Bare `T` defaults to
   vertex+fragment.
-- **Layer** (Scala) — Rust's `Effect`. Fullscreen fragment pass attached to
-  a `Panel`. File: [layer.scala](../../src/graphics/painter/layer.scala).
+- **Layer** (Scala) — Rust's `Effect`. Fullscreen fragment pass attached to a
+  `Panel`. File: [layer.scala](../../src/graphics/painter/layer.scala).
 - **Panel** (Scala) — Rust's `Layer`. Render target holding shapes + layers.
   File: [panel.scala](../../src/graphics/painter/panel.scala).
 - **PanelBinding** — wraps a `Panel` with optional `index`, `mipLevel`, or
   `depth = true` to pick which texture view is bound.
-- **Shade** — `graphics.painter.Shade[U, P]`. Contains the shader module,
-  vertex buffer layout, and bind-group / pipeline layouts.
+- **Shade** — `graphics.painter.Shade[U, P]`. Contains the shader module, vertex
+  buffer layout, and bind-group / pipeline layouts.
 - **StructArray / StructRef** — zero-cost typed binary buffers from
   [trivalibs bufferdata](../../trivalibs/src/utils/bufferdata.scala).
 - **WgslFn** — `WgslFn[Params, Return]` — a typed reference to a WGSL helper

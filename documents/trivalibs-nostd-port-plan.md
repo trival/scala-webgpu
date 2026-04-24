@@ -1,14 +1,13 @@
 # trivalibs_nostd → Scala Shader DSL — Porting & Implementation Plan
 
 Living blueprint for bringing the Rust `trivalibs_nostd` shader helper crate
-into the Scala WebGPU stack, and for adding the integer-type support that
-those helpers require.
+into the Scala WebGPU stack, and for adding the integer-type support that those
+helpers require.
 
 Companion documents:
 
 - [rust-painter/repomix-trivalibs-core.xml](rust-painter/repomix-trivalibs-core.xml)
-  — full Rust source bundle (the `trivalibs_nostd/` section is the port
-  target).
+  — full Rust source bundle (the `trivalibs_nostd/` section is the port target).
 - [done/wgsl-scala-dsl-functions.md](done/wgsl-scala-dsl-functions.md) —
   `WgslFn` design (the mechanism all ported functions plug into).
 - [done/wgsl-scala-dsl-implementation.md](done/wgsl-scala-dsl-implementation.md)
@@ -20,36 +19,34 @@ Companion documents:
 
 ## 1. Context
 
-The shader DSL (`src/graphics/shader/` + `src/graphics/math/gpu/expr.scala`)
-can express float shader math as typed Scala expressions that erase to WGSL
-strings at runtime. `WgslFn` wraps that machinery into reusable helper
-functions authored in either the Scala DSL or a raw WGSL body. With the
-painter almost done and `WgslFn` landed, the next build-out is helper-library
-parity with the Rust `trivalibs_nostd` crate:
+The shader DSL (`src/graphics/shader/` + `src/graphics/math/gpu/expr.scala`) can
+express float shader math as typed Scala expressions that erase to WGSL strings
+at runtime. `WgslFn` wraps that machinery into reusable helper functions
+authored in either the Scala DSL or a raw WGSL body. With the painter almost
+done and `WgslFn` landed, the next build-out is helper-library parity with the
+Rust `trivalibs_nostd` crate:
 
 > `random/hash.rs`, `random/simplex.rs`, `bits.rs`, `blur.rs`, `color.rs`,
 > `coords.rs`, `num_ext.rs`, `vec_ext.rs`
 
 **The blocker for `hash.rs`.** The hash family (`hashi`, `hashi_triple32`,
-`hash21i`, `hash2di`, `hash3di`, `hash4di`, and their float-normalised
-variants) operates on `u32` / `UVec2..4` using bitwise XOR, right shifts, and
-wrapping multiplies. The Scala DSL today has **no integer types**. `Int`
-literals auto-cast to `f32` via a `Conversion[Int, FloatExpr]`; there are no
-`IntExpr` / `UIntExpr`, no integer vectors, no bitwise operators, and no
-bitcast helpers. Porting `hash.rs` is impossible without first introducing
-these primitives.
+`hash21i`, `hash2di`, `hash3di`, `hash4di`, and their float-normalised variants)
+operates on `u32` / `UVec2..4` using bitwise XOR, right shifts, and wrapping
+multiplies. The Scala DSL today has **no integer types**. `Int` literals
+auto-cast to `f32` via a `Conversion[Int, FloatExpr]`; there are no `IntExpr` /
+`UIntExpr`, no integer vectors, no bitwise operators, and no bitcast helpers.
+Porting `hash.rs` is impossible without first introducing these primitives.
 
 **What this plan covers.**
 
-- **Phase 1 — Integer DSL integration** (implementation task): scalar
-  `IntExpr` / `UIntExpr`, signed and unsigned integer vectors,
-  Float ↔ Int / UInt conversions, and bitcast helpers. This is the foundation
-  that unblocks everything downstream.
-- **Phase 2 — Port `hash.rs`** via `WgslFn`. First real consumer of the
-  integer DSL.
-- **Phase 3 — Port `color.rs` + `coords.rs`**. No integer dependency;
-  sequenced after Phase 2 because hash functions are the more-pressing
-  feature.
+- **Phase 1 — Integer DSL integration** (implementation task): scalar `IntExpr`
+  / `UIntExpr`, signed and unsigned integer vectors, Float ↔ Int / UInt
+  conversions, and bitcast helpers. This is the foundation that unblocks
+  everything downstream.
+- **Phase 2 — Port `hash.rs`** via `WgslFn`. First real consumer of the integer
+  DSL.
+- **Phase 3 — Port `color.rs` + `coords.rs`**. No integer dependency; sequenced
+  after Phase 2 because hash functions are the more-pressing feature.
 - **Phase 4 — Simplex noise**. Reuse vetted WGSL source; `octaves: Int`
   parameters are the cross-phase dependency on Phase 1.
 - **Phase 5 — Gaussian blur**. Consolidate the existing
@@ -57,21 +54,21 @@ these primitives.
 
 ### 1.1 Confirmed decisions
 
-| Question                         | Answer                                                                                             |
-| -------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Integer DSL scope                | Scalars + integer vectors (`IVec2..4`, `UVec2..4`). Full foundation for `hash.rs` in one pass.     |
-| Unsigned representation          | `opaque type UInt = Int` in trivalibs. Bit-identical to `Int`, distinct in the type system.        |
-| Library layout                   | `src/graphics/shader/lib/{random,blur,color,coords}/`. Parallels Rust module tree.                 |
-| Simplex noise / blur source      | Vetted MIT/CC0 WGSL where proven; port from Rust for hash/color/coords. Attribute licences inline. |
+| Question                    | Answer                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------- |
+| Integer DSL scope           | Scalars + integer vectors (`IVec2..4`, `UVec2..4`). Full foundation for `hash.rs` in one pass.     |
+| Unsigned representation     | `opaque type UInt = Int` in trivalibs. Bit-identical to `Int`, distinct in the type system.        |
+| Library layout              | `src/graphics/shader/lib/{random,blur,color,coords}/`. Parallels Rust module tree.                 |
+| Simplex noise / blur source | Vetted MIT/CC0 WGSL where proven; port from Rust for hash/color/coords. Attribute licences inline. |
 
 ### 1.2 Explicit non-goals
 
-- **CPU ↔ GPU integer buffer bindings.** `AttribBuffer` and `UniformBuffer`
-  type members for `Int` / `UInt` / `UVec*` stay as `EmptyTuple`. Integers are
-  shader-only for now (no vertex attributes, no uniform buffer storage). If
-  this is ever needed, it is an additive change.
-- **Replacing `Conversion[Int, FloatExpr]`.** Existing float-heavy code
-  depends on the `42 → FloatExpr("f32(42)")` convenience. Adding a parallel
+- **CPU ↔ GPU integer buffer bindings.** `AttribBuffer` and `UniformBuffer` type
+  members for `Int` / `UInt` / `UVec*` stay as `EmptyTuple`. Integers are
+  shader-only for now (no vertex attributes, no uniform buffer storage). If this
+  is ever needed, it is an additive change.
+- **Replacing `Conversion[Int, FloatExpr]`.** Existing float-heavy code depends
+  on the `42 → FloatExpr("f32(42)")` convenience. Adding a parallel
   `Int → IntExpr` conversion would cause ambiguity; integer literals use
   explicit `IntExpr(42)` / `UIntExpr(42)` constructors or the `.u` extension
   instead.
@@ -104,11 +101,10 @@ extension (u: UInt) inline def toInt: Int = u
 extension (v: Int)  inline def u: UInt = UInt(v)
 ```
 
-Zero runtime cost — at the bit level identical to `Int`. Hex hash constants
-like `0x21f0aaad.u` work directly. Scala's `Int` is signed 32-bit, but at the
-bit pattern level this matches WGSL `u32`, so arithmetic is well-defined in
-both worlds (WGSL wraps u32 arithmetic by default, matching our semantic
-intent).
+Zero runtime cost — at the bit level identical to `Int`. Hex hash constants like
+`0x21f0aaad.u` work directly. Scala's `Int` is signed 32-bit, but at the bit
+pattern level this matches WGSL `u32`, so arithmetic is well-defined in both
+worlds (WGSL wraps u32 arithmetic by default, matching our semantic intent).
 
 ### 2.2 Integer phantom types
 
@@ -126,13 +122,13 @@ sealed trait UVec4
 ```
 
 Phantom markers only — mirror the role of `Texture2D` / `Sampler` in
-`graphics.math.gpu.Expr`. Their only function is carrying `WGSLType`
-instances and serving as `WgslFn` parameter / return types. No CPU-side value
+`graphics.math.gpu.Expr`. Their only function is carrying `WGSLType` instances
+and serving as `WgslFn` parameter / return types. No CPU-side value
 representation, no constructors, no methods.
 
 **Rationale.** Mirroring the pattern of `Vec2` / `Vec3` / `Vec4` (full CPU
-types) would require porting glam-like integer vector classes — wasted work
-when we do not need CPU evaluation of integer vectors.
+types) would require porting glam-like integer vector classes — wasted work when
+we do not need CPU evaluation of integer vectors.
 
 ### 2.3 Expression types and operations
 
@@ -158,8 +154,8 @@ object IVec2Expr { def apply(s: String): IVec2Expr = new Expr(s) }
 // … same for IVec3Expr, IVec4Expr, UVec2Expr, UVec3Expr, UVec4Expr
 ```
 
-Plus `Let*`, `Var*`, `Const*` variants for every new type following the
-pattern already in place at `expr.scala:82-130`:
+Plus `Let*`, `Var*`, `Const*` variants for every new type following the pattern
+already in place at `expr.scala:82-130`:
 
 ```scala
 opaque type LetInt   <: IntExpr   & LetExpr   = LetExpr
@@ -179,8 +175,8 @@ given Conversion[UInt, UIntExpr] = v => UIntExpr(UInt.toInt(v))
 ```
 
 No `Conversion[Int, IntExpr]` — would conflict with the existing
-`Int → FloatExpr` path. Integer literals are created via `IntExpr(42)` or
-the `.u` path for unsigned.
+`Int → FloatExpr` path. Integer literals are created via `IntExpr(42)` or the
+`.u` path for unsigned.
 
 #### 2.3.2 Arithmetic and bitwise operators
 
@@ -201,14 +197,14 @@ given NumOps[UIntExpr]:
   // same; zero = UIntExpr("0u"), one = UIntExpr("1u"), no unary_-
 ```
 
-`NumExt[IntExpr]` / `NumExt[UIntExpr]` — WGSL intrinsics that apply to
-integer types: `abs`, `min`, `max`, `clamp`. (`sign` only on `IntExpr`;
-`u32` has no signed `sign`.) Omit the trig / transcendental methods — they
-are float-only in WGSL.
+`NumExt[IntExpr]` / `NumExt[UIntExpr]` — WGSL intrinsics that apply to integer
+types: `abs`, `min`, `max`, `clamp`. (`sign` only on `IntExpr`; `u32` has no
+signed `sign`.) Omit the trig / transcendental methods — they are float-only in
+WGSL.
 
 **Bitwise operators.** WGSL uses `|`, `&`, `^`, `<<`, `>>`, `~`. Exposed in
-Scala as named methods to avoid conflicts with the existing
-`Vec*Expr.+/-/*/÷` that use `|`-like precedence:
+Scala as named methods to avoid conflicts with the existing `Vec*Expr.+/-/*/÷`
+that use `|`-like precedence:
 
 ```scala
 extension (a: IntExpr)
@@ -223,8 +219,8 @@ extension (a: IntExpr)
 // same set applies component-wise for IVec*Expr and UVec*Expr
 ```
 
-Named methods keep the call-site readable (`x.xor(y)` vs. the ambiguous
-`x ^ y` against Scala's bitwise Int operator).
+Named methods keep the call-site readable (`x.xor(y)` vs. the ambiguous `x ^ y`
+against Scala's bitwise Int operator).
 
 #### 2.3.3 Conversion and bitcast extensions
 
@@ -239,8 +235,8 @@ extension (a: UIntExpr)  def toF32: FloatExpr = FloatExpr(s"f32(${a.wgsl})")
 extension (a: UIntExpr)  def toI32: IntExpr   = IntExpr(s"i32(${a.wgsl})")
 ```
 
-Bitcast extensions — the `bits.rs` equivalent, essential for hashes that
-feed float positions into integer hash algorithms:
+Bitcast extensions — the `bits.rs` equivalent, essential for hashes that feed
+float positions into integer hash algorithms:
 
 ```scala
 extension (a: FloatExpr) def bitsToU32: UIntExpr  = UIntExpr(s"bitcast<u32>(${a.wgsl})")
@@ -253,9 +249,9 @@ extension (v: UVec2Expr) def bitsToF32: Vec2Expr  = Vec2Expr(s"bitcast<vec2<f32>
 
 #### 2.3.4 Integer vector algebra
 
-Reuse the generic `Vec2BaseG[N, V]` / `Vec2ImmutableOpsG[N, V]` trait pair
-from `graphics.math.cpu.*` (the same shape used at `expr.scala:261-350`).
-Provide four instances per arity:
+Reuse the generic `Vec2BaseG[N, V]` / `Vec2ImmutableOpsG[N, V]` trait pair from
+`graphics.math.cpu.*` (the same shape used at `expr.scala:261-350`). Provide
+four instances per arity:
 
 - `Vec2BaseG[IntExpr,  IVec2Expr]` / `Vec2ImmutableOpsG[IntExpr,  IVec2Expr]`
 - `Vec2BaseG[UIntExpr, UVec2Expr]` / `Vec2ImmutableOpsG[UIntExpr, UVec2Expr]`
@@ -307,10 +303,10 @@ given WGSLType[UVec3]: /* wgslName = "vec3<u32>", … */
 given WGSLType[UVec4]: /* wgslName = "vec4<u32>", … */
 ```
 
-`AttribBuffer` / `UniformBuffer` are `EmptyTuple` — integers deliberately
-stay shader-only. The empty `vertexFormat` keeps these types out of the
-vertex-layout code path. These fields become meaningful later if a CPU-side
-integer buffer use case appears.
+`AttribBuffer` / `UniformBuffer` are `EmptyTuple` — integers deliberately stay
+shader-only. The empty `vertexFormat` keeps these types out of the vertex-layout
+code path. These fields become meaningful later if a CPU-side integer buffer use
+case appears.
 
 ### 2.5 DSL type mappings
 
@@ -341,12 +337,12 @@ type ToExpr[T] = T match
 ```
 
 Extend `ToLocal` (currently at lines 52-67) with `Var[Int]`, `Var[UInt]`,
-`Var[IVec2..4]`, `Var[UVec2..4]` and the corresponding `Const[…]` /
-bare-type cases.
+`Var[IVec2..4]`, `Var[UVec2..4]` and the corresponding `Const[…]` / bare-type
+cases.
 
-Extend `populateKinds` if necessary — the current `Var[?]` / `Const[?]`
-pattern (lines 88-92) already matches wildcard arguments, so it should work
-without changes.
+Extend `populateKinds` if necessary — the current `Var[?]` / `Const[?]` pattern
+(lines 88-92) already matches wildcard arguments, so it should work without
+changes.
 
 ### 2.6 `callExpr` return-type dispatch
 
@@ -383,6 +379,7 @@ inline def callExpr[R](s: String): ToExpr[R] =
 Test groups:
 
 **Literals**
+
 - `IntExpr(42).toString == "42"`
 - `IntExpr(-7).toString == "-7"`
 - `UIntExpr(42).toString == "42u"`
@@ -391,33 +388,39 @@ Test groups:
 - `(0x21f0aaad.u: UIntExpr).toString == "569534125u"`
 
 **Scalar arithmetic**
+
 - `(IntExpr("a") + IntExpr("b")).toString == "(a + b)"`
 - `(UIntExpr("a") * UIntExpr("b")).toString == "(a * b)"`
 - `IntExpr("a").abs.toString == "abs(a)"`
 
 **Bitwise**
+
 - `UIntExpr("a").xor(UIntExpr("b")).toString == "(a ^ b)"`
 - `UIntExpr("a").shr(UIntExpr(16)).toString == "(a >> 16u)"`
 - `UIntExpr("a").and(UIntExpr("b")).toString == "(a & b)"`
 - `UIntExpr("a").not.toString == "(~a)"`
 
 **Conversions**
+
 - `FloatExpr("x").toU32.toString == "u32(x)"`
 - `UIntExpr("x").toF32.toString == "f32(x)"`
 
 **Bitcasts**
+
 - `FloatExpr("x").bitsToU32.toString == "bitcast<u32>(x)"`
 - `UIntExpr("x").bitsToF32.toString == "bitcast<f32>(x)"`
 - `Vec2Expr("v").bitsToU32.toString == "bitcast<vec2<u32>>(v)"`
 - `UVec2Expr("u").bitsToF32.toString == "bitcast<vec2<f32>>(u)"`
 
 **Vector algebra**
+
 - `uvec2(UIntExpr("a"), UIntExpr("b")).toString == "vec2<u32>(a, b)"`
 - `(uvec2(…) * uvec2(…)).toString` — expected `"(vec2<u32>(…) * vec2<u32>(…))"`
 - `UVec2Expr("u").x.toString == "u.x"`
 - Component-wise xor: `UVec2Expr("u").xor(UVec2Expr("v")).toString == "(u ^ v)"`
 
 **`WgslFn` integration**
+
 - `WgslFn[(seed: UInt), UInt]` — verify `data.src` contains `"seed: u32"` and
   `"-> u32"`.
 - `WgslFn[(v: UVec2), UVec2]` — verify `"v: vec2<u32>"` and `"-> vec2<u32>"`.
@@ -426,45 +429,45 @@ Test groups:
   assert `f(5.u).toString == "f(5u)"` and type is `UIntExpr`.
 
 **Regression**
-- One float-DSL sanity test that the existing `Conversion[Int, FloatExpr]`
-  path still works — `(42: FloatExpr).toString == "f32(42)"`.
+
+- One float-DSL sanity test that the existing `Conversion[Int, FloatExpr]` path
+  still works — `(42: FloatExpr).toString == "f32(42)"`.
 
 ### 2.8 File-change summary (Phase 1)
 
-| Path                                                        | Change                                                                       |
-| ----------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `trivalibs/src/utils/numbers/uint.scala`                    | **NEW** — `opaque type UInt = Int` + `.u` extension.                         |
-| `src/graphics/math/gpu/int_types.scala`                     | **NEW** — phantom markers `IVec2..4`, `UVec2..4`.                            |
-| `src/graphics/math/gpu/expr.scala`                          | **EXTEND** — opaque exprs, ops, bitwise, conversions, bitcasts, constructors. |
-| `src/graphics/shader/types.scala`                           | **EXTEND** — `WGSLType[Int/UInt/IVec*/UVec*]`.                               |
-| `src/graphics/shader/dsl/types.scala`                       | **EXTEND** — `ToExpr`, `ToLocal` match types.                                |
-| `src/graphics/shader/dsl/fn.scala`                          | **EXTEND** — `callExpr[R]` match.                                            |
-| `test/shader/IntDsl.test.scala`                             | **NEW** — tests listed in §2.7.                                              |
+| Path                                     | Change                                                                        |
+| ---------------------------------------- | ----------------------------------------------------------------------------- |
+| `trivalibs/src/utils/numbers/uint.scala` | **NEW** — `opaque type UInt = Int` + `.u` extension.                          |
+| `src/graphics/math/gpu/int_types.scala`  | **NEW** — phantom markers `IVec2..4`, `UVec2..4`.                             |
+| `src/graphics/math/gpu/expr.scala`       | **EXTEND** — opaque exprs, ops, bitwise, conversions, bitcasts, constructors. |
+| `src/graphics/shader/types.scala`        | **EXTEND** — `WGSLType[Int/UInt/IVec*/UVec*]`.                                |
+| `src/graphics/shader/dsl/types.scala`    | **EXTEND** — `ToExpr`, `ToLocal` match types.                                 |
+| `src/graphics/shader/dsl/fn.scala`       | **EXTEND** — `callExpr[R]` match.                                             |
+| `test/shader/IntDsl.test.scala`          | **NEW** — tests listed in §2.7.                                               |
 
 ### 2.9 Reused patterns and utilities
 
 - Opaque-type-inside-`Expr`-object layout — `expr.scala:45-130`.
-- `Let* <: Expr & LetExpr`, `Var* <: Expr & VarExpr`, `Const* <: Expr & ConstExpr`
-  — lines 82-130.
-- Generic `Vec{2,3,4}BaseG[N, V]` / `Vec{2,3,4}ImmutableOpsG[N, V]` traits
-  from `graphics.math.cpu.*` — used for float vectors at lines 261-541;
-  re-used for integer vectors with different `N` type parameter.
-- `NumOps[T]` / `NumExt[T]` from `trivalibs.utils.numbers` — same pattern as
-  the existing `FloatExpr` instance at lines 195-255.
-- `TypedLocalAccessor` / `buildLocalKinds` — `dsl/types.scala:72-93`.
-  The `Var[?]` / `Const[?]` wildcard in `populateKinds` already handles any
-  type argument, so new `Var[Int]` / `Var[UVec2]` etc. need no special
-  handling beyond adding cases to `ToLocal`.
+- `Let* <: Expr & LetExpr`, `Var* <: Expr & VarExpr`,
+  `Const* <: Expr & ConstExpr` — lines 82-130.
+- Generic `Vec{2,3,4}BaseG[N, V]` / `Vec{2,3,4}ImmutableOpsG[N, V]` traits from
+  `graphics.math.cpu.*` — used for float vectors at lines 261-541; re-used for
+  integer vectors with different `N` type parameter.
+- `NumOps[T]` / `NumExt[T]` from `trivalibs.utils.numbers` — same pattern as the
+  existing `FloatExpr` instance at lines 195-255.
+- `TypedLocalAccessor` / `buildLocalKinds` — `dsl/types.scala:72-93`. The
+  `Var[?]` / `Const[?]` wildcard in `populateKinds` already handles any type
+  argument, so new `Var[Int]` / `Var[UVec2]` etc. need no special handling
+  beyond adding cases to `ToLocal`.
 
 ### 2.10 Phase 1 verification
 
-- `bun run build` compiles — confirms new opaque types, match-type
-  extensions, and `WGSLType` givens are consistent.
-- `scala test .` passes — all existing tests plus the new
-  `IntDsl.test.scala`.
-- Manual spot-check: add a one-line `WgslFn[(s: UInt), UInt]` inside any
-  example and confirm the generated WGSL compiles when the example renders
-  in the browser (`bun run dev`).
+- `bun run build` compiles — confirms new opaque types, match-type extensions,
+  and `WGSLType` givens are consistent.
+- `scala test .` passes — all existing tests plus the new `IntDsl.test.scala`.
+- Manual spot-check: add a one-line `WgslFn[(s: UInt), UInt]` inside any example
+  and confirm the generated WGSL compiles when the example renders in the
+  browser (`bun run dev`).
 - No visual regression on existing examples: `simple_triangle`,
   `buffer_triangle`, `blur`, `painter_dsl`.
 
@@ -474,27 +477,27 @@ Test groups:
 
 **Location:** `src/graphics/shader/lib/random/hash.scala`.
 
-Port each Rust function as a `WgslFn`. Use `WgslFn.raw` throughout — the
-bodies are short, dominated by bitwise operations, and read most clearly as
-literal WGSL strings. The Scala DSL would add line noise without adding
-safety, since every operation is a direct intrinsic.
+Port each Rust function as a `WgslFn`. Use `WgslFn.raw` throughout — the bodies
+are short, dominated by bitwise operations, and read most clearly as literal
+WGSL strings. The Scala DSL would add line noise without adding safety, since
+every operation is a direct intrinsic.
 
 ### 3.1 Function table
 
-| Rust                     | Scala `WgslFn`                             | Signature                        |
-| ------------------------ | ------------------------------------------ | -------------------------------- |
-| `hashi(x: u32)`          | `val hashU32`                              | `WgslFn[(x: UInt), UInt]`        |
-| `hashi_triple32(x: u32)` | `val hashU32Triple32`                      | `WgslFn[(x: UInt), UInt]`        |
-| `u32_to_f32(x: u32)`     | `val u32ToF32`                             | `WgslFn[(x: UInt), Float]`       |
-| `hash(x: u32)`           | `val hash1`                                | `WgslFn[(x: UInt), Float]`       |
-| `hash21i(p: UVec2)`      | `val hash21i`                              | `WgslFn[(p: UVec2), UInt]`       |
-| `hash21(p: UVec2)`       | `val hash21`                               | `WgslFn[(p: UVec2), Float]`      |
-| `hash2di(v: UVec2)`      | `val hash2di`                              | `WgslFn[(v: UVec2), UVec2]`      |
-| `hash2d(v: UVec2)`       | `val hash2d`                               | `WgslFn[(v: UVec2), Vec2]`       |
-| `hash3di(v: UVec3)`      | `val hash3di`                              | `WgslFn[(v: UVec3), UVec3]`      |
-| `hash3d(v: UVec3)`       | `val hash3d`                               | `WgslFn[(v: UVec3), Vec3]`       |
-| `hash4di(v: UVec4)`      | `val hash4di`                              | `WgslFn[(v: UVec4), UVec4]`      |
-| `hash4d(v: UVec4)`       | `val hash4d`                               | `WgslFn[(v: UVec4), Vec4]`       |
+| Rust                     | Scala `WgslFn`        | Signature                   |
+| ------------------------ | --------------------- | --------------------------- |
+| `hashi(x: u32)`          | `val hashU32`         | `WgslFn[(x: UInt), UInt]`   |
+| `hashi_triple32(x: u32)` | `val hashU32Triple32` | `WgslFn[(x: UInt), UInt]`   |
+| `u32_to_f32(x: u32)`     | `val u32ToF32`        | `WgslFn[(x: UInt), Float]`  |
+| `hash(x: u32)`           | `val hash1`           | `WgslFn[(x: UInt), Float]`  |
+| `hash21i(p: UVec2)`      | `val hash21i`         | `WgslFn[(p: UVec2), UInt]`  |
+| `hash21(p: UVec2)`       | `val hash21`          | `WgslFn[(p: UVec2), Float]` |
+| `hash2di(v: UVec2)`      | `val hash2di`         | `WgslFn[(v: UVec2), UVec2]` |
+| `hash2d(v: UVec2)`       | `val hash2d`          | `WgslFn[(v: UVec2), Vec2]`  |
+| `hash3di(v: UVec3)`      | `val hash3di`         | `WgslFn[(v: UVec3), UVec3]` |
+| `hash3d(v: UVec3)`       | `val hash3d`          | `WgslFn[(v: UVec3), Vec3]`  |
+| `hash4di(v: UVec4)`      | `val hash4di`         | `WgslFn[(v: UVec4), UVec4]` |
+| `hash4d(v: UVec4)`       | `val hash4d`          | `WgslFn[(v: UVec4), Vec4]`  |
 
 ### 3.2 Float-input ergonomic wrappers
 
@@ -511,10 +514,10 @@ val hash1FromFloat: WgslFn[(x: Float), Float] =
   WgslFn.raw("hash1_from_float")("return hash(bitcast<u32>(x));")
 ```
 
-These `WgslFn`s call other `WgslFn`s by name — the caller must register both
-the underlying and the wrapper via `program.fn(...)`. Registration is
-idempotent (see `program.scala:...`), so double-registration of
-`hash2d` when both `hash2d` and `hash2dFromVec` are used is free.
+These `WgslFn`s call other `WgslFn`s by name — the caller must register both the
+underlying and the wrapper via `program.fn(...)`. Registration is idempotent
+(see `program.scala:...`), so double-registration of `hash2d` when both `hash2d`
+and `hash2dFromVec` are used is free.
 
 ### 3.3 Body style
 
@@ -549,8 +552,8 @@ WGSL `u32` arithmetic wraps by default — no explicit `wrapping_mul` needed.
 - Each `WgslFn.src` contains the expected operations (`0x21f0aaad`, `>> 16u`,
   `bitcast<vec2<u32>>`, etc.).
 - Composed calls: `hash1.src` references `hash_u32` and `u32_to_f32`.
-- Idempotent registration: `program.fn(hashU32); program.fn(hashU32)` emits
-  the body exactly once.
+- Idempotent registration: `program.fn(hashU32); program.fn(hashU32)` emits the
+  body exactly once.
 - Apply-site typing: `hash2d(uvec2Expr).toString == "hash2d(uvec2Expr)"` and
   resulting type is `Vec2Expr`.
 
@@ -563,19 +566,19 @@ identically to the Rust semantics of the bit-level ops.
 
 ### 4.1 `color.rs` → `src/graphics/shader/lib/color/color.scala`
 
-| Rust                 | Scala `WgslFn`         | Signature                  |
-| -------------------- | ---------------------- | -------------------------- |
-| `rgb2hsl`            | `val rgb2hsl`          | `WgslFn[(c: Vec3), Vec3]`  |
-| `hsv2rgb`            | `val hsv2rgb`          | `WgslFn[(c: Vec3), Vec3]`  |
-| `hsv2rgb_smooth`     | `val hsv2rgbSmooth`    | `WgslFn[(c: Vec3), Vec3]`  |
-| `hsv2rgb_smoother`   | `val hsv2rgbSmoother`  | `WgslFn[(c: Vec3), Vec3]`  |
-| `hsv2rgb_smoothest`  | `val hsv2rgbSmoothest` | `WgslFn[(c: Vec3), Vec3]`  |
+| Rust                | Scala `WgslFn`         | Signature                 |
+| ------------------- | ---------------------- | ------------------------- |
+| `rgb2hsl`           | `val rgb2hsl`          | `WgslFn[(c: Vec3), Vec3]` |
+| `hsv2rgb`           | `val hsv2rgb`          | `WgslFn[(c: Vec3), Vec3]` |
+| `hsv2rgb_smooth`    | `val hsv2rgbSmooth`    | `WgslFn[(c: Vec3), Vec3]` |
+| `hsv2rgb_smoother`  | `val hsv2rgbSmoother`  | `WgslFn[(c: Vec3), Vec3]` |
+| `hsv2rgb_smoothest` | `val hsv2rgbSmoothest` | `WgslFn[(c: Vec3), Vec3]` |
 
 Rust uses `NumExt` helpers (`clamp01`, `fit1101`, `smoothen`) and `VecExt`
-helpers (`sin`, `cos`, `frct`). All already exist on `FloatExpr` /
-`Vec3Expr` in `expr.scala`. Bodies can be written in the Scala DSL or as raw
-WGSL — prefer raw WGSL for byte-for-byte parity with the Rust versions and
-to avoid translating between DSL operator names.
+helpers (`sin`, `cos`, `frct`). All already exist on `FloatExpr` / `Vec3Expr` in
+`expr.scala`. Bodies can be written in the Scala DSL or as raw WGSL — prefer raw
+WGSL for byte-for-byte parity with the Rust versions and to avoid translating
+between DSL operator names.
 
 ### 4.2 `coords.rs` → `src/graphics/shader/lib/coords/polar.scala`
 
@@ -593,17 +596,17 @@ val cartToPolar: WgslFn[(v: Vec2), Vec2] = WgslFn.raw("cart_to_polar"):
 
 ### 4.3 `bits.rs`
 
-The scalar and vector bitcast helpers from §2.3.3 cover `bits.rs` entirely;
-no separate file is needed. The Rust `FloatBits` trait's role is filled by
-the `.bitsToU32` / `.bitsToF32` extensions on the expression types.
+The scalar and vector bitcast helpers from §2.3.3 cover `bits.rs` entirely; no
+separate file is needed. The Rust `FloatBits` trait's role is filled by the
+`.bitsToU32` / `.bitsToF32` extensions on the expression types.
 
 ### 4.4 `num_ext.rs` / `vec_ext.rs`
 
 These are already substantially implemented on `FloatExpr` and `Vec*Expr` in
-`expr.scala`. The `math-library-design.md` document already tracks parity
-gaps (sign, round, trunc, fract, exp, log, inverseSqrt, degrees, radians,
-sinh, cosh, tanh, distance, reflect, refract). Closing those gaps is
-scheduled in that document; this plan does not re-schedule them.
+`expr.scala`. The `math-library-design.md` document already tracks parity gaps
+(sign, round, trunc, fract, exp, log, inverseSqrt, degrees, radians, sinh, cosh,
+tanh, distance, reflect, refract). Closing those gaps is scheduled in that
+document; this plan does not re-schedule them.
 
 ---
 
@@ -611,10 +614,10 @@ scheduled in that document; this plan does not re-schedule them.
 
 **Location:** `src/graphics/shader/lib/random/simplex.scala`.
 
-Use Stefan Gustavson's widely adopted MIT-licensed WGSL simplex noise port
-(from the `webgl-noise` family; the GLSL original is canonical, and multiple
-verified WGSL translations exist). Licence header with attribution at the top
-of the file.
+Use Stefan Gustavson's widely adopted MIT-licensed WGSL simplex noise port (from
+the `webgl-noise` family; the GLSL original is canonical, and multiple verified
+WGSL translations exist). Licence header with attribution at the top of the
+file.
 
 Wrap each function in `WgslFn.raw`:
 
@@ -623,8 +626,8 @@ Wrap each function in `WgslFn.raw`:
 - `val fbmSimplex2d: WgslFn[(pos: Vec2, octaves: Int, freqFactor: Float, amplitudeFactor: Float), Float]`
 - `val fbmSimplex3d: WgslFn[(pos: Vec3, octaves: Int, freqFactor: Float, amplitudeFactor: Float), Float]`
 
-`octaves: Int` is the first cross-phase consumer beyond the hash port —
-requires Phase 1 to be in place.
+`octaves: Int` is the first cross-phase consumer beyond the hash port — requires
+Phase 1 to be in place.
 
 The FBM bodies need an integer loop counter and `< octaves` comparison; WGSL
 supports both. Sample body for `fbm_simplex_2d`:
@@ -658,9 +661,9 @@ attribution needed beyond citing the standard separable-blur formulation.
 - `val gaussianBlur13: WgslFn[… same params], Vec4]`
 - `val gaussianBlur:   WgslFn[(tex: Texture2D, s: Sampler, diameter: Float, uv: Vec2, res: Vec2, dir: Vec2), Vec4]`
 
-All parameters are float/Vec types — Phase 5 does **not** depend on Phase 1
-and can be scheduled independently. The existing `examples/blur/` code is a
-strong reference point; re-using it wholesale is the cheapest path.
+All parameters are float/Vec types — Phase 5 does **not** depend on Phase 1 and
+can be scheduled independently. The existing `examples/blur/` code is a strong
+reference point; re-using it wholesale is the cheapest path.
 
 ---
 
@@ -669,29 +672,28 @@ strong reference point; re-using it wholesale is the cheapest path.
 **Suggested order of work** once Phase 1 ships:
 
 1. Phase 2 (`hash.rs`) — unblocks the most-requested helper. Small surface.
-2. Phase 4 (simplex noise) — high-value visual feature. Depends on Phase 1
-   only for `octaves: Int`.
+2. Phase 4 (simplex noise) — high-value visual feature. Depends on Phase 1 only
+   for `octaves: Int`.
 3. Phase 3 (`color.rs` + `coords.rs`) — small, independent files.
-4. Phase 5 (blur) — lowest priority (existing `examples/blur` already works
-   for callers that need it today).
+4. Phase 5 (blur) — lowest priority (existing `examples/blur` already works for
+   callers that need it today).
 
 **Risks and mitigations.**
 
-- *Match-type expansion pitfalls.* `ToExpr` / `ToLocal` have a history of
-  subtle failures with type aliases (per `CLAUDE.md` "Critical Type-Level
-  Patterns"). Test explicitly with `type Seed = UInt` and
-  `WgslFn[(s: Seed), Seed]` to catch this early.
-- *Operator ambiguity.* Bitwise operations are exposed as named methods
-  (`.xor`, `.shr`, …) rather than symbolic operators specifically to avoid
-  resolution conflicts with Scala's built-in `Int` operators.
-- *Literal ambiguity.* Not adding `Conversion[Int, IntExpr]` is deliberate —
+- _Match-type expansion pitfalls._ `ToExpr` / `ToLocal` have a history of subtle
+  failures with type aliases (per `CLAUDE.md` "Critical Type-Level Patterns").
+  Test explicitly with `type Seed = UInt` and `WgslFn[(s: Seed), Seed]` to catch
+  this early.
+- _Operator ambiguity._ Bitwise operations are exposed as named methods (`.xor`,
+  `.shr`, …) rather than symbolic operators specifically to avoid resolution
+  conflicts with Scala's built-in `Int` operators.
+- _Literal ambiguity._ Not adding `Conversion[Int, IntExpr]` is deliberate —
   keeps the existing `Int → FloatExpr` convenience working. The `IntExpr(42)`
-  constructor is explicit; the `.u` extension on `Int → UInt → UIntExpr` is
-  the ergonomic unsigned path.
-- *Bundle size.* All new types are `opaque` and all new extensions are
-  `inline`. Expected runtime cost: zero beyond the existing `Expr` wrapper.
-  Verify via the existing JS-size checks if adding these grows the bundle
-  noticeably.
+  constructor is explicit; the `.u` extension on `Int → UInt → UIntExpr` is the
+  ergonomic unsigned path.
+- _Bundle size._ All new types are `opaque` and all new extensions are `inline`.
+  Expected runtime cost: zero beyond the existing `Expr` wrapper. Verify via the
+  existing JS-size checks if adding these grows the bundle noticeably.
 
 ---
 
@@ -701,7 +703,7 @@ strong reference point; re-using it wholesale is the cheapest path.
   integer fields).
 - Scala-side overload of `Conversion[Int, FloatExpr]` — behaviour preserved.
 - Integer matrices (`IMat*`, `UMat*`) — not supported by WGSL, not needed.
-- Rust `trivalibs_core/src/data/{grid,neighbour_list,vertex_index}` — CPU
-  data structures, outside `trivalibs_nostd` scope.
+- Rust `trivalibs_core/src/data/{grid,neighbour_list,vertex_index}` — CPU data
+  structures, outside `trivalibs_nostd` scope.
 - Parity closure for `num_ext` / `vec_ext` — tracked separately in
   [math-library-design.md](math-library-design.md).
