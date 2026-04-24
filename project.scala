@@ -1,7 +1,7 @@
-//> using scala 3.8.3
+//> using scala 3.8.4-RC2
 //> using platform js
 
-//> using jsVersion 1.20.2
+//> using jsVersion 1.21.0
 //> using jsMode full
 //> using jsModuleKind es
 //> using jsEsVersionStr es2021
