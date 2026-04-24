@@ -6,7 +6,7 @@ code in this repository.
 ## Build & Dev Commands
 
 ```bash
-bun run build          # Compile Scala.js → drafts/out/ (never use sbt)
+bun run build          # Compile Scala.js → examples/out/ (never use sbt)
 bun run watch          # Incremental build with file watching
 bun run dev            # Start Bun dev server on :3000
 bun run test           # Run all tests (scala-cli test test/)
@@ -70,8 +70,8 @@ generation, typed buffer bindings, WebGPU facades. Next: Painter abstraction
   incrementally.
 - `trivalibs/` — Git submodule shared library: `StructArray`/`StructRef`
   (zero-cost typed binary buffers), numeric utils, JS helpers.
-- `drafts/` — Working examples (simple_triangle, buffer_triangle), each with
-  `index.html` + `main.js` + `*.scala`. Compiled JS lands in `drafts/out/`.
+- `examples/` — Working examples (simple_triangle, buffer_triangle), each with
+  `index.html` + `main.js` + `*.scala`. Compiled JS lands in `examples/out/`.
 
 ### Critical Type-Level Patterns
 
@@ -130,8 +130,8 @@ features. Every runtime construct must compile to minimal JS:
 - **Painter naming**: Rust "Layer" = Scala "Panel" (render target), Rust
   "Effect" = Scala "Layer" (post-processing). Clear colors are `Vec4Tuple`, not
   a dedicated Color type.
-- **Draft examples**: Each implementation step gets a new draft in `drafts/`.
-  Previous drafts are never deleted and must keep compiling.
+- **Examples**: Each implementation step gets a new example in `examples/`.
+  Previous examples are never deleted and must keep compiling.
 
 ## Scala Conventions
 

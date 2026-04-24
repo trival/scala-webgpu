@@ -1,4 +1,4 @@
-package drafts.simple_triangle
+package examples.simple_triangle
 
 import graphics.math.cpu.*
 import org.scalajs.dom

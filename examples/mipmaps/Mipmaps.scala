@@ -1,4 +1,4 @@
-package drafts.mipmaps
+package examples.mipmaps
 
 import graphics.buffers.*
 import graphics.math.cpu.{*, given}

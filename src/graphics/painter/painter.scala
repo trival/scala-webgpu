@@ -137,7 +137,7 @@ class Painter(
       program.helperFnsStr,
     )
 
-  // Raw WGSL string overload — kept for backward compatibility with older drafts
+  // Raw WGSL string overload
   inline def shade[A, V, U](
       vertWgsl: String,
       fragWgsl: String,

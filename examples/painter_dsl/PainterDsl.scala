@@ -1,11 +1,12 @@
-package drafts.painter_typed_bindings
+package examples.painter_dsl
 
 import graphics.buffers.*
-import graphics.math.cpu.Mat2.given
 import graphics.math.cpu.Mat2Buffer.given
 import graphics.math.cpu.{*, given}
+import graphics.math.gpu.{*, given}
 import graphics.painter.*
 import graphics.shader.None as GPUNone
+import graphics.shader.dsl.{*, given}
 import graphics.shader.{*, given}
 import graphics.utils.animation.animate
 import org.scalajs.dom
@@ -17,7 +18,7 @@ import trivalibs.utils.numbers.NumExt.given
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 
-@JSExportTopLevel("main", moduleID = "painter_typed_bindings")
+@JSExportTopLevel("main", moduleID = "painter_dsl")
 def main(): Unit =
   val canvas =
     document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
@@ -31,15 +32,28 @@ def main(): Unit =
         translation: VertexUniform[Vec2],
     )
 
-    val shade = painter.shade[Attribs, Varyings, Uniforms](
-      vertWgsl = """
-        let rotated = rotation * in.position;
-        out.position = vec4<f32>(rotated + translation, 0.0, 1.0);
-        """,
-      fragWgsl = """
-        out.color = vec4<f32>(color, 1.0);
-        """,
-    )
+    // Helper function defined with raw WGSL and applies mat2 rotation + translation
+    val applyTransform =
+      WgslFn.dsl[(pos: Vec2, mat: Mat2, offset: Vec2), Vec2](
+        "apply_transform",
+      ): (p, ret) =>
+        ret(p.offset + p.mat * p.pos)
+
+    val shade = painter.shade[Attribs, Varyings, Uniforms]: program =>
+      program.fn(applyTransform)
+
+      program.vert[(t: Vec2)]: ctx =>
+        val t = ctx.locals.t
+        Block(
+          t := applyTransform(
+            ctx.in.position,
+            ctx.bindings.rotation,
+            ctx.bindings.translation,
+          ),
+          ctx.out.position := vec4(t.x, t.y, 0.0, 1.0),
+        )
+      program.frag[EmptyTuple]: ctx =>
+        ctx.out.color := vec4(ctx.bindings.color, 1.0)
 
     // Simple triangle centered at origin
     val vertices = allocateAttribs[Attribs](3)

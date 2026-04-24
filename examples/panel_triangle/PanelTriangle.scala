@@ -1,4 +1,4 @@
-package drafts.panel_triangle
+package examples.panel_triangle
 
 import graphics.buffers.*
 import graphics.math.cpu.{*, given}

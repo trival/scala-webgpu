@@ -4,11 +4,11 @@ import { extname, join, normalize } from "node:path";
 
 const port = Number(process.env.PORT) || 3001;
 const rootDir = import.meta.dir;
-const draftsDir = join(rootDir, "drafts");
-const outDir = join(draftsDir, "out");
+const examplesDir = join(rootDir, "examples");
+const outDir = join(examplesDir, "out");
 const encoder = new TextEncoder();
 
-const draftRoutes = new Set([
+const exampleRoutes = new Set([
 	"blur",
 	"buffer_triangle",
 	"deferred",
@@ -149,11 +149,11 @@ const server = serve({
 		}
 
 		if (pathname === "/") {
-			return htmlResponse(join(draftsDir, "index.html"));
+			return htmlResponse(join(examplesDir, "index.html"));
 		}
 
-		if (pathname.endsWith("/") && draftRoutes.has(trimmed)) {
-			return htmlResponse(join(draftsDir, trimmed, "index.html"));
+		if (pathname.endsWith("/") && exampleRoutes.has(trimmed)) {
+			return htmlResponse(join(examplesDir, trimmed, "index.html"));
 		}
 
 		if (trimmed.startsWith("out/")) {
@@ -161,15 +161,15 @@ const server = serve({
 			if (filePath) return fileResponse(filePath);
 		}
 
-		if (draftRoutes.has(trimmed)) {
+		if (exampleRoutes.has(trimmed)) {
 			return Response.redirect(`${pathname}/`, 302);
 		}
 
 		const segments = trimmed.split("/");
 		if (segments.length === 2) {
-			const [draft, fileName] = segments;
-			if (draftRoutes.has(draft) && fileName === "main.js") {
-				return fileResponse(join(draftsDir, draft, "main.js"));
+			const [example, fileName] = segments;
+			if (exampleRoutes.has(example) && fileName === "main.js") {
+				return fileResponse(join(examplesDir, example, "main.js"));
 			}
 		}
 

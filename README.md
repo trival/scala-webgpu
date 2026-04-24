@@ -45,11 +45,11 @@ Requires [Bun](https://bun.sh) and [Scala CLI](https://scala-cli.virtuslab.org).
 
 ```bash
 bun install
-bun run build   # compile to drafts/out/
+bun run build   # compile to examples/out/
 bun run dev     # start dev server on :3000
 ```
 
-Open `http://localhost:3000` to see the draft examples.
+Open `http://localhost:3000` to see the examples.
 
 ## License
 

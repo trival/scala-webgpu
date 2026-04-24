@@ -5,6 +5,6 @@
 .idea/
 .claude/
 node_modules
-drafts/out/
-drafts/**/main.min.js
+examples/out/
+examples/**/main.min.js
 *.semanticdb

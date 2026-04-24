@@ -1,4 +1,4 @@
-package drafts.panel_tex
+package examples.panel_tex
 
 import graphics.buffers.*
 import graphics.math.cpu.{*, given}

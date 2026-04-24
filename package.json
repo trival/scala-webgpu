@@ -2,8 +2,8 @@
 	"name": "scala-webgpu",
 	"type": "module",
 	"scripts": {
-		"build": "scala-cli --power package . --js -o drafts/out -f",
-		"watch": "scala-cli --power package . --js -o drafts/out -f -w",
+		"build": "scala-cli --power package . --js -o examples/out -f",
+		"watch": "scala-cli --power package . --js -o examples/out -f -w",
 		"dev": "bun --bun serve_bun.ts",
 		"dev:bun": "bun --bun serve_bun.ts",
 		"dev:custom": "PORT=3001 bun --bun serve_custom.ts",

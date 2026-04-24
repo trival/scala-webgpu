@@ -1,4 +1,4 @@
-package drafts.deferred
+package examples.deferred
 
 import graphics.buffers.*
 import graphics.math.cpu.{*, given}

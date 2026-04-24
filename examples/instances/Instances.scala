@@ -1,4 +1,4 @@
-package drafts.instances
+package examples.instances
 
 import graphics.buffers.*
 import graphics.math.cpu.{*, given}

@@ -1,4 +1,4 @@
-package drafts.blur
+package examples.blur
 
 import graphics.buffers.*
 import graphics.math.cpu.{*, given}
