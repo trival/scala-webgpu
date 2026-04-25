@@ -7,23 +7,6 @@ review. Grouped by scope: **docs**, **API design**, and **examples/codebase**.
 
 ## Documentation (`scala-port-comparison.md`)
 
-### ✅ Fixed in corrected copy
-
-- **`painter.form()` API**: All code examples updated to use
-  `painter.form(vertices = verts)` as the primary form. The two-step
-  `painter.form().set(...)` pattern is now only shown for post-creation mutation
-  (reassigning geometry), which is its correct role.
-
-- **Wrong section cross-reference**: Panel table row for
-  `.with_static_texture_data(bytes)` linked to `§13` (broken anchor); corrected
-  to `§12` (Known Gaps & Workarounds).
-
-- **Contradictory overload count**: "Three Scala overloads, five total:" changed
-  to "Five Scala overloads:" to match the five items that follow.
-
-- **Section 2 project setup snippet**: `painter.form().set(vertices = vs)` →
-  `painter.form(vertices = vs)`.
-
 - **Section 9 geometry snippet**: Same fix as above.
 
 ### 📝 Noted but not changed
@@ -247,8 +230,9 @@ no direct equivalent — callers must build a `GPUTexture` with usage
 
 **Required changes:**
 
-- Add a `staticTextureData` param (or a dedicated `setStaticTextureData(bytes,
-  format, width, height)` method) on `Panel` / `painter.panel(...)`.
+- Add a `staticTextureData` param (or a dedicated
+  `setStaticTextureData(bytes, format, width, height)` method) on `Panel` /
+  `painter.panel(...)`.
 - Internally: create the `GPUTexture` with `COPY_DST | TEXTURE_BINDING`, call
   `queue.writeTexture`, and wire the texture view as the panel's output so
   downstream `Layer`s sampling the panel see the baked pixels.
@@ -268,8 +252,9 @@ the param row to the Panel table in §3.
 
 ### 🔄 Port missing `Random` helpers from `trivalibs_core`
 
-**Current state:** [trivalibs/src/utils/random.scala](../trivalibs/src/utils/random.scala)
-only exposes `rand()` and `randInRange(min, max)`. Rust
+**Current state:**
+[trivalibs/src/utils/random.scala](../trivalibs/src/utils/random.scala) only
+exposes `rand()` and `randInRange(min, max)`. Rust
 `trivalibs_core::rendering::scene::Random` additionally provides `rand_sign`,
 `rand_vec2` / `rand_vec2_range`, `rand_vec3` / `rand_vec3_range`, `rand_vec4` /
 `rand_vec4_range`.
@@ -282,7 +267,7 @@ only exposes `rand()` and `randInRange(min, max)`. Rust
   componentwise `randInRange`.
 
 **Doc follow-up:** Once added, remove the "Random helpers" bullet in
-[scala-port-comparison.md §12](rust-painter/scala-port-comparison.md) and
-update the `Random` row in §10 to `Ported`.
+[scala-port-comparison.md §12](rust-painter/scala-port-comparison.md) and update
+the `Random` row in §10 to `Ported`.
 
 **Priority:** Low — one-liners, do when a sketch first needs them.
