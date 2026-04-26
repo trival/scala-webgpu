@@ -1,8 +1,7 @@
 # CPU Geometry Helpers Port — Grid, 2D Lines, Shape Builders
 
 Planning document for porting three CPU geometry feature sets from Rust
-`trivalibs_core` to the Scala WebGPU codebase. The destination is
-`documents/mesh-geometry-port-plan.md` (this file moves there on approval).
+`trivalibs_core` to the Scala WebGPU codebase.
 
 Companion documents:
 
@@ -86,7 +85,12 @@ verbose APIs with tighter Scala equivalents:
 
 ---
 
-## 2. Prerequisite — additional `Lerp` givens (shared)
+## 2. Prerequisite — additional `Lerp` givens (shared) ✅ Done
+
+Implemented in
+[src/graphics/geometry/package.scala](/home/trival/code/personal/scala/webgpu/src/graphics/geometry/package.scala)
+with explicit names (`vec3Lerp`, `doubleLerp`, `vec2Lerp`, `vec4Lerp`) since
+anonymous givens with the same target type would synthesize colliding names.
 
 Currently `geometry/package.scala:18` only declares:
 
@@ -117,6 +121,140 @@ No test file — existence verified indirectly by Grid and Line tests.
 
 ---
 
+## 2.1 Prerequisite — `Mesh.addFaces` batch helper
+
+`Mesh[T]` currently only has
+`addFace(face: Face[T], normal: Opt[Vec3] = null, section: Int = 0)`
+([mesh.scala:31](/home/trival/code/personal/scala/webgpu/src/graphics/geometry/mesh.scala)).
+Several upcoming call sites pass a whole `Arr[Face[T]]` from a generator (Grid →
+Mesh extension, internal sphere construction, future shape helpers). Add a batch
+counterpart so callers don't have to write `foreach` loops:
+
+```scala
+extension [T: Position](m: Mesh[T])
+  def addFaces(
+      faces:   Arr[Face[T]],
+      normal:  Opt[Vec3] = null,
+      section: Int       = 0,
+  ): Unit =
+    var i = 0
+    while i < faces.length do
+      m.addFace(faces(i), normal, section)
+      i += 1
+```
+
+The same `normal` / `section` apply to every face in the batch — this is the
+common case. For per-face metadata, `addFace` in a loop remains available.
+
+Used by §3 (`Grid.toMesh` extension), §4.3 (`sphereMesh` internals), and
+anywhere later helpers materialize a face collection.
+
+No new test file — covered indirectly by Grid and Sphere tests.
+
+---
+
+## 2.2 Prerequisite — `Mesh` constructor that takes a faces array
+
+Pair `addFaces` (§2.1) with a constructor / factory that bundles the empty-mesh
+
+- batch-add pattern in one expression:
+
+```scala
+object Mesh:
+  def apply[T: Position](
+      faces:   Arr[Face[T]],
+      normal:  Opt[Vec3] = null,
+      section: Int       = 0,
+  ): Mesh[T] =
+    val m = Mesh[T]()
+    m.addFaces(faces, normal, section)
+    m
+```
+
+Lets the typical use site be:
+
+```scala
+val mesh = Mesh(grid.quads)
+val sphere = Mesh(sphereFaces)
+```
+
+instead of the two-step build-then-add. The empty `Mesh[T]()` constructor stays
+available for cases that build incrementally (e.g. mixing sections).
+
+No new test file — covered indirectly by Grid and Sphere tests.
+
+---
+
+## 2.3 Prerequisite — `Int` extension methods (`min` / `max` / `clamp`)
+
+`Grid.CoordOps.adjust` (§3.1) and several other call sites would otherwise
+compose to `math.max(0, math.min(x, w - 1))`. Add minimal Int extensions in
+trivalibs so the call site reads `x.min(w - 1).max(0)`:
+
+```scala
+// In trivalibs/src/utils/numbers.scala (or a new ints.scala)
+extension (p: Int)
+  inline def min(other: Int):           Int = Math.min(p, other)
+  inline def max(other: Int):           Int = Math.max(p, other)
+  inline def clamp(lo: Int, hi: Int):   Int = Math.max(lo, Math.min(p, hi))
+  inline def abs:                       Int = Math.abs(p)
+  inline def sign:                      Int = Integer.signum(p)
+```
+
+Scope is intentionally minimal — just what Grid needs plus the standalone `abs`
+/ `sign` that `Int` is missing. The broader `IntExt[P]` typeclass design
+(GPU-side derivation, step predicates, `UInt` instance) is tracked in
+[scala-webgpu-review-todo.md → Math / NumExt → `IntExt`](/home/trival/code/personal/scala/webgpu/documents/scala-webgpu-review-todo.md#L191).
+When that lands, these inline extensions are subsumed by the typeclass instance
+— call sites stay unchanged.
+
+No test file — covered indirectly by Grid tests.
+
+---
+
+## 2.4 Prerequisite — `Quad` corner reorder (`tl / bl / br / tr`)
+
+§3.4 introduces a top-left origin convention for both Grid and Quad. The
+existing `Quad[T]` opaque in
+[src/graphics/geometry/polygon.scala](/home/trival/code/personal/scala/webgpu/src/graphics/geometry/polygon.scala)
+must be updated to match before any Phase work starts.
+
+**Mechanical edits in
+[polygon.scala](/home/trival/code/personal/scala/webgpu/src/graphics/geometry/polygon.scala):**
+
+- Update the winding comment from `bl(0), br(1), tr(2), tl(3)` to
+  `tl(0), bl(1), br(2), tr(3)`.
+- Reorder `Quad.apply` from `(bl, br, tr, tl)` to `(tl, bl, br, tr)` and the
+  array indices in the accessors accordingly.
+- Update `normal` (cross-product diagonals are now `tl→br` and `bl→tr`).
+- Update `toTriangles`. With the new order the two CCW triangles are
+  `Triangle(tl, bl, br)` + `Triangle(tl, br, tr)`.
+- Update `subdivideH` (split horizontally → top half, bottom half) and
+  `subdivideV` (split vertically → left half, right half) using the new corner
+  names. The math is the same; only labels move.
+- `splitByPlane`'s 5-vertex branch still emits
+  `Quad(out(0), out(1), out(2), out(3))` — the array order now means
+  `tl, bl, br, tr` automatically.
+
+**Test updates in
+[test/geometry/](/home/trival/code/personal/scala/webgpu/test/geometry/):**
+
+- [Polygon.test.scala](/home/trival/code/personal/scala/webgpu/test/geometry/Polygon.test.scala)
+  — every `Quad(Vec3(0,0,0), Vec3(1,0,0), Vec3(1,1,0), Vec3(0,1,0))` literal is
+  currently a `bl, br, tr, tl` square. After the reorder the corner arguments
+  need to be re-shuffled to keep the **same physical quad**:
+  `Quad(tl=Vec3(0,1,0), bl=Vec3(0,0,0), br=Vec3(1,0,0), tr=Vec3(1,1,0))` — i.e.
+  swap the existing arg positions to match the new order.
+- [Mesh.test.scala](/home/trival/code/personal/scala/webgpu/test/geometry/Mesh.test.scala),
+  [Buffers.test.scala](/home/trival/code/personal/scala/webgpu/test/geometry/Buffers.test.scala)
+  — same shuffle for the literal `Quad(...)` constructions used in `addFace`.
+
+Verify with `scala test .` — the existing test suite should still pass with
+identical assertions (the physical geometry is unchanged; only argument order
+moved).
+
+---
+
 ## 3. Phase 1 — Grid
 
 **New file:** `src/graphics/geometry/grid.scala`. **New test:**
@@ -141,17 +279,13 @@ object CoordOps:
     inline def circleRows: Boolean = (c & 2) != 0
 
     def adjust(x: Int, y: Int, w: Int, h: Int): (Int, Int) =
-      val nx = if c.circleCols then ((x % w) + w) % w else math.max(0, math.min(x, w - 1))
-      val ny = if c.circleRows then ((y % h) + h) % h else math.max(0, math.min(y, h - 1))
+      val nx = if c.circleCols then ((x % w) + w) % w else x.clamp(0, w - 1)
+      val ny = if c.circleRows then ((y % h) + h) % h else y.clamp(0, h - 1)
       (nx, ny)
 ```
 
-Simpler and smaller than Rust's four struct types + trait.
-
-> The `math.max(0, math.min(x, w - 1))` pattern reads cleanly as
-> `x.min(w - 1).max(0)` once the `IntExt` trait lands — tracked in
-> [scala-webgpu-review-todo.md → Math / NumExt → `IntExt`](scala-webgpu-review-todo.md).
-> Update the snippet above when that trait is in trivalibs.
+Simpler and smaller than Rust's four struct types + trait. `.clamp` comes from
+the Int extensions added in §2.3.
 
 ### 3.2 `Grid[T]`
 
@@ -167,8 +301,10 @@ class Grid[T](val coordOps: CoordOps = CoordOps.ClampToEdge):
 
   def col(x: Int): Arr[T]
   def row(y: Int): Arr[T]
-  def firstCol: Arr[T];  def firstRow: Arr[T]
-  def lastCol:  Arr[T];  def lastRow:  Arr[T]
+  def firstCol: Arr[T]
+  def firstRow: Arr[T]
+  def lastCol: Arr[T]
+  def lastRow: Arr[T]
 
   def addCol(vals: Arr[T]): Unit     // panics if length mismatches height
   def addRow(vals: Arr[T]): Unit     // panics if length mismatches width
@@ -178,11 +314,18 @@ class Grid[T](val coordOps: CoordOps = CoordOps.ClampToEdge):
   def flatMapRows[B](f: Arr[Vertex[T]] => Arr[Arr[B]]): Grid[B]
 
   def quadCount: (Int, Int)          // (w, h) accounting for circular wrap
-  def toCcwQuads: Arr[Quad[T]]
-  def toCwQuads:  Arr[Quad[T]]
+  def ccwQuads: Arr[Quad[T]]
+  def cwQuads:  Arr[Quad[T]]
+  inline def quads: Arr[Quad[T]] = ccwQuads  // alias — typical mesh winding
 
-  def subdivide(countX: Int, countY: Int)(using Lerp[T]): Grid[T]
+extension [T: Lerp](g: Grid[T])
+  def subdivide(countX: Int, countY: Int): Grid[T]
 ```
+
+`subdivide` lives as an extension rather than a method on `Grid` so the
+`Lerp[T]` constraint is local to the one operation that needs it — pushing it
+onto the class would force every `Grid` to carry a `Lerp[T]` and would
+contaminate the `B` type parameters of `map` / `flatMapCols` / `flatMapRows`.
 
 `Vertex[T]` is a minimal inner view — no allocation beyond the class itself:
 
@@ -205,21 +348,41 @@ the companion:
 
 ```scala
 object Grid:
-  def apply[T](coordOps: CoordOps = CoordOps.ClampToEdge): Grid[T] =
-    new Grid[T](coordOps)
+  // Empty grid: just call the constructor — `Grid[T](CoordOps.CircleAll)` works
+  // out of the box thanks to Scala 3 creator applications. No `apply` needed.
 
   def fromCols[T](cols: Arr[Arr[T]], coordOps: CoordOps = CoordOps.ClampToEdge): Grid[T]
   def fromRows[T](rows: Arr[Arr[T]], coordOps: CoordOps = CoordOps.ClampToEdge): Grid[T]
 ```
 
-### 3.4 Quad winding match to existing `Quad[T]`
+### 3.4 Quad winding (deviation from Rust — top-left origin)
 
-The Scala `Quad[T]` opaque uses `bl / br / tr / tl` (CCW viewed from front).
-Grid axis convention is "0,0 at lower-left". Mapping:
+**Convention change vs. Rust**: the Scala port uses a **top-left origin** for
+both Grid (`(0, 0)` at top-left, y increases downward) and the Quad corner order
+(`tl / bl / br / tr` — CCW viewed from front, starting top-left). Rust uses
+lower-left for grids and `bl / br / tr / tl` for quads.
 
-- CCW quad at `(w_i, h_i)`:
-  `Quad(bl = get(w_i, h_i), br = get(w_i+1, h_i), tr = get(w_i+1, h_i+1), tl = get(w_i, h_i+1))`
-- CW quad: swap `br` / `tl` — matches Rust's `to_cw_quads` flip.
+Why deviate:
+
+- Top-left matches screen-space, image, and UV conventions used elsewhere in the
+  project (e.g. Cuboid `uvw` uses 0..1 with 0 at top-left).
+- It keeps every 2D coordinate system aligned: Grid `(x, y)`, Quad corner order,
+  Cuboid face UVW, and texture sampling all agree on "0 is top-left".
+- As a bonus, the new Quad order matches Rust's `Quad3D` field order
+  (`top_left, bottom_left, bottom_right, top_right`) exactly, so the Cuboid port
+  becomes a verbatim transliteration.
+
+The reorder of the existing `Quad[T]` opaque (accessors, `apply` arg order,
+`subdivideH` / `subdivideV`, plus the affected tests) is captured in the §2.4
+prerequisite and runs before any Phase work starts.
+
+**Triangle**: `Triangle[T]` keeps generic `a / b / c` accessors
+
+Mapping for Grid → Quad:
+
+- CCW quad at `(x, y)`:
+  `Quad(tl = get(x, y), bl = get(x, y+1), br = get(x+1, y+1), tr = get(x+1, y))`
+- CW quad: reverse the four-corner order (swap `bl` / `tr`).
 
 Quad indices wrap via `CoordOps.adjust` so circular grids generate the
 seam-closing quads automatically (same as Rust lines 384–396 / 437–472).
@@ -236,8 +399,8 @@ seam-closing quads automatically (same as Rust lines 384–396 / 437–472).
 | `flatMapCols` / `flatMapRows`    | expand factor honored; returned grid width/height correct          |
 | `subdivide(1, 1)`                | 2×2 → 3×3 with midpoints via `Lerp`                                |
 | `subdivide(3, 0)`                | rows unchanged, cols multiplied by 4                               |
-| `toCcwQuads` on 2×2              | single `Quad` with correct bl/br/tr/tl                             |
-| `toCcwQuads` with `CircleAll`    | includes seam-closing quads (counts matches `quadCount`)           |
+| `ccwQuads` on 2×2                | single `Quad` with correct tl/bl/br/tr                             |
+| `ccwQuads` with `CircleAll`      | includes seam-closing quads (counts matches `quadCount`)           |
 
 ---
 
@@ -255,15 +418,16 @@ existing companion keeps `Quad[T]` as one concept — do not introduce a separat
 
 ```scala
 object Quad:
-  // already: def apply[T](bl, br, tr, tl): Quad[T]
+  // already: def apply[T](tl, bl, br, tr): Quad[T]  (after the §3.4 reorder)
 
-  // Dimensioned construction around a pivot. uv = (0.5, 0.5) → center.
+  // Dimensioned construction around a pivot. uvAtPivot says where on the quad
+  // the pivot sits in UV space: (0,0) = top-left, (0.5, 0.5) = center, (1,1) = BR.
   def fromDimensions[T](
       width: Double,
       height: Double,
       normal: Vec3,
       pivot: Vec3,
-      uv: Vec2 = Vec2(0.5, 0.5),  // 0 = TL, 0.5 = center, 1 = BR
+      uvAtPivot: Vec2 = Vec2(0.5, 0.5),
   )(f: (Vec3, Vec2) => T): Quad[T]
 
   // Shorthand with pivot interpretation baked in:
@@ -323,12 +487,10 @@ object Cuboid:
   def unit: Cuboid = apply(Vec3.zero, 1.0, 1.0, 1.0)
 ```
 
-Critical winding: the Rust `front_face_f` returns
-`Quad3D { top_left, bottom_left, bottom_right, top_right }` which — interpreted
-as our CCW-from- front ordering — is the same `(tl, bl, br, tr)` going clockwise
-around the quad as you look at it from the front, or equivalently `bl/br/tr/tl`
-CCW starting from bottom-left. Each face's mapping is written once in a table
-inside the Cuboid class body (matching Rust lines 5436–5524 verbatim).
+Winding: the Rust `front_face_f` returns
+`Quad3D { top_left, bottom_left, bottom_right, top_right }` — exactly the
+`(tl, bl, br, tr)` order our `Quad` now uses (see §3.4). The face → corner table
+is therefore a verbatim transliteration of Rust lines 5436–5524.
 
 ### 4.3 Sphere generator
 
@@ -337,27 +499,37 @@ inside the Cuboid class body (matching Rust lines 5436–5524 verbatim).
 def sphereMesh[T: Position](
     verticalSegments:   Int,
     horizontalSegments: Int,
-)(f: (u: Double, v: Double) => T): Mesh[T]
+)(f: (pos: Vec3, uv: Vec2) => T): Mesh[T]
 ```
 
-Mirrors Rust's `create_sphere_mesh` (lines 5839–5893). Uses `Mesh[T].addFace`
-for body quads and pole triangles. `u` and `v` are supplied in angle space
-(0..2π for u, -π/2..π/2 for v) matching Rust semantics.
+Mirrors Rust's `create_sphere_mesh` (lines 5839–5893). Builds an `Arr[Face[T]]`
+of body quads and pole triangles, then constructs the mesh in one shot via
+`Mesh(faces)` (§2.1 / §2.2). The mapper signature mirrors the Cuboid face mapper
+for consistency:
+
+- `pos: Vec3` — unit-sphere position (`(cos(v)·sin(u), sin(v), cos(v)·cos(u))`).
+  Multiply by a radius and add a center inside `f` to scale / translate.
+- `uv: Vec2` — `(u / 2π, (v + π/2) / π)` normalized to `[0, 1]²`, top-left
+  origin (matches §3.4). Independent of `pos` so texture sampling works cleanly
+  even after scaling.
+
+Internally the loop computes `u`/`v` in angle space (0..2π / -π/2..π/2) and
+passes the derived `pos` and `uv` to `f` once per vertex.
 
 ### 4.4 Test coverage (`Shapes.test.scala`)
 
-| Case                                  | Assertion                                                                         |
-| ------------------------------------- | --------------------------------------------------------------------------------- |
-| `Cuboid(center, 1, 1, 1)` corners     | all 8 corners match expected `Vec3`s                                              |
-| `frontFace` normal / corner positions | normal = +Z; bl/br/tr/tl = front_bottom_left / \_right / \_top_right / \_top_left |
-| `frontFace(f)` vs `frontFace`         | mapper invoked with correct UVW (uvw.z == 0 for front)                            |
-| all six faces have the right normal   | table-drive: (face, expectedNormal) pairs                                         |
-| `Quad.fromDimensionsCenter`           | reproduces Rust test at lines 5793–5808                                           |
-| `Quad.fromDimensions` w/ uv=(1,1)     | reproduces Rust test at lines 5810–5829                                           |
-| `Quad.fromCorners` non-planar throws  | assertion failure                                                                 |
-| `Quad.fromThreeCorners(BottomRight)`  | recovers a known cuboid face from 3 of its 4 corners                              |
-| `sphereMesh(4, 6)` face count         | correct poles + body: `4 * 6 - (4 + 4)` triangles + etc.                          |
-| `sphereMesh` vertex positions         | sampled points lie on the unit sphere                                             |
+| Case                                     | Assertion                                                                         |
+| ---------------------------------------- | --------------------------------------------------------------------------------- |
+| `Cuboid(center, 1, 1, 1)` corners        | all 8 corners match expected `Vec3`s                                              |
+| `frontFace` normal / corner positions    | normal = +Z; bl/br/tr/tl = front_bottom_left / \_right / \_top_right / \_top_left |
+| `frontFace(f)` vs `frontFace`            | mapper invoked with correct UVW (uvw.z == 0 for front)                            |
+| all six faces have the right normal      | table-drive: (face, expectedNormal) pairs                                         |
+| `Quad.fromDimensionsCenter`              | reproduces Rust test at lines 5793–5808                                           |
+| `Quad.fromDimensions` w/ uvAtPivot=(1,1) | reproduces Rust test at lines 5810–5829                                           |
+| `Quad.fromCorners` non-planar throws     | assertion failure                                                                 |
+| `Quad.fromThreeCorners(BottomRight)`     | recovers a known cuboid face from 3 of its 4 corners                              |
+| `sphereMesh(4, 6)` face count            | correct poles + body: `4 * 6 - (4 + 4)` triangles + etc.                          |
+| `sphereMesh` vertex positions            | sampled points lie on the unit sphere                                             |
 
 ---
 
@@ -419,7 +591,8 @@ class Line[T](val defaultWidth: Double, val offset: Double = 0.0):
 
   def vertCount: Int
   def iter: Arr[LineVertex[T]]          // returns `list` (shallow view)
-  def first: LineVertex[T];  def last: LineVertex[T]
+  def first: LineVertex[T]
+  def last: LineVertex[T]
   def get(i: Int): LineVertex[T]
 
   // Building
@@ -588,18 +761,17 @@ mirrored).
 
 - **Grid neighbour access in `f` closures**. Rust's `grid.flat_map_cols` passes
   a `Vec<Vertex>` so `f` can call `.right()` / `.bottom()` on each. Scala
-  version keeps this API but the `Vertex` class holds a back-pointer to the grid
-  which makes generic serialisation awkward. Not a concern for the initial port;
-  revisit if we ever need to lift these to the GPU.
-- **Cuboid UV layout**. Rust's UVW mapping for each face is baked in — no way
-  for a caller to flip axes without doing it inside `f`. Fine for V1; if common
-  patterns emerge, lift them to a `CuboidUVStyle` helper later.
+  version keeps this API but the `Vertex` class holds a back-pointer to the
+  grid, which makes serialisation awkward. Not a concern for the initial port;
+  Grid is planned as a CPU-only data structure with no current plans to lift it
+  to the GPU.
 - **Line2D cap styles**. Current plan ports only the mitre-join + ratio-cap
   algorithm. No round / square / butt options — Rust doesn't have them either.
   Add if required by a sketch.
-- **Grid → Mesh convenience**. Could add
-  `extension [T: Position](g: Grid[T]) def toMesh: Mesh[T] = { val m = Mesh[T](); g.toCcwQuads.foreach(m.addFace(_)); m }`
-  but that's two lines at the call site already. Defer until needed.
+- **Grid → Mesh convenience**. With the `Mesh(faces)` factory (§2.2) the call
+  site is already one line: `Mesh(grid.quads)`. Add a `Grid.toMesh` extension
+  only if a sketch repeats the pattern.
+
 - **Sphere mesh via Grid**. `sphereMesh` could be implemented as
   `Grid.fromCols(...).subdivide(...).toMesh(...)` using a `CircleCols` grid, at
   the cost of being slightly slower (no pole-triangle optimisation). Keep the
