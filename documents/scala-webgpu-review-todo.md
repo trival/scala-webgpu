@@ -190,6 +190,76 @@ list above; each single-item `Arr(x)` becomes the singular param.
 
 ## Math / NumExt
 
+### 🔄 `IntExt` — dedicated Int / UInt extension trait
+
+**Current state:**
+
+- `trivalibs/src/utils/numbers.scala` defines `NumExt[Double]` / `NumExt[Float]`
+  with `.min`, `.max`, `.clamp`, etc.
+  ([trivalibs/src/utils/numbers.scala:40-154](../trivalibs/src/utils/numbers.scala#L40)).
+- Scala `Int` has `Math.min` / `Math.max` available, but no extension form, so
+  call-sites end up reading `math.max(0, math.min(x, w - 1))` instead of
+  `x.min(w - 1).max(0)`. See e.g.
+  [mesh-geometry-port-plan.md:144-145](mesh-geometry-port-plan.md#L144-L145).
+- The integer DSL plan currently sketches GPU-side ops as `NumExt[IntExpr]` /
+  `NumExt[UIntExpr]`
+  ([trivalibs-nostd-port-plan.md §2.3.2](trivalibs-nostd-port-plan.md)), but
+  most of `NumExt` (sqrt, pow, trig, fract, mix, clamp01, fit0111/1101,
+  smoothstep) is float-only and shouldn't apply to integers.
+
+**Proposal:**
+
+Add a **dedicated** `IntExt[P]` trait (not bolted onto `NumExt`), covering
+operations that are well-defined on integers:
+
+```scala
+trait IntExt[P]:
+  extension (p: P)
+    def min(other: P): P
+    def max(other: P): P
+    def clamp(lo: P, hi: P): P
+    // Step predicates — return P, 1 if true / 0 if false.
+    def gte(edge: P): P
+    def gt(edge: P): P
+    def lte(edge: P): P
+    def lt(edge: P): P
+    inline def step(edge: P): P = gte(edge)
+```
+
+CPU instances `IntExt[Int]` and `IntExt[UInt]`. Int-only `abs` and `sign` live
+as standalone extensions — neither is meaningful on unsigned values (`abs(u32)`
+is the identity in WGSL; `sign(u32)` is undefined):
+
+```scala
+extension (p: Int)
+  inline def abs:  Int = Math.abs(p)
+  inline def sign: Int = Integer.signum(p)
+```
+
+**GPU-side derivation:** Provide `IntExt[IntExpr]` and `IntExt[UIntExpr]`
+instances in the shader DSL emitting the corresponding WGSL intrinsics (`min`,
+`max`, `clamp`) and synthesised step predicates via comparisons + `select(...)`
+or equivalent. Mirror the standalone CPU `abs` / `sign` extensions on `IntExpr`
+only. Replaces the `NumExt[IntExpr]` / `NumExt[UIntExpr]` sketch in
+[trivalibs-nostd-port-plan.md §2.3.2](trivalibs-nostd-port-plan.md).
+
+**Example rewrite** of
+[mesh-geometry-port-plan.md:144-145](mesh-geometry-port-plan.md#L144-L145):
+
+```scala
+// Before:
+val nx = if c.circleCols then ((x % w) + w) % w else math.max(0, math.min(x, w - 1))
+
+// After:
+val nx = if c.circleCols then ((x % w) + w) % w else x.min(w - 1).max(0)
+```
+
+**Priority:** Low — convenience cleanup. Worth landing alongside or just before
+the integer DSL work in `trivalibs-nostd-port-plan.md` so the GPU side derives
+from the same trait, not a separate `NumExt`-shaped sketch.
+
+---
+
 ### 🔄 Vector overloads for `fit0111` / `fit1101`
 
 **Current state:**

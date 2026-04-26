@@ -138,7 +138,10 @@ features. Every runtime construct must compile to minimal JS:
 - make use of named tuples @trivalibs/documents/scala-reference/named-tuples.md
 - use new given syntax: @trivalibs/documents/scala-reference/given-syntax.md
 - never put multiple statements on the same line, even if they are short. We
-  don't want semicolons anywhere.
+  don't want semicolons anywhere in Scala.
+- the same one-statement-per-line rule applies to WGSL bodies in shader strings
+  (`WgslFn.raw` bodies, `ShaderDef` bodies, etc.). Each statement gets its own
+  line — no collapsing pairs of statements onto a single line.
 - when working with typeclasses, use [T: Typeclass] notation instead of
   [T](using Typeclass[T]) where possible
 - When doing floating point math, prefer trivalibs NumExt extensions instead of

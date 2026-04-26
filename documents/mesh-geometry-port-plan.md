@@ -148,6 +148,11 @@ object CoordOps:
 
 Simpler and smaller than Rust's four struct types + trait.
 
+> The `math.max(0, math.min(x, w - 1))` pattern reads cleanly as
+> `x.min(w - 1).max(0)` once the `IntExt` trait lands — tracked in
+> [scala-webgpu-review-todo.md → Math / NumExt → `IntExt`](scala-webgpu-review-todo.md).
+> Update the snippet above when that trait is in trivalibs.
+
 ### 3.2 `Grid[T]`
 
 ```scala
