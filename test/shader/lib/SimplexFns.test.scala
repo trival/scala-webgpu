@@ -100,6 +100,38 @@ class SimplexFnsTest extends FunSuite:
     assert(depNames.contains("permute_3_"), depNames.toString)
 
   // ---------------------------------------------------------------------------
+  // 4D simplex helpers
+  // ---------------------------------------------------------------------------
+
+  test("permute1 emits permute_1_ with f32 scalar"):
+    val data = Simplex.simplexNoise4d.asInstanceOf[WgslFnData]
+    assert(data.src.contains("fn simplex_noise_4d(pos: vec4<f32>)"), data.src)
+    val depNames = data.deps.map(_.name).toSeq
+    assert(depNames.contains("permute_1_"), depNames.toString)
+    assert(depNames.contains("taylor_inv_sqrt_1_"), depNames.toString)
+    assert(depNames.contains("grad_4_"), depNames.toString)
+    assert(depNames.contains("permute_4_"), depNames.toString)
+    assert(depNames.contains("taylor_inv_sqrt_4_"), depNames.toString)
+
+  test("simplexNoise4d emits correct signature and rank-sort swizzles"):
+    val data = Simplex.simplexNoise4d.asInstanceOf[WgslFnData]
+    assert(data.src.contains("fn simplex_noise_4d(pos: vec4<f32>)"), data.src)
+    assert(data.src.contains("-> f32"), data.src)
+    assert(data.src.contains("step(x0.xxx, x0.yzw)"), data.src)
+    assert(data.src.contains("step(x0.yyz, x0.zww)"), data.src)
+    assert(data.src.contains("permute_1_"), data.src)
+    assert(data.src.contains("grad_4_"), data.src)
+
+  test("tilingSimplexNoise2d emits correct signature and calls simplex_noise_4d"):
+    val data = Simplex.tilingSimplexNoise2d.asInstanceOf[WgslFnData]
+    assert(data.src.contains("fn tiling_simplex_noise_2d(pos: vec2<f32>, scale: f32)"), data.src)
+    assert(data.src.contains("-> f32"), data.src)
+    assert(data.src.contains("simplex_noise_4d"), data.src)
+    assert(data.src.contains("6.28318530718"), data.src)
+    val depNames = data.deps.map(_.name).toSeq
+    assert(depNames.contains("simplex_noise_4d"), depNames.toString)
+
+  // ---------------------------------------------------------------------------
   // Dep chain: fbmSimplex2d → simplexNoise2d → permute3
   // ---------------------------------------------------------------------------
 

@@ -1,5 +1,6 @@
 //> using scala 3.8.4-RC2
 //> using platform js
+//> using option -Wconf:msg=differs.only.in.case:s
 
 //> using jsVersion 1.21.0
 //> using jsMode full

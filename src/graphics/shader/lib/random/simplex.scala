@@ -339,3 +339,98 @@ object Simplex:
     d1.y = min(d1.y, d2.x);
     return sqrt(d1.xy);""")
       .withDeps(permute3)
+
+  // ---------------------------------------------------------------------------
+  // 4D simplex noise helpers (scalar permute/tis and grad4)
+  // ---------------------------------------------------------------------------
+
+  private val permute1: WgslFn[(x: Float), Float] =
+    WgslFn.raw("permute_1_")("  return ((x * 34.0) + 10.0) * x % 289.0;")
+
+  private val taylorInvSqrt1: WgslFn[(r: Float), Float] =
+    WgslFn.raw("taylor_inv_sqrt_1_")(
+      "  return 1.79284291400159 - 0.85373472095314 * r;",
+    )
+
+  private val grad4: WgslFn[(j: Float, ip: Vec4), Vec4] =
+    WgslFn.raw("grad_4_")("""
+    let gj = floor(fract(j * ip.xyz) * 7.0) * ip.z - 1.0;
+    var p = vec4<f32>(gj.x, gj.y, gj.z, 1.5 - dot(abs(gj), vec3<f32>(1.0, 1.0, 1.0)));
+    let s = step(vec4<f32>(0.0, 0.0, 0.0, 0.0), p);
+    let dp = (s.xyz * 2.0 - 1.0) * s.www;
+    p.x = p.x + dp.x;
+    p.y = p.y + dp.y;
+    p.z = p.z + dp.z;
+    return p;""")
+
+  // ---------------------------------------------------------------------------
+  // 4D simplex noise
+  // ---------------------------------------------------------------------------
+
+  val simplexNoise4d: WgslFn[(pos: Vec4), Float] =
+    WgslFn
+      .raw("simplex_noise_4d")("""
+    let c = vec4<f32>(
+        0.138196601125011,
+        0.276393202250021,
+        0.414589803375032,
+        -0.447213595499958
+    );
+    let F4 = 0.309016994374947451;
+    var i = floor(pos + dot(pos, vec4<f32>(F4, F4, F4, F4)));
+    let x0 = pos - i + dot(i, c.xxxx);
+    let is_x = step(x0.xxx, x0.yzw);
+    let is_yz = step(x0.yyz, x0.zww);
+    var i0 = vec4<f32>(is_x.x + is_x.y + is_x.z, 1.0 - is_x.x, 1.0 - is_x.y, 1.0 - is_x.z);
+    i0.y = i0.y + is_yz.x + is_yz.y;
+    i0.z = i0.z + (1.0 - is_yz.x) + is_yz.z;
+    i0.w = i0.w + (1.0 - is_yz.y) + (1.0 - is_yz.z);
+    let i3 = clamp(i0, vec4<f32>(0.0, 0.0, 0.0, 0.0), vec4<f32>(1.0, 1.0, 1.0, 1.0));
+    let i2 = clamp(i0 - 1.0, vec4<f32>(0.0, 0.0, 0.0, 0.0), vec4<f32>(1.0, 1.0, 1.0, 1.0));
+    let i1 = clamp(i0 - 2.0, vec4<f32>(0.0, 0.0, 0.0, 0.0), vec4<f32>(1.0, 1.0, 1.0, 1.0));
+    let x1 = x0 - i1 + c.xxxx;
+    let x2 = x0 - i2 + c.yyyy;
+    let x3 = x0 - i3 + c.zzzz;
+    let x4 = x0 + c.wwww;
+    i = i % vec4<f32>(289.0, 289.0, 289.0, 289.0);
+    let j0 = permute_1_(permute_1_(permute_1_(permute_1_(i.w) + i.z) + i.y) + i.x);
+    let j1 = permute_4_(
+        permute_4_(
+            permute_4_(
+                permute_4_(i.w + vec4<f32>(i1.w, i2.w, i3.w, 1.0)) + i.z + vec4<f32>(i1.z, i2.z, i3.z, 1.0)
+            ) + i.y + vec4<f32>(i1.y, i2.y, i3.y, 1.0)
+        ) + i.x + vec4<f32>(i1.x, i2.x, i3.x, 1.0)
+    );
+    let ip = vec4<f32>(1.0 / 294.0, 1.0 / 49.0, 1.0 / 7.0, 0.0);
+    var p0 = grad_4_(j0, ip);
+    var p1 = grad_4_(j1.x, ip);
+    var p2 = grad_4_(j1.y, ip);
+    var p3 = grad_4_(j1.z, ip);
+    var p4 = grad_4_(j1.w, ip);
+    let norm = taylor_inv_sqrt_4_(vec4<f32>(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+    p0 = p0 * norm.x;
+    p1 = p1 * norm.y;
+    p2 = p2 * norm.z;
+    p3 = p3 * norm.w;
+    p4 = p4 * taylor_inv_sqrt_1_(dot(p4, p4));
+    var m0 = max(0.6 - vec3<f32>(dot(x0, x0), dot(x1, x1), dot(x2, x2)), vec3<f32>(0.0, 0.0, 0.0));
+    var m1 = max(0.6 - vec2<f32>(dot(x3, x3), dot(x4, x4)), vec2<f32>(0.0, 0.0));
+    m0 = m0 * m0;
+    m1 = m1 * m1;
+    return 49.0 * (dot(m0 * m0, vec3<f32>(dot(p0, x0), dot(p1, x1), dot(p2, x2))) + dot(m1 * m1, vec2<f32>(dot(p3, x3), dot(p4, x4))));""")
+      .withDeps(permute1, permute4, taylorInvSqrt1, taylorInvSqrt4, grad4)
+
+  /** Seamlessly tiling 2D simplex noise via 4D torus mapping. `pos` should be
+    * in [0,1] for seamless tiling; `scale` controls the noise frequency.
+    */
+  val tilingSimplexNoise2d: WgslFn[(pos: Vec2, scale: Float), Float] =
+    WgslFn
+      .raw("tiling_simplex_noise_2d")("""
+    let angle_x = pos.x * 6.28318530718;
+    let angle_y = pos.y * 6.28318530718;
+    let nx = cos(angle_x) * scale;
+    let ny = sin(angle_x) * scale;
+    let nz = cos(angle_y) * scale;
+    let nw = sin(angle_y) * scale;
+    return simplex_noise_4d(vec4<f32>(nx, ny, nz, nw));""")
+      .withDeps(simplexNoise4d)

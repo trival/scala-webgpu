@@ -226,6 +226,34 @@ def main(): Unit =
         )
 
     // -------------------------------------------------------------------------
+    // 4D simplex noise shaders
+    // -------------------------------------------------------------------------
+
+    val simplex4dShade = painter.layerShade[Uniforms]: program =>
+      program.fn(Simplex.simplexNoise4d)
+      program.fn(aspectUv)
+      program.frag: ctx =>
+        val uv = LetVec2("uv")
+        val n = LetFloat("n")
+        val t = ctx.bindings.time
+        val r = ctx.bindings.res
+        Block(
+          uv := aspectUv(ctx.in.uv, r) * 4.0,
+          n := Simplex.simplexNoise4d(vec4(uv.x, uv.y, t * 0.2, t * 0.13)) * 0.5 + 0.5,
+          ctx.out.color := vec4(n, n, n, 1.0),
+        )
+
+    val tilingSimplexNoise2dShade = painter.layerShade[Uniforms]: program =>
+      program.fn(Simplex.tilingSimplexNoise2d)
+      program.frag: ctx =>
+        val n = LetFloat("n")
+        val t = ctx.bindings.time
+        Block(
+          n := Simplex.tilingSimplexNoise2d(ctx.in.uv + vec2(t * 0.05, 0.0).fract, 4.0) * 0.5 + 0.5,
+          ctx.out.color := vec4(n, n, n, 1.0),
+        )
+
+    // -------------------------------------------------------------------------
     // psrdnoise 2D shaders
     // -------------------------------------------------------------------------
 
@@ -362,6 +390,8 @@ def main(): Unit =
       makePanel(fbm3dShade),
       makePanel(fbm3dSeededShade),
       makePanel(worley2dShade),
+      makePanel(simplex4dShade),
+      makePanel(tilingSimplexNoise2dShade),
       makePanel(tilingRotNoise2dShade),
       makePanel(tilingNoise2dShade),
       makePanel(rotNoise2dShade),
