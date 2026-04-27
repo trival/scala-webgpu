@@ -11,6 +11,7 @@ import panelLayer from "./examples/panel_layer/index.html";
 import panelTex from "./examples/panel_tex/index.html";
 import panelTriangle from "./examples/panel_triangle/index.html";
 import deferred from "./examples/deferred/index.html";
+import geometry3dScene from "./examples/geometry3d_scene/index.html";
 import simpleTriangle from "./examples/simple_triangle/index.html";
 
 const server = serve({
@@ -21,6 +22,7 @@ const server = serve({
 		"/blur/": blur,
 		"/buffer_triangle/": bufferTriangle,
 		"/deferred/": deferred,
+		"/geometry3d_scene/": geometry3dScene,
 		"/instances/": instances,
 		"/mipmaps/": mipmaps,
 		"/panel_tex/": panelTex,

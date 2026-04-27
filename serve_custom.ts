@@ -12,6 +12,7 @@ const exampleRoutes = new Set([
 	"blur",
 	"buffer_triangle",
 	"deferred",
+	"geometry3d_scene",
 	"instances",
 	"mipmaps",
 	"painter_dsl",

@@ -10,6 +10,8 @@ import webgpu.GPUSampler
 import scala.compiletime.summonFrom
 import scala.scalajs.js
 
+type AnyShape = Shape[?, ?]
+
 type BindingSlots =
   Arr[BufferBinding[?, ?] | GPUSampler | Null] // Null = empty slot
 
