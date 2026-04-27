@@ -65,8 +65,8 @@ def main(): Unit =
     verts(1).set1(0.2, 1.0, 0.2)
     verts(2).set0(0.7, -0.5)
     verts(2).set1(0.2, 0.2, 1.0)
-    val form = painter.form().set(vertices = verts)
-    val shape = painter.shape(shapeShade, form)
+    val form = painter.form(vertices = verts)
+    val shape = painter.shape(form, shapeShade)
 
     // -----------------------------------------------------------------------
     // Blur layer shade — reads source texture at panel slot 0
@@ -131,13 +131,11 @@ def main(): Unit =
     // Panel
     // -----------------------------------------------------------------------
 
-    val panel = painter
-      .panel()
-      .set(
-        clearColor = (0.04, 0.04, 0.15, 1.0),
-        shapes = Arr(shape),
-        layers = layers,
-      )
+    val panel = painter.panel(
+      clearColor = (0.04, 0.04, 0.15, 1.0),
+      shapes = Arr(shape),
+      layers = layers,
+    )
 
     painter.onResize: (w, h) =>
       res.set(Vec2(w, h))

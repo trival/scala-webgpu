@@ -47,18 +47,18 @@ def main(): Unit =
     vertices(1).set0(-0.25, -0.15)
     vertices(2).set0(0.25, -0.15)
 
-    val form = painter.form().set(vertices = vertices)
+    val form = painter.form(vertices = vertices)
 
     // Triangle 1: red, fast rotation, oscillates up/down
     val shape1 = painter
-      .shape(shade, form)
+      .shape(form, shade)
       .bind("color" := Vec3(1.0, 0.2, 0.2))
 
     val mat1 = painter.binding(Mat2.identity)
 
     // Triangle 2: blue, slow rotation, oscillates left/right
     val shape2 = painter
-      .shape(shade, form)
+      .shape(form, shade)
       .bind("color" := Vec3(0.2, 0.5, 1.0), "rotation" := mat1)
 
     var time = 0.0

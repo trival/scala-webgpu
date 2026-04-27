@@ -69,22 +69,20 @@ def main(): Unit =
     verts(11).set0(0.0, -0.8)
     verts(11).set1(1.0, 0.8, 0.0)
 
-    val sceneForm = painter.form().set(vertices = verts)
-    val sceneShape = painter.shape(colorShade, sceneForm)
+    val sceneForm = painter.form(vertices = verts)
+    val sceneShape = painter.shape(sceneForm, colorShade)
 
     // -----------------------------------------------------------------------
     // Source panel — renders scene with mipmap generation
     // -----------------------------------------------------------------------
 
-    val sourcePanel = painter
-      .panel()
-      .set(
-        width = 512,
-        height = 512,
-        clearColor = (0.05, 0.05, 0.15, 1.0),
-        mipLevels = 0, // full mip chain
-        shapes = Arr(sceneShape),
-      )
+    val sourcePanel = painter.panel(
+      width = 512,
+      height = 512,
+      clearColor = (0.05, 0.05, 0.15, 1.0),
+      mipLevels = 0, // full mip chain
+      shapes = Arr(sceneShape),
+    )
 
     // -----------------------------------------------------------------------
     // Display shade — samples a panel texture at an explicit mip level
@@ -131,7 +129,7 @@ def main(): Unit =
       v(4).set1(1.0, 0.0)
       v(5).set0(x0, y1)
       v(5).set1(0.0, 0.0)
-      painter.form().set(vertices = v)
+      painter.form(vertices = v)
 
     // -----------------------------------------------------------------------
     // 4 quads showing mip levels 0, 2, 4, 6 in a 2x2 grid
@@ -157,7 +155,7 @@ def main(): Unit =
       val (x0, y0, x1, y1) = positions(i)
       val form = makeQuad(x0, y0, x1, y1)
       val shape = painter
-        .shape(quadShade, form)
+        .shape(form, quadShade)
         .bind(
           "mipLevel" := mipLevelsToShow(i),
           "texSampler" := mipSampler,
@@ -170,12 +168,10 @@ def main(): Unit =
     // Canvas panel — displays the 4 mip-level quads
     // -----------------------------------------------------------------------
 
-    val canvasPanel = painter
-      .panel()
-      .set(
-        clearColor = (0.02, 0.02, 0.06, 1.0),
-        shapes = displayShapes,
-      )
+    val canvasPanel = painter.panel(
+      clearColor = (0.02, 0.02, 0.06, 1.0),
+      shapes = displayShapes,
+    )
 
     // -----------------------------------------------------------------------
     // Render loop

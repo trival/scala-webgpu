@@ -253,8 +253,8 @@ trait Bindable[U, P]:
 
 class Shape[U, P](
     val painter: Painter,
-    val shade: Shade[U, P],
     val form: Form,
+    val shade: Shade[U, P],
 ) extends Bindable[U, P]:
   var cullMode: CullMode = CullMode.None
   var blendState: Opt[BlendState] = null

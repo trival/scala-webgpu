@@ -497,12 +497,12 @@ class Painter(
   // =========================================================================
 
   def shape[U, P](
-      shade: Shade[U, P],
       form: Form,
+      shade: Shade[U, P],
       cullMode: Maybe[CullMode] = Maybe.Not,
       blendState: Maybe[Opt[BlendState]] = Maybe.Not,
   ): Shape[U, P] =
-    Shape[U, P](this, shade, form).set(cullMode, blendState)
+    Shape[U, P](this, form, shade).set(cullMode, blendState)
 
   // =========================================================================
   // Layer factory

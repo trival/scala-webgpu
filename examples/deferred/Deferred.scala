@@ -90,20 +90,18 @@ def main(): Unit =
     verts(11).set1(1.0, 0.8, 0.0)
     verts(11).set2(0.1, -0.9, 0.4)
 
-    val sceneForm = painter.form().set(vertices = verts)
-    val sceneShape = painter.shape(gBufferShade, sceneForm)
+    val sceneForm = painter.form(vertices = verts)
+    val sceneShape = painter.shape(sceneForm, gBufferShade)
 
     // -----------------------------------------------------------------------
     // G-buffer panel — 2 render targets: albedo (rgba8unorm) + normals (rgba16float)
     // -----------------------------------------------------------------------
 
-    val gBuffer = painter
-      .panel()
-      .set(
-        clearColor = (0.0, 0.0, 0.0, 1.0),
-        formats = Arr("rgba8unorm", "rgba16float"),
-        shapes = Arr(sceneShape),
-      )
+    val gBuffer = painter.panel(
+      clearColor = (0.0, 0.0, 0.0, 1.0),
+      formats = Arr("rgba8unorm", "rgba16float"),
+      shapes = Arr(sceneShape),
+    )
 
     // -----------------------------------------------------------------------
     // Lighting layer — reads both G-buffer textures, applies directional light
@@ -165,11 +163,7 @@ def main(): Unit =
     // -----------------------------------------------------------------------
 
     val lightLayer = painter
-      .layer(lightShade)
-      .set(
-        mipSource = -1,
-        mipTarget = -1,
-      )
+      .layer(lightShade, mipSource = -1, mipTarget = -1)
       .bind(
         "lightDir" := Vec3(0.5, 0.7, 1.0),
         "texSampler" := nearestSampler,
@@ -177,12 +171,10 @@ def main(): Unit =
         "normals" := gBuffer.binding(index = 1),
       )
 
-    val canvasPanel = painter
-      .panel()
-      .set(
-        clearColor = (0.02, 0.02, 0.06, 1.0),
-        layers = Arr(lightLayer),
-      )
+    val canvasPanel = painter.panel(
+      clearColor = (0.02, 0.02, 0.06, 1.0),
+      layers = Arr(lightLayer),
+    )
 
     // -----------------------------------------------------------------------
     // Render loop — animate light direction

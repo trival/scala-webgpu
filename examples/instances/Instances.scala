@@ -49,9 +49,9 @@ def main(): Unit =
     vertices(2).set0(0.3, -0.2, 0.0)
     vertices(2).set1(0.8, 0.8, 1.0)
 
-    val form = painter.form().set(vertices = vertices)
+    val form = painter.form(vertices = vertices)
 
-    val shape = painter.shape(shade, form)
+    val shape = painter.shape(form, shade)
 
     // Seed per-triangle parameters
     val positions = Arr[(Double, Double, Double)]()
@@ -89,8 +89,7 @@ def main(): Unit =
     val viewProj = painter.binding(Mat4.identity)
 
     val panel = painter
-      .panel()
-      .set(
+      .panel(
         clearColor = (0.06, 0.06, 0.12, 1.0),
         shapes = Arr(shape),
       )

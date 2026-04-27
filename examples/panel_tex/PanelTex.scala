@@ -123,15 +123,15 @@ def main(): Unit =
     // -----------------------------------------------------------------------
     // Shapes
     // -----------------------------------------------------------------------
-    val triShape = p.shape(colorShade, triForm).bind("mvp" := triMvp)
-    val quadShape = p.shape(colorShade, quadForm).bind("mvp" := quadMvp)
+    val triShape = p.shape(triForm, colorShade).bind("mvp" := triMvp)
+    val quadShape = p.shape(quadForm, colorShade).bind("mvp" := quadMvp)
 
     val triangleTexShape = p
-      .shape(texShade, leftTexForm)
+      .shape(leftTexForm, texShade)
       .bind("mvp" := leftMvp, "texSampler" := p.samplerNearest)
 
     val quadTexShape = p
-      .shape(texShade, rightTexForm)
+      .shape(rightTexForm, texShade)
       .bind("mvp" := rightMvp, "texSampler" := p.samplerLinear)
 
     // -----------------------------------------------------------------------

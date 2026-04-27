@@ -49,31 +49,29 @@ def main(): Unit =
     vertices(2).set0(0.25, -0.15)
     vertices(2).set1(0.2, 0.2, 1.0) // warm blue
 
-    val form = painter.form().set(vertices = vertices)
+    val form = painter.form(vertices = vertices)
 
     // Three shapes at different positions with independent tint animations
     val shape1 = painter
-      .shape(shade, form)
+      .shape(form, shade)
       .bind(
         "translation" := Vec2(0.0, 0.55),
       )
     val shape2 = painter
-      .shape(shade, form)
+      .shape(form, shade)
       .bind(
         "translation" := Vec2(-0.55, -0.4),
       )
     val shape3 = painter
-      .shape(shade, form)
+      .shape(form, shade)
       .bind(
         "translation" := Vec2(0.55, -0.4),
       )
 
-    val panel = painter
-      .panel()
-      .set(
-        clearColor = (0.08, 0.08, 0.12, 1.0),
-        shapes = Arr(shape1, shape2, shape3),
-      )
+    val panel = painter.panel(
+      clearColor = (0.08, 0.08, 0.12, 1.0),
+      shapes = Arr(shape1, shape2, shape3),
+    )
 
     var time = 0.0
 
