@@ -58,6 +58,8 @@ trait Vec4ImmutableOpsG[Num, Vec]:
     def min(other: Vec): Vec
     def max(other: Vec): Vec
     def clamp(lo: Num, hi: Num): Vec
+    def fit0111: Vec
+    def fit1101: Vec
     @scala.annotation.targetName("mixVecG")
     def mix(b: Vec, t: Vec): Vec
     @scala.annotation.targetName("mixScalarG")
@@ -145,6 +147,8 @@ trait Vec4ImmutableOps[Vec]:
       create(v.x.max(other.x), v.y.max(other.y), v.z.max(other.z), v.w.max(other.w))
     def clamp(lo: Double, hi: Double): Vec =
       create(v.x.clamp(lo, hi), v.y.clamp(lo, hi), v.z.clamp(lo, hi), v.w.clamp(lo, hi))
+    def fit0111: Vec = create(v.x.fit0111, v.y.fit0111, v.z.fit0111, v.w.fit0111)
+    def fit1101: Vec = create(v.x.fit1101, v.y.fit1101, v.z.fit1101, v.w.fit1101)
     @scala.annotation.targetName("mixVec")
     def mix(b: Vec, t: Vec): Vec =
       create(v.x.mix(b.x, t.x), v.y.mix(b.y, t.y), v.z.mix(b.z, t.z), v.w.mix(b.w, t.w))

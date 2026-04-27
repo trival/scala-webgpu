@@ -322,6 +322,8 @@ given Vec2ImmutableOpsG[FloatExpr, Vec2Expr]:
       Vec2Expr(s"max(${v.wgsl}, ${other.wgsl})")
     override def clamp(lo: FloatExpr, hi: FloatExpr): Vec2Expr =
       Vec2Expr(s"clamp(${v.wgsl}, ${lo.wgsl}, ${hi.wgsl})")
+    override def fit0111: Vec2Expr = Vec2Expr(s"(${v.wgsl} * 2.0 - 1.0)")
+    override def fit1101: Vec2Expr = Vec2Expr(s"(${v.wgsl} * 0.5 + 0.5)")
     @annotation.targetName("mixVecG")
     override def mix(b: Vec2Expr, t: Vec2Expr): Vec2Expr =
       Vec2Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
@@ -420,6 +422,8 @@ given Vec3ImmutableOpsG[FloatExpr, Vec3Expr]:
       Vec3Expr(s"max(${v.wgsl}, ${other.wgsl})")
     override def clamp(lo: FloatExpr, hi: FloatExpr): Vec3Expr =
       Vec3Expr(s"clamp(${v.wgsl}, ${lo.wgsl}, ${hi.wgsl})")
+    override def fit0111: Vec3Expr = Vec3Expr(s"(${v.wgsl} * 2.0 - 1.0)")
+    override def fit1101: Vec3Expr = Vec3Expr(s"(${v.wgsl} * 0.5 + 0.5)")
     @annotation.targetName("mixVecG")
     override def mix(b: Vec3Expr, t: Vec3Expr): Vec3Expr =
       Vec3Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
@@ -513,6 +517,8 @@ given Vec4ImmutableOpsG[FloatExpr, Vec4Expr]:
       Vec4Expr(s"max(${v.wgsl}, ${other.wgsl})")
     override def clamp(lo: FloatExpr, hi: FloatExpr): Vec4Expr =
       Vec4Expr(s"clamp(${v.wgsl}, ${lo.wgsl}, ${hi.wgsl})")
+    override def fit0111: Vec4Expr = Vec4Expr(s"(${v.wgsl} * 2.0 - 1.0)")
+    override def fit1101: Vec4Expr = Vec4Expr(s"(${v.wgsl} * 0.5 + 0.5)")
     @annotation.targetName("mixVecG")
     override def mix(b: Vec4Expr, t: Vec4Expr): Vec4Expr =
       Vec4Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")

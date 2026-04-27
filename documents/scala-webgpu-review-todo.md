@@ -188,7 +188,7 @@ list above; each single-item `Arr(x)` becomes the singular param.
 
 ## Math / NumExt
 
-### 🔄 `IntExt` — dedicated Int / UInt extension trait
+### ✅ `IntExt` — dedicated Int / UInt extension trait
 
 **Current state:**
 
@@ -258,7 +258,7 @@ from the same trait, not a separate `NumExt`-shaped sketch.
 
 ---
 
-### 🔄 Vector overloads for `fit0111` / `fit1101`
+### ✅ Vector overloads for `fit0111` / `fit1101`
 
 **Current state:**
 
