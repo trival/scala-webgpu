@@ -15,6 +15,7 @@ const exampleRoutes = new Set([
 	"geometry3d_scene",
 	"instances",
 	"mipmaps",
+	"noise_tests",
 	"painter_dsl",
 	"painter_triangle",
 	"painter_typed_bindings",

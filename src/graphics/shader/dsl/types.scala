@@ -2,6 +2,7 @@ package graphics.shader.dsl
 
 import graphics.math.cpu.*
 import graphics.math.gpu.*
+import graphics.math.gpu.{IVec2, IVec3, IVec4, UInt, UVec2, UVec3, UVec4}
 import graphics.shader.FragmentUniform
 import graphics.shader.SharedUniform
 import graphics.shader.VertexUniform
@@ -25,9 +26,17 @@ type ToExpr[T] = T match
   case Float   => FloatExpr
   case Double  => FloatExpr
   case Boolean => BoolExpr
+  case Int     => IntExpr
+  case UInt    => UIntExpr
   case Vec2    => Vec2Expr
   case Vec3    => Vec3Expr
   case Vec4    => Vec4Expr
+  case IVec2   => IVec2Expr
+  case IVec3   => IVec3Expr
+  case IVec4   => IVec4Expr
+  case UVec2   => UVec2Expr
+  case UVec3   => UVec3Expr
+  case UVec4   => UVec4Expr
   case Mat2    => Mat2Expr
   case Mat3    => Mat3Expr
   case Mat4    => Mat4Expr
@@ -52,19 +61,31 @@ type ToAssign[T] = AssignTarget
 type ToLocal[T] = T match
   case Var[Float]    => VarFloat
   case Var[Double]   => VarFloat
+  case Var[Int]      => VarInt
+  case Var[UInt]     => VarUInt
   case Var[Vec2]     => VarVec2
   case Var[Vec3]     => VarVec3
   case Var[Vec4]     => VarVec4
   case Const[Float]  => ConstFloat
   case Const[Double] => ConstFloat
+  case Const[Int]    => ConstInt
+  case Const[UInt]   => ConstUInt
   case Const[Vec2]   => ConstVec2
   case Const[Vec3]   => ConstVec3
   case Const[Vec4]   => ConstVec4
   case Float         => LetFloat
   case Double        => LetFloat
+  case Int           => LetInt
+  case UInt          => LetUInt
   case Vec2          => LetVec2
   case Vec3          => LetVec3
   case Vec4          => LetVec4
+  case IVec2         => LetIVec2
+  case IVec3         => LetIVec3
+  case IVec4         => LetIVec4
+  case UVec2         => LetUVec2
+  case UVec3         => LetUVec3
+  case UVec4         => LetUVec4
 
 /** Builds a Dict mapping field names to their kind: "v" for Var, "c" for Const.
   * Plain locals are omitted (default). Called at compile time via inline.

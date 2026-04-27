@@ -4,6 +4,7 @@ import bufferTriangle from "./examples/buffer_triangle/index.html";
 import index from "./examples/index.html";
 import instances from "./examples/instances/index.html";
 import mipmaps from "./examples/mipmaps/index.html";
+import noiseTests from "./examples/noise_tests/index.html";
 import painterDsl from "./examples/painter_dsl/index.html";
 import painterTriangle from "./examples/painter_triangle/index.html";
 import painterTypedBindings from "./examples/painter_typed_bindings/index.html";
@@ -25,6 +26,7 @@ const server = serve({
 		"/geometry3d_scene/": geometry3dScene,
 		"/instances/": instances,
 		"/mipmaps/": mipmaps,
+		"/noise_tests/": noiseTests,
 		"/panel_tex/": panelTex,
 		"/painter_triangle/": painterTriangle,
 		"/painter_dsl/": painterDsl,

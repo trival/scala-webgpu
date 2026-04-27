@@ -32,14 +32,18 @@ class Program[A, V, U, P, FO]:
 
   /** Register a helper function to be emitted before vs_main/fs_main.
     * Idempotent — registering the same name twice has no effect.
+    * Recursively registers any deps declared via WgslFn.withDeps.
     */
   def fn[FP, R](f: WgslFn[FP, R]): Unit =
-    val data = f.asInstanceOf[WgslFnData]
+    fnRec(f.asInstanceOf[WgslFnData])
+
+  private def fnRec(data: WgslFnData): Unit =
     if !js.DynamicImplicits.truthValue(
         fnNames.asInstanceOf[js.Dynamic].hasOwnProperty(data.name),
       )
     then
       fnNames(data.name) = true
+      data.deps.foreach(fnRec)
       fnSrcs.push(data.src)
 
   def helperFnsStr: String = fnSrcs.mkString("\n\n")

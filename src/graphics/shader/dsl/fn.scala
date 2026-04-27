@@ -2,6 +2,7 @@ package graphics.shader.dsl
 
 import graphics.math.cpu.*
 import graphics.math.gpu.*
+import graphics.math.gpu.{IVec2, IVec3, IVec4, UInt, UVec2, UVec3, UVec4}
 import graphics.shader.WGSLType
 import trivalibs.utils.js.Arr
 import scala.NamedTuple.AnyNamedTuple
@@ -11,8 +12,11 @@ import scala.compiletime.*
 // WgslFnData — runtime carrier (zero Scala boxing)
 // ---------------------------------------------------------------------------
 
-class WgslFnData(val name: String, val src: String)
-    extends scala.scalajs.js.Object
+class WgslFnData(
+    val name: String,
+    val src: String,
+    val deps: Arr[WgslFnData] = Arr(),
+) extends scala.scalajs.js.Object
 
 // ---------------------------------------------------------------------------
 // WgslFn[P, R] — typed opaque wrapper
@@ -42,6 +46,15 @@ object WgslFn:
     val paramList = buildParamList[P]
     val retType = wgslReturnType[R]
     val src = s"fn $name($paramList) -> $retType {\n$body\n}"
+    WgslFnData(name, src)
+
+  /** Build a WgslFn from a pre-built full WGSL source string. Use when the
+    * source includes struct declarations or helper functions that cannot be
+    * expressed as individual WgslFns (e.g. psrdnoise's `NG2` struct return).
+    * The caller must ensure `src` contains a function named `name` whose
+    * parameter types and return type match `P` and `R`.
+    */
+  def fromSrc[P, R](name: String)(src: String): WgslFn[P, R] =
     WgslFnData(name, src)
 
   // -------------------------------------------------------------------------
@@ -110,9 +123,17 @@ object WgslFn:
     inline erasedValue[R] match
       case _: Float   => FloatExpr(s).asInstanceOf[ToExpr[R]]
       case _: Double  => FloatExpr(s).asInstanceOf[ToExpr[R]]
+      case _: Int     => IntExpr(s).asInstanceOf[ToExpr[R]]
+      case _: UInt    => UIntExpr(s).asInstanceOf[ToExpr[R]]
       case _: Vec2    => Vec2Expr(s).asInstanceOf[ToExpr[R]]
       case _: Vec3    => Vec3Expr(s).asInstanceOf[ToExpr[R]]
       case _: Vec4    => Vec4Expr(s).asInstanceOf[ToExpr[R]]
+      case _: IVec2   => IVec2Expr(s).asInstanceOf[ToExpr[R]]
+      case _: IVec3   => IVec3Expr(s).asInstanceOf[ToExpr[R]]
+      case _: IVec4   => IVec4Expr(s).asInstanceOf[ToExpr[R]]
+      case _: UVec2   => UVec2Expr(s).asInstanceOf[ToExpr[R]]
+      case _: UVec3   => UVec3Expr(s).asInstanceOf[ToExpr[R]]
+      case _: UVec4   => UVec4Expr(s).asInstanceOf[ToExpr[R]]
       case _: Mat2    => Mat2Expr(s).asInstanceOf[ToExpr[R]]
       case _: Mat3    => Mat3Expr(s).asInstanceOf[ToExpr[R]]
       case _: Mat4    => Mat4Expr(s).asInstanceOf[ToExpr[R]]
@@ -122,6 +143,23 @@ object WgslFn:
   // so we can access .name and .src directly.
   private[dsl] def nameOf[P, R](fn: WgslFn[P, R]): String = fn.name
   private[dsl] def srcOf[P, R](fn: WgslFn[P, R]): String = fn.src
+
+  // -------------------------------------------------------------------------
+  // Dependency declaration — withDeps chains deps onto a WgslFn so that
+  // Program.fn / LayerProgram.fn registers them automatically before self.
+  // -------------------------------------------------------------------------
+
+  // Implicit coercion: any WgslFn[P,R] → WgslFnData.
+  // Inside the companion WgslFn[P,R] is transparent (= WgslFnData), so identity
+  // is valid. The given lives in implicit scope (companion of WgslFn) and is
+  // found automatically at call sites without explicit import.
+  given [P, R]: Conversion[WgslFn[P, R], WgslFnData] = identity
+
+  extension [P, R](fn: WgslFn[P, R])
+    def withDeps(ds: WgslFnData*): WgslFn[P, R] =
+      val depsArr = Arr[WgslFnData]()
+      for d <- ds do depsArr.push(d)
+      WgslFnData(fn.name, fn.src, depsArr)
 
   // -------------------------------------------------------------------------
   // apply extensions — per-arity, enabling myFn(arg1, arg2) call syntax
