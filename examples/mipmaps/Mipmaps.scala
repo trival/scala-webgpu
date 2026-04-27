@@ -81,7 +81,7 @@ def main(): Unit =
       height = 512,
       clearColor = (0.05, 0.05, 0.15, 1.0),
       mipLevels = 0, // full mip chain
-      shapes = Arr(sceneShape),
+      shape = sceneShape,
     )
 
     // -----------------------------------------------------------------------

@@ -122,8 +122,11 @@ class Panel(val painter: Painter):
       depthTest: Maybe[Boolean] = Maybe.Not,
       multisample: Maybe[Boolean] = Maybe.Not,
       mipLevels: Maybe[Int] = Maybe.Not,
+      format: Maybe[String] = Maybe.Not,
       formats: Maybe[Arr[String]] = Maybe.Not,
+      shape: Maybe[Shape[?, ?]] = Maybe.Not,
       shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
+      layer: Maybe[Layer[?, ?]] = Maybe.Not,
       layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
   ): this.type =
     width.foreach(v => this.specWidth = v)
@@ -132,9 +135,9 @@ class Panel(val painter: Painter):
     depthTest.foreach(v => this.depthTest = v)
     multisample.foreach(v => this.multisample = v)
     mipLevels.foreach(v => this.mipLevels = v)
-    formats.foreach(v => this.formats = v)
-    shapes.foreach(v => this.shapes = v)
-    layers.foreach(v => this.layers = v)
+    formats.orMaybe(format.map(f => Arr(f))).foreach(v => this.formats = v)
+    shapes.orMaybe(shape.map(s => Arr(s))).foreach(v => this.shapes = v)
+    layers.orMaybe(layer.map(l => Arr(l))).foreach(v => this.layers = v)
     this
 
   private inline def processPanelEntry[N <: String & Singleton, V](

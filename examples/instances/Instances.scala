@@ -91,7 +91,7 @@ def main(): Unit =
     val panel = painter
       .panel(
         clearColor = (0.06, 0.06, 0.12, 1.0),
-        shapes = Arr(shape),
+        shape = shape,
       )
       .bind("viewProj" := viewProj)
 

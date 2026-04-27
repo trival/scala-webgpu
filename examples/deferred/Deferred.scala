@@ -100,7 +100,7 @@ def main(): Unit =
     val gBuffer = painter.panel(
       clearColor = (0.0, 0.0, 0.0, 1.0),
       formats = Arr("rgba8unorm", "rgba16float"),
-      shapes = Arr(sceneShape),
+      shape = sceneShape,
     )
 
     // -----------------------------------------------------------------------
@@ -173,7 +173,7 @@ def main(): Unit =
 
     val canvasPanel = painter.panel(
       clearColor = (0.02, 0.02, 0.06, 1.0),
-      layers = Arr(lightLayer),
+      layer = lightLayer,
     )
 
     // -----------------------------------------------------------------------

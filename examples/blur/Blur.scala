@@ -133,7 +133,7 @@ def main(): Unit =
 
     val panel = painter.panel(
       clearColor = (0.04, 0.04, 0.15, 1.0),
-      shapes = Arr(shape),
+      shape = shape,
       layers = layers,
     )
 

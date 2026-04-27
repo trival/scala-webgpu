@@ -143,7 +143,7 @@ def main(): Unit =
         height = 800,
         clearColor = (0.04, 0.04, 0.26, 1.0),
         multisample = true,
-        shapes = Arr(triShape),
+        shape = triShape,
       )
 
     val quadPanel = p
@@ -151,7 +151,7 @@ def main(): Unit =
         width = 800,
         height = 800,
         clearColor = (0.04, 0.26, 0.04, 1.0),
-        shapes = Arr(quadShape),
+        shape = quadShape,
       )
 
     // Bind intermediate panels as textures to canvas shapes

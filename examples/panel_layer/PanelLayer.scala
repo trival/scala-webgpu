@@ -45,7 +45,7 @@ def main(): Unit =
     val res = painter.binding[Vec2]
 
     val layer = painter.layer(shade).bind("time" := time, "res" := res)
-    val panel = painter.panel(layers = Arr(layer))
+    val panel = painter.panel(layer = layer)
 
     painter.onResize: (w, h) =>
       res.set(Vec2(w, h))

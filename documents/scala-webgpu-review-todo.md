@@ -9,18 +9,16 @@ review. Grouped by scope: **docs**, **API design**, and **examples/codebase**.
 
 - **Section 9 geometry snippet**: Same fix as above.
 
-### 📝 Noted but not changed
+### ✅ Noted but not changed
 
-- **`painter.shape` arg order in docs**: The document correctly documents the
-  current Scala API (`painter.shape(shade, form)`) and calls out the flip from
-  Rust (`p.shape(form, shade)`). See API design item below — once the API is
-  changed, the doc note should be removed and all examples updated.
+- **`painter.shape` arg order in docs**: Doc note about the arg-order flip has
+  been removed now that the API and all examples are updated to `painter.shape(form, shade)`.
 
 ---
 
 ## API Design
 
-### 🔄 `painter.shape(shade, form)` — arg order should match Rust
+### ✅ `painter.shape(shade, form)` — arg order should match Rust
 
 **Current Scala:**
 
@@ -58,7 +56,7 @@ their full parameter set directly at construction — no chained `.set()` needed
 The `.set()` method on each class still exists and is correct for
 **post-creation mutation only**.
 
-### 🔄 `painter.form().set()` — 8 files
+### ✅ `painter.form().set()` — 8 files
 
 - `examples/blur/Blur.scala` line 68
 - `examples/deferred/Deferred.scala` line 93
@@ -71,7 +69,7 @@ The `.set()` method on each class still exists and is correct for
 
 Pattern: `painter.form().set(vertices = v)` → `painter.form(vertices = v)`
 
-### 🔄 `painter.panel().set()` — 5 files
+### ✅ `painter.panel().set()` — 5 files
 
 - `examples/panel_layer/PanelLayer.scala` line 48
 - `examples/deferred/Deferred.scala` lines 102, 182
@@ -82,14 +80,14 @@ Pattern: `painter.form().set(vertices = v)` → `painter.form(vertices = v)`
 Pattern: `painter.panel().set(clearColor = ..., shapes = ..., ...)` →
 `painter.panel(clearColor = ..., shapes = ..., ...)`
 
-### 🔄 `painter.layer(...).set()` — 1 file
+### ✅ `painter.layer(...).set()` — 1 file
 
 - `examples/deferred/Deferred.scala` line 169
 
 Pattern: `.layer(shade).set(mipSource = -1, mipTarget = -1)` →
 `.layer(shade, mipSource = -1, mipTarget = -1)`
 
-### 🔄 `painter.shape(...).set()` — none found in examples
+### ✅ `painter.shape(...).set()` — none found in examples
 
 No examples currently chain `.set()` on `painter.shape(...)`. Nothing to update.
 
@@ -145,7 +143,7 @@ fixed.
 
 ## API Design (continued)
 
-### 🔄 Add singular param shortcuts wherever a public method accepts a plural `Arr`
+### ✅ Add singular param shortcuts wherever a public method accepts a plural `Arr`
 
 Rust's builder API consistently pairs `with_shape(s)` / `with_shapes(vs)`,
 `with_effect(e)` / `with_effects(vs)`, and `with_format(f)` /
