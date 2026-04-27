@@ -33,43 +33,43 @@ object Triangle:
       val out = clipPolygon(tri, 3, plane)
       fanTriangulate(out)
 
-// Quad winding: bl(0), br(1), tr(2), tl(3) — CCW viewed from front.
+// Quad winding: tl(0), bl(1), br(2), tr(3) — CCW viewed from front.
 opaque type Quad[T] <: Arr[T] = Arr[T]
 
 object Quad:
-  def apply[T](bl: T, br: T, tr: T, tl: T): Quad[T] = Arr(bl, br, tr, tl)
+  def apply[T](tl: T, bl: T, br: T, tr: T): Quad[T] = Arr(tl, bl, br, tr)
 
   extension [T: Position](q: Quad[T])
-    def bl: T = q(0)
-    def br: T = q(1)
-    def tr: T = q(2)
-    def tl: T = q(3)
+    def tl: T = q(0)
+    def bl: T = q(1)
+    def br: T = q(2)
+    def tr: T = q(3)
 
     // Both-diagonals cross product handles non-planar quads.
     def normal: Vec3 =
-      val a = q.bl.pos
-      val b = q.br.pos
-      val c = q.tr.pos
-      val d = q.tl.pos
-      val d1 = Vec3(c.x - a.x, c.y - a.y, c.z - a.z) // bl→tr
-      val d2 = Vec3(d.x - b.x, d.y - b.y, d.z - b.z) // br→tl
+      val a = q.tl.pos
+      val b = q.bl.pos
+      val c = q.br.pos
+      val d = q.tr.pos
+      val d1 = Vec3(c.x - a.x, c.y - a.y, c.z - a.z) // tl→br
+      val d2 = Vec3(d.x - b.x, d.y - b.y, d.z - b.z) // bl→tr
       d1.cross(d2).normalize
 
     def toTriangles: (Triangle[T], Triangle[T]) =
-      (Triangle(q.bl, q.br, q.tr), Triangle(q.bl, q.tr, q.tl))
+      (Triangle(q.tl, q.bl, q.br), Triangle(q.tl, q.br, q.tr))
 
   extension [T: {Position, Lerp}](q: Quad[T])
     // Horizontal split: bottom half and top half.
     def subdivideH: (Quad[T], Quad[T]) =
-      val ml = q.bl.lerp(q.tl, 0.5)
-      val mr = q.br.lerp(q.tr, 0.5)
-      (Quad(q.bl, q.br, mr, ml), Quad(ml, mr, q.tr, q.tl))
+      val ml = q.tl.lerp(q.bl, 0.5)
+      val mr = q.tr.lerp(q.br, 0.5)
+      (Quad(ml, q.bl, q.br, mr), Quad(q.tl, ml, mr, q.tr))
 
     // Vertical split: left half and right half.
     def subdivideV: (Quad[T], Quad[T]) =
       val mb = q.bl.lerp(q.br, 0.5)
       val mt = q.tl.lerp(q.tr, 0.5)
-      (Quad(q.bl, mb, mt, q.tl), Quad(mb, q.br, q.tr, mt))
+      (Quad(q.tl, q.bl, mb, mt), Quad(mt, mb, q.br, q.tr))
 
     // Returns 0, 1 Triangle, 1 Quad, or 1 Quad + 1 Triangle (5-vert clip output).
     def splitByPlane(

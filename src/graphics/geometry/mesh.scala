@@ -150,3 +150,24 @@ class Mesh[T: Position]:
         m.addFace(faces(i), faceData(i).normal, section)
       i += 1
     m
+
+extension [T: Position](m: Mesh[T])
+  def addFaces(
+      faces: Arr[Face[T]],
+      normal: Opt[Vec3] = null,
+      section: Int = 0,
+  ): Unit =
+    var i = 0
+    while i < faces.length do
+      m.addFace(faces(i), normal, section)
+      i += 1
+
+object Mesh:
+  def apply[T: Position](
+      faces: Arr[Face[T]],
+      normal: Opt[Vec3] = null,
+      section: Int = 0,
+  ): Mesh[T] =
+    val m = new Mesh[T]()
+    m.addFaces(faces, normal, section)
+    m

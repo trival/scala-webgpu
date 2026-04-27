@@ -83,7 +83,7 @@ def main(): Unit =
     // --- init ---
     val shade   = painter.shade[Attribs, Varyings, Uniforms](...)
     val form    = painter.form(vertices = vs)
-    val shape   = painter.shape(shade, form).bind("u" := someBinding)
+    val shape   = painter.shape(form, shade).bind("u" := someBinding)
     val canvasP = painter.panel(shape = shape)
 
     painter.onResize: (w, h) =>
@@ -130,7 +130,7 @@ the Scala naming flip.
 | `p.form(verts).create()`                     | `painter.form(vertices = verts)` (or with topology/frontFace: `painter.form(vertices = v, topology = ..., frontFace = ...)`) |
 | `p.shade([...]).with_bindings(...).create()` | `painter.shade[A, V, U](vertWgsl, fragWgsl)` or DSL overload                                                                 |
 | `p.shade_effect()`                           | `painter.layerShade[U]` (or `[U, P]` / `[U, P, FO]`)                                                                         |
-| `p.shape(form, shade)`                       | `painter.shape(shade, form)` — **note the arg order flip**                                                                   |
+| `p.shape(form, shade)`                       | `painter.shape(form, shade)`                                                                                                 |
 | `p.effect(shade)`                            | `painter.layer(shade)`                                                                                                       |
 | `p.layer()`                                  | `painter.panel()`                                                                                                            |
 | `p.single_effect_layer(shade)`               | not yet (construct `painter.panel(layer = painter.layer(shade))`)                                                            |
@@ -263,7 +263,7 @@ Scala binds by **name** (field of the uniform named tuple), using `BindPair`
 sugar `"name" := value`:
 
 ```scala
-val shape = painter.shape(shade, form, cullMode = CullMode.None, blendState = BlendState.Alpha)
+val shape = painter.shape(form, shade, cullMode = CullMode.None, blendState = BlendState.Alpha)
   .bind(
     "viewProj" := cam,
     "model"    := modelMat,
@@ -935,9 +935,8 @@ Work top-to-bottom for a methodical port:
      strings or port to the DSL with `.vert` / `.frag`.
 4. Translate each `p.bind_*` call to `painter.binding[...]` (or
    `painter.binding(initial)`).
-5. Translate each `p.shape(form, shade)` — **flip the arg order** to
-   `painter.shape(shade, form)` — and map `.with_bindings(map! {...})` to
-   `.bind("name" := value, ...)`.
+5. Translate each `p.shape(form, shade)` to `painter.shape(form, shade)` and
+   map `.with_bindings(map! {...})` to `.bind("name" := value, ...)`.
 6. Translate `p.effect(shade)` → `painter.layer(shade)`; `p.layer()` →
    `painter.panel()`. Map each `.with_*` call per the tables in
    [§3](#3-core-type-by-type-mapping).

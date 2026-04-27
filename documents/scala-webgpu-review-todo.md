@@ -5,94 +5,6 @@ review. Grouped by scope: **docs**, **API design**, and **examples/codebase**.
 
 ---
 
-## Documentation (`scala-port-comparison.md`)
-
-- **Section 9 geometry snippet**: Same fix as above.
-
-### ✅ Noted but not changed
-
-- **`painter.shape` arg order in docs**: Doc note about the arg-order flip has
-  been removed now that the API and all examples are updated to `painter.shape(form, shade)`.
-
----
-
-## API Design
-
-### ✅ `painter.shape(shade, form)` — arg order should match Rust
-
-**Current Scala:**
-
-```scala
-painter.shape(shade, form)
-```
-
-**Rust original:**
-
-```rust
-p.shape(form, shade)
-```
-
-The current Scala arg order (`shade` first, `form` second) is the reverse of
-Rust. Since `trivalibs_painter` is the reference API this port tracks, the Scala
-order should be changed to `painter.shape(form, shade)` for consistency.
-
-**Impact of change:**
-
-- `painter.scala` line 499: swap `shade` and `form` params.
-- `Shape` constructor call inside `painter.shape` (line 505).
-- All call sites in examples need updating (see examples section below).
-- `scala-port-comparison.md` §3 Painter table row and the "note the arg order
-  flip" callout should be removed once fixed.
-
-**Priority:** Medium — this is a breaking change. Worth batching with other API
-cleanups.
-
----
-
-## Examples / Codebase
-
-All four Painter factory methods (`form`, `shape`, `layer`, `panel`) accept
-their full parameter set directly at construction — no chained `.set()` needed.
-The `.set()` method on each class still exists and is correct for
-**post-creation mutation only**.
-
-### ✅ `painter.form().set()` — 8 files
-
-- `examples/blur/Blur.scala` line 68
-- `examples/deferred/Deferred.scala` line 93
-- `examples/instances/Instances.scala` line 52
-- `examples/mipmaps/Mipmaps.scala` lines 72, 134
-- `examples/painter_dsl/PainterDsl.scala` line 64
-- `examples/painter_triangle/PainterTriangle.scala` line 53
-- `examples/painter_typed_bindings/TypedBindings.scala` line 50
-- `examples/panel_triangle/PanelTriangle.scala` line 52
-
-Pattern: `painter.form().set(vertices = v)` → `painter.form(vertices = v)`
-
-### ✅ `painter.panel().set()` — 5 files
-
-- `examples/panel_layer/PanelLayer.scala` line 48
-- `examples/deferred/Deferred.scala` lines 102, 182
-- `examples/panel_triangle/PanelTriangle.scala` line 73
-- `examples/blur/Blur.scala` line 136
-- `examples/mipmaps/Mipmaps.scala` lines 81, 175
-
-Pattern: `painter.panel().set(clearColor = ..., shapes = ..., ...)` →
-`painter.panel(clearColor = ..., shapes = ..., ...)`
-
-### ✅ `painter.layer(...).set()` — 1 file
-
-- `examples/deferred/Deferred.scala` line 169
-
-Pattern: `.layer(shade).set(mipSource = -1, mipTarget = -1)` →
-`.layer(shade, mipSource = -1, mipTarget = -1)`
-
-### ✅ `painter.shape(...).set()` — none found in examples
-
-No examples currently chain `.set()` on `painter.shape(...)`. Nothing to update.
-
----
-
 ## Implementation
 
 ### 🔄 `Form.set()` — destroy-always is wrong for dynamic geometry
@@ -138,152 +50,6 @@ to the high-water mark and reused every frame with a plain `writeBuffer` call.
 **Doc follow-up:** Remove the sentence in §3 (Form) — _"The old GPU buffer is
 destroyed and a new one allocated (no in-place resize yet)"_ — once this is
 fixed.
-
----
-
-## API Design (continued)
-
-### ✅ Add singular param shortcuts wherever a public method accepts a plural `Arr`
-
-Rust's builder API consistently pairs `with_shape(s)` / `with_shapes(vs)`,
-`with_effect(e)` / `with_effects(vs)`, and `with_format(f)` /
-`with_formats(vs)`. We want the same pattern in Scala: a `shape =` shortcut that
-is syntactic sugar for `shapes = Arr(value)`. **Plural takes precedence** if
-both are supplied.
-
-**Affected params (verified against source):**
-
-`Panel.set()` and `painter.panel()` — three plural params, each needs a
-singular:
-
-| Plural param (existing)           | New singular param          |
-| --------------------------------- | --------------------------- |
-| `shapes: Maybe[Arr[Shape[?, ?]]]` | `shape: Maybe[Shape[?, ?]]` |
-| `layers: Maybe[Arr[Layer[?, ?]]]` | `layer: Maybe[Layer[?, ?]]` |
-| `formats: Maybe[Arr[String]]`     | `format: Maybe[String]`     |
-
-No other public API methods currently have plural `Arr` params.
-
-**Implementation sketch for each:**
-
-```scala
-def set(
-  ...,
-  shape:  Maybe[Shape[?, ?]] = Maybe.Not,   // new
-  shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
-  ...
-): this.type =
-  // plural wins; singular is sugar for Arr(value)
-  shapes.orElse(shape.map(s => Arr(s))).foreach(v => this.shapes = v)
-  ...
-```
-
-**Priority:** Soon — the planning doc has already been updated to use singular
-params where applicable. Code needs to follow before the doc is merged.
-
-**Examples to update after implementation** — same files as the `panel().set()`
-list above; each single-item `Arr(x)` becomes the singular param.
-
----
-
-## Math / NumExt
-
-### ✅ `IntExt` — dedicated Int / UInt extension trait
-
-**Current state:**
-
-- `trivalibs/src/utils/numbers.scala` defines `NumExt[Double]` / `NumExt[Float]`
-  with `.min`, `.max`, `.clamp`, etc.
-  ([trivalibs/src/utils/numbers.scala:40-154](../trivalibs/src/utils/numbers.scala#L40)).
-- Scala `Int` has `Math.min` / `Math.max` available, but no extension form, so
-  call-sites end up reading `math.max(0, math.min(x, w - 1))` instead of
-  `x.min(w - 1).max(0)`. See e.g.
-  [mesh-geometry-port-plan.md:144-145](mesh-geometry-port-plan.md#L144-L145).
-- The integer DSL plan currently sketches GPU-side ops as `NumExt[IntExpr]` /
-  `NumExt[UIntExpr]`
-  ([trivalibs-nostd-port-plan.md §2.3.2](trivalibs-nostd-port-plan.md)), but
-  most of `NumExt` (sqrt, pow, trig, fract, mix, clamp01, fit0111/1101,
-  smoothstep) is float-only and shouldn't apply to integers.
-
-**Proposal:**
-
-Add a **dedicated** `IntExt[P]` trait (not bolted onto `NumExt`), covering
-operations that are well-defined on integers:
-
-```scala
-trait IntExt[P]:
-  extension (p: P)
-    def min(other: P): P
-    def max(other: P): P
-    def clamp(lo: P, hi: P): P
-    // Step predicates — return P, 1 if true / 0 if false.
-    def gte(edge: P): P
-    def gt(edge: P): P
-    def lte(edge: P): P
-    def lt(edge: P): P
-    inline def step(edge: P): P = gte(edge)
-```
-
-CPU instances `IntExt[Int]` and `IntExt[UInt]`. Int-only `abs` and `sign` live
-as standalone extensions — neither is meaningful on unsigned values (`abs(u32)`
-is the identity in WGSL; `sign(u32)` is undefined):
-
-```scala
-extension (p: Int)
-  inline def abs:  Int = Math.abs(p)
-  inline def sign: Int = Integer.signum(p)
-```
-
-**GPU-side derivation:** Provide `IntExt[IntExpr]` and `IntExt[UIntExpr]`
-instances in the shader DSL emitting the corresponding WGSL intrinsics (`min`,
-`max`, `clamp`) and synthesised step predicates via comparisons + `select(...)`
-or equivalent. Mirror the standalone CPU `abs` / `sign` extensions on `IntExpr`
-only. Replaces the `NumExt[IntExpr]` / `NumExt[UIntExpr]` sketch in
-[trivalibs-nostd-port-plan.md §2.3.2](trivalibs-nostd-port-plan.md).
-
-**Example rewrite** of
-[mesh-geometry-port-plan.md:144-145](mesh-geometry-port-plan.md#L144-L145):
-
-```scala
-// Before:
-val nx = if c.circleCols then ((x % w) + w) % w else math.max(0, math.min(x, w - 1))
-
-// After:
-val nx = if c.circleCols then ((x % w) + w) % w else x.min(w - 1).max(0)
-```
-
-**Priority:** Low — convenience cleanup. Worth landing alongside or just before
-the integer DSL work in `trivalibs-nostd-port-plan.md` so the GPU side derives
-from the same trait, not a separate `NumExt`-shaped sketch.
-
----
-
-### ✅ Vector overloads for `fit0111` / `fit1101`
-
-**Current state:**
-
-- CPU scalar `NumExt` defines `fit0111` / `fit1101` for `Double` and `Float`
-  ([trivalibs/src/utils/numbers.scala:107, 145](../trivalibs/src/utils/numbers.scala#L107)).
-- GPU DSL defines them on `FloatExpr` only
-  ([src/graphics/math/gpu/expr.scala:238-239](../src/graphics/math/gpu/expr.scala#L238)).
-- **Missing** on `Vec2` / `Vec3` / `Vec4` (CPU) and `Vec2Expr` / `Vec3Expr` /
-  `Vec4Expr` (GPU DSL).
-
-Rust's `trivalibs_nostd::num_ext::NumExt` offers these componentwise on glam
-vector types; shaders frequently want `normal.fit0111()` on a `Vec3` normal.
-
-**Required changes:**
-
-- Add `fit0111` / `fit1101` extensions to `Vec2Base` / `Vec3Base` / `Vec4Base`
-  (CPU) delegating to each component's scalar `fit0111`.
-- Add overrides on `Vec2Expr` / `Vec3Expr` / `Vec4Expr` emitting
-  `(v * 2.0 - 1.0)` / `(v * 0.5 + 0.5)` WGSL.
-
-**Doc follow-up:** Once added, update the `NumExt` row in
-[scala-port-comparison.md §10](rust-painter/scala-port-comparison.md) — drop the
-"vector overloads still missing" note.
-
-**Priority:** Low — easy, but only worth doing when a sketch wants it.
 
 ---
 
@@ -339,3 +105,55 @@ exposes `rand()` and `randInRange(min, max)`. Rust
 the `Random` row in §10 to `Ported`.
 
 **Priority:** Low — one-liners, do when a sketch first needs them.
+
+---
+
+---
+
+## ✅ Completed
+
+---
+
+### ✅ Documentation — `painter.shape` arg order in docs
+
+Doc note about the arg-order flip has been removed now that the API and all
+examples are updated to `painter.shape(form, shade)`.
+
+---
+
+### ✅ API Design — `painter.shape(shade, form)` arg order should match Rust
+
+Swapped to `painter.shape(form, shade)` in `painter.scala` and `shape.scala`.
+All example call sites updated.
+
+---
+
+### ✅ Examples — `painter.form().set()` / `.panel().set()` / `.layer().set()`
+
+Collapsed chained `.set()` calls into the factory constructor across all example
+files. Pattern: `painter.form().set(vertices = v)` → `painter.form(vertices = v)`.
+
+---
+
+### ✅ API Design — singular param shortcuts for plural `Arr` params
+
+Added `shape`, `layer`, `format` singular params to `Panel.set()` and
+`painter.panel()`. Plural wins when both are supplied. All single-item `Arr(x)`
+call sites in examples simplified to use the singular form.
+
+---
+
+### ✅ Math — `IntExt` dedicated Int extension trait
+
+Added `trait IntExt[P]` with `min`, `max`, `clamp`, and step predicates to
+`trivalibs/src/utils/numbers.scala`. `given IntExt[Int]` provides the CPU
+instance. Standalone `Int` extensions for `abs` and `sign` co-located.
+
+---
+
+### ✅ Math — vector overloads for `fit0111` / `fit1101`
+
+Added `fit0111` / `fit1101` to `Vec2/3/4ImmutableOpsG` (shared trait), CPU
+`Vec2/3/4ImmutableOps` (componentwise scalar delegation), and all three GPU
+`Vec_Expr` given instances (direct WGSL `v * 2.0 - 1.0` / `v * 0.5 + 0.5`).
+Port-comparison doc updated.

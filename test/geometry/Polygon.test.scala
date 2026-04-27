@@ -60,27 +60,27 @@ class PolygonTest extends FunSuite:
   // Quad tests
   // ---------------------------------------------------------------------------
 
-  test("Quad accessors (bl=0, br=1, tr=2, tl=3)"):
-    val q = Quad(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0), Vec3(0, 1, 0))
+  test("Quad accessors (tl=0, bl=1, br=2, tr=3)"):
+    val q = Quad(Vec3(0, 1, 0), Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0))
+    assert(q.tl.approxEq(Vec3(0, 1, 0)))
     assert(q.bl.approxEq(Vec3(0, 0, 0)))
     assert(q.br.approxEq(Vec3(1, 0, 0)))
     assert(q.tr.approxEq(Vec3(1, 1, 0)))
-    assert(q.tl.approxEq(Vec3(0, 1, 0)))
 
   test("Quad normal points +Z for flat CCW quad in XY plane"):
-    val q = Quad(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0), Vec3(0, 1, 0))
+    val q = Quad(Vec3(0, 1, 0), Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0))
     val n = q.normal
     assertEqualsDouble(n.x, 0.0, 1e-9)
     assertEqualsDouble(n.y, 0.0, 1e-9)
     assertEqualsDouble(n.z, 1.0, 1e-9)
 
   test("Quad normal is unit length"):
-    val q = Quad(Vec3(0, 0, 0), Vec3(2, 0, 0), Vec3(2, 3, 0), Vec3(0, 3, 0))
+    val q = Quad(Vec3(0, 3, 0), Vec3(0, 0, 0), Vec3(2, 0, 0), Vec3(2, 3, 0))
     val n = q.normal
     assertEqualsDouble(n.length, 1.0, 1e-9)
 
   test("Quad subdivideH produces midpoints"):
-    val q         = Quad(Vec3(0, 0, 0), Vec3(2, 0, 0), Vec3(2, 2, 0), Vec3(0, 2, 0))
+    val q         = Quad(Vec3(0, 2, 0), Vec3(0, 0, 0), Vec3(2, 0, 0), Vec3(2, 2, 0))
     val (bot, top) = q.subdivideH
     // bot: bl=(0,0,0), br=(2,0,0), tr=(2,1,0), tl=(0,1,0)
     assertEqualsDouble(bot.tr.y, 1.0, 1e-9)
@@ -89,13 +89,13 @@ class PolygonTest extends FunSuite:
     assertEqualsDouble(top.bl.y, 1.0, 1e-9)
 
   test("Quad subdivideV produces midpoints"):
-    val q           = Quad(Vec3(0, 0, 0), Vec3(2, 0, 0), Vec3(2, 2, 0), Vec3(0, 2, 0))
+    val q           = Quad(Vec3(0, 2, 0), Vec3(0, 0, 0), Vec3(2, 0, 0), Vec3(2, 2, 0))
     val (left, right) = q.subdivideV
     assertEqualsDouble(left.br.x, 1.0, 1e-9)
     assertEqualsDouble(right.bl.x, 1.0, 1e-9)
 
   test("Quad toTriangles produces CCW triangles"):
-    val q        = Quad(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0), Vec3(0, 1, 0))
+    val q        = Quad(Vec3(0, 1, 0), Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0))
     val (t1, t2) = q.toTriangles
     // Both triangles should have +Z normal
     val n1 = t1.normal
@@ -105,20 +105,20 @@ class PolygonTest extends FunSuite:
 
   test("Quad splitByPlane — all behind → empty"):
     val plane  = Plane(Vec3(0, 1, 0), 0.0)
-    val q      = Quad(Vec3(-1, -1, 0), Vec3(1, -1, 0), Vec3(1, -2, 0), Vec3(-1, -2, 0))
+    val q      = Quad(Vec3(-1, -2, 0), Vec3(-1, -1, 0), Vec3(1, -1, 0), Vec3(1, -2, 0))
     val result = q.splitByPlane(plane)
     assertEquals(result.length, 0)
 
   test("Quad splitByPlane — all in front → 1 quad"):
     val plane  = Plane(Vec3(0, 1, 0), 0.0)
-    val q      = Quad(Vec3(-1, 1, 0), Vec3(1, 1, 0), Vec3(1, 2, 0), Vec3(-1, 2, 0))
+    val q      = Quad(Vec3(-1, 2, 0), Vec3(-1, 1, 0), Vec3(1, 1, 0), Vec3(1, 2, 0))
     val result = q.splitByPlane(plane)
     assertEquals(result.length, 1)
 
   test("Quad splitByPlane — half clipped → 1 quad"):
     // Bottom half below plane y=0, top half above
     val plane = Plane(Vec3(0, 1, 0), 0.0)
-    val q     = Quad(Vec3(-1, -1, 0), Vec3(1, -1, 0), Vec3(1, 1, 0), Vec3(-1, 1, 0))
+    val q     = Quad(Vec3(-1, 1, 0), Vec3(-1, -1, 0), Vec3(1, -1, 0), Vec3(1, 1, 0))
     val result = q.splitByPlane(plane)
     // 2 vertices above, 2 below → 4 output verts → 1 quad
     assertEquals(result.length, 1)

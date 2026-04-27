@@ -121,7 +121,7 @@ No test file — existence verified indirectly by Grid and Line tests.
 
 ---
 
-## 2.1 Prerequisite — `Mesh.addFaces` batch helper
+## 2.1 Prerequisite — `Mesh.addFaces` batch helper ✅ Done
 
 `Mesh[T]` currently only has
 `addFace(face: Face[T], normal: Opt[Vec3] = null, section: Int = 0)`
@@ -153,7 +153,7 @@ No new test file — covered indirectly by Grid and Sphere tests.
 
 ---
 
-## 2.2 Prerequisite — `Mesh` constructor that takes a faces array
+## 2.2 Prerequisite — `Mesh` constructor that takes a faces array ✅ Done
 
 Pair `addFaces` (§2.1) with a constructor / factory that bundles the empty-mesh
 
@@ -185,7 +185,7 @@ No new test file — covered indirectly by Grid and Sphere tests.
 
 ---
 
-## 2.3 Prerequisite — `Int` extension methods (`min` / `max` / `clamp`)
+## 2.3 Prerequisite — `Int` extension methods (`min` / `max` / `clamp`) ✅ Done
 
 `Grid.CoordOps.adjust` (§3.1) and several other call sites would otherwise
 compose to `math.max(0, math.min(x, w - 1))`. Add minimal Int extensions in
@@ -212,7 +212,7 @@ No test file — covered indirectly by Grid tests.
 
 ---
 
-## 2.4 Prerequisite — `Quad` corner reorder (`tl / bl / br / tr`)
+## 2.4 Prerequisite — `Quad` corner reorder (`tl / bl / br / tr`) ✅ Done
 
 §3.4 introduces a top-left origin convention for both Grid and Quad. The
 existing `Quad[T]` opaque in

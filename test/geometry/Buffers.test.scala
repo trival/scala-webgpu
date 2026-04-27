@@ -34,7 +34,7 @@ class BuffersTest extends FunSuite:
 
   def quadMesh(): Mesh[Vec3] =
     val m = new Mesh[Vec3]()
-    m.addFace(Quad(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0), Vec3(0, 1, 0)))
+    m.addFace(Quad(Vec3(0, 1, 0), Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0)))
     m
 
   // ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ class BuffersTest extends FunSuite:
   test("FaceVertices: mixed tri+quad index buffer"):
     val m = new Mesh[Vec3]()
     m.addFace(Triangle(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(0, 1, 0)))
-    m.addFace(Quad(Vec3(0, 0, 1), Vec3(1, 0, 1), Vec3(1, 1, 1), Vec3(0, 1, 1)))
+    m.addFace(Quad(Vec3(0, 1, 1), Vec3(0, 0, 1), Vec3(1, 0, 1), Vec3(1, 1, 1)))
     val bg      = buildFaceVertices(m, writePos)
     assertEquals(bg.vertices.length, 7) // 3 + 4
     val indices = bg.indices

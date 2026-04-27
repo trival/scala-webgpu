@@ -63,7 +63,7 @@ class MeshTest extends FunSuite:
 
   test("ensureFaceNormals returns true when quads present"):
     val m = new Mesh[Vec3]()
-    m.addFace(Quad(Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0), Vec3(0, 1, 0)))
+    m.addFace(Quad(Vec3(0, 1, 0), Vec3(0, 0, 0), Vec3(1, 0, 0), Vec3(1, 1, 0)))
     assert(m.ensureFaceNormals())
 
   test("ensureFaceNormals does not overwrite pre-supplied normal"):
@@ -115,7 +115,7 @@ class MeshTest extends FunSuite:
 
   test("flatMap can split each face"):
     val m  = new Mesh[Vec3]()
-    m.addFace(Quad(Vec3(0, 0, 0), Vec3(2, 0, 0), Vec3(2, 2, 0), Vec3(0, 2, 0)))
+    m.addFace(Quad(Vec3(0, 2, 0), Vec3(0, 0, 0), Vec3(2, 0, 0), Vec3(2, 2, 0)))
     val m2 = m.flatMap: face =>
       val q = face.asInstanceOf[Quad[Vec3]]
       val (t1, t2) = q.toTriangles
