@@ -356,6 +356,26 @@ given NumExt[FloatExpr]:
       FloatExpr(s"smoothstep(${edge0.wgsl}, ${edge1.wgsl}, ${a.wgsl})")
 
 // ---------------------------------------------------------------------------
+// FloatExpr — boolean comparison operators (return BoolExpr).
+// Symbolic = boolean. Named .gt/.lt/.gte/.lte above are step-based numeric
+// helpers and stay as-is.
+// ---------------------------------------------------------------------------
+
+extension (a: FloatExpr)
+  @annotation.targetName("floatLt")
+  def <(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} < ${b.wgsl})")
+  @annotation.targetName("floatLte")
+  def <=(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} <= ${b.wgsl})")
+  @annotation.targetName("floatGt")
+  def >(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} > ${b.wgsl})")
+  @annotation.targetName("floatGte")
+  def >=(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} >= ${b.wgsl})")
+  @annotation.targetName("floatEq")
+  def ===(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} == ${b.wgsl})")
+  @annotation.targetName("floatNe")
+  def !==(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} != ${b.wgsl})")
+
+// ---------------------------------------------------------------------------
 // Vec2 — LocalVec2 <: Vec2Expr, so only one Base + one ImmutableOps needed
 // ---------------------------------------------------------------------------
 
@@ -782,10 +802,18 @@ given Mat4ImmutableOpsG[FloatExpr, Mat4Expr]:
 object vec2:
   def apply(x: FloatExpr, y: FloatExpr): Vec2Expr =
     Vec2Expr(s"vec2<f32>(${x.wgsl}, ${y.wgsl})")
+  def apply(scalar: FloatExpr): Vec2Expr = Vec2Expr(
+    s"vec2<f32>(${scalar.wgsl})",
+  )
 
 object vec3:
   def apply(x: FloatExpr, y: FloatExpr, z: FloatExpr): Vec3Expr =
     Vec3Expr(s"vec3<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl})")
+  def apply(scalar: FloatExpr): Vec3Expr = Vec3Expr(
+    s"vec3<f32>(${scalar.wgsl})",
+  )
+  def apply(xy: Vec2Expr, z: FloatExpr): Vec3Expr =
+    Vec3Expr(s"vec3<f32>(${xy.wgsl}, ${z.wgsl})")
 
 object vec4:
   def apply(x: FloatExpr, y: FloatExpr, z: FloatExpr, w: FloatExpr): Vec4Expr =
@@ -794,6 +822,9 @@ object vec4:
     Vec4Expr(s"vec4<f32>(${xyz.wgsl}, ${w.wgsl})")
   def apply(xy: Vec2Expr, z: FloatExpr, w: FloatExpr): Vec4Expr =
     Vec4Expr(s"vec4<f32>(${xy.wgsl}, ${z.wgsl}, ${w.wgsl})")
+  def apply(scalar: FloatExpr): Vec4Expr = Vec4Expr(
+    s"vec4<f32>(${scalar.wgsl})",
+  )
 
 // ---------------------------------------------------------------------------
 // Stmt and Block opaque types
@@ -817,12 +848,65 @@ object Stmt:
     s"  $name = ${value.wgsl};"
   inline def raw(s: String): Stmt = s
 
+  def ifBlock(cond: BoolExpr, body: Block): Stmt =
+    s"  if (${cond.wgsl}) {\n${indentBlock(body)}\n  }"
+  def ifElseBlock(cond: BoolExpr, thenBody: Block, elseBody: Block): Stmt =
+    s"  if (${cond.wgsl}) {\n${indentBlock(thenBody)}\n  } else {\n${indentBlock(elseBody)}\n  }"
+
 given Conversion[Stmt, Block] = s => s
 
 object Block:
   def apply(stmts: Stmt*): Block = stmts.mkString("\n")
   def empty: Block = ""
   def unwrap(b: Block): String = b.asInstanceOf[String]
+
+// ---------------------------------------------------------------------------
+// Control flow — if / if-else statement constructors and helpers.
+// Re-indents nested blocks by adding two spaces to every line, so nesting
+// works recursively without explicit indentation tracking.
+// ---------------------------------------------------------------------------
+
+private def indentBlock(body: Block): String =
+  Block.unwrap(body).split('\n').map(line => s"  $line").mkString("\n")
+
+/** Branchless conditional. WGSL signature:
+  * `select(falseValue, trueValue, cond)`.
+  */
+def select[T <: Expr](onFalse: T, onTrue: T, cond: BoolExpr): T =
+  Expr
+    .raw(s"select(${onFalse.wgsl}, ${onTrue.wgsl}, ${cond.wgsl})")
+    .asInstanceOf[T]
+
+/** Single-branch `if (cond) { ... }`. */
+def when(cond: BoolExpr, body: Block): Stmt = Stmt.ifBlock(cond, body)
+
+/** Two-branch `if (cond) { ... } else { ... }`. */
+def ifElse(cond: BoolExpr, thenBody: Block, elseBody: Block): Stmt =
+  Stmt.ifElseBlock(cond, thenBody, elseBody)
+
+extension (cond: BoolExpr)
+  /** Branchless conditional: `cond.select(onTrue, onFalse)`. */
+  @annotation.targetName("boolSelect")
+  def select[T <: Expr](onTrue: T, onFalse: T): T =
+    Expr
+      .raw(s"select(${onFalse.wgsl}, ${onTrue.wgsl}, ${cond.wgsl})")
+      .asInstanceOf[T]
+
+  /** `cond.thenDo(body)` — single-branch `if`. */
+  def thenDo(body: Block): Stmt = Stmt.ifBlock(cond, body)
+
+  /** `cond.thenElse(thenBody, elseBody)` — `if`/`else` chain. */
+  def thenElse(thenBody: Block, elseBody: Block): Stmt =
+    Stmt.ifElseBlock(cond, thenBody, elseBody)
+
+  @annotation.targetName("boolAnd")
+  def &&(other: BoolExpr): BoolExpr =
+    BoolExpr(s"(${cond.wgsl} && ${other.wgsl})")
+  @annotation.targetName("boolOr")
+  def ||(other: BoolExpr): BoolExpr =
+    BoolExpr(s"(${cond.wgsl} || ${other.wgsl})")
+  @annotation.targetName("boolNot")
+  def unary_! : BoolExpr = BoolExpr(s"!(${cond.wgsl})")
 
 // ---------------------------------------------------------------------------
 // Integer literal helpers
@@ -899,6 +983,40 @@ given IntExt[UIntExpr]:
       UIntExpr(s"select(0u, 1u, ${a.wgsl} < ${edge.wgsl})")
 
 // ---------------------------------------------------------------------------
+// IntExpr / UIntExpr — boolean comparison operators (return BoolExpr).
+// Mirror the FloatExpr block: symbolic = boolean, .gt/.lt/.gte/.lte above
+// are step-based numeric helpers.
+// ---------------------------------------------------------------------------
+
+extension (a: IntExpr)
+  @annotation.targetName("intLt")
+  def <(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} < ${b.wgsl})")
+  @annotation.targetName("intLte")
+  def <=(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} <= ${b.wgsl})")
+  @annotation.targetName("intGt")
+  def >(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} > ${b.wgsl})")
+  @annotation.targetName("intGte")
+  def >=(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} >= ${b.wgsl})")
+  @annotation.targetName("intEq")
+  def ===(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} == ${b.wgsl})")
+  @annotation.targetName("intNe")
+  def !==(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} != ${b.wgsl})")
+
+extension (a: UIntExpr)
+  @annotation.targetName("uintLt")
+  def <(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} < ${b.wgsl})")
+  @annotation.targetName("uintLte")
+  def <=(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} <= ${b.wgsl})")
+  @annotation.targetName("uintGt")
+  def >(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} > ${b.wgsl})")
+  @annotation.targetName("uintGte")
+  def >=(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} >= ${b.wgsl})")
+  @annotation.targetName("uintEq")
+  def ===(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} == ${b.wgsl})")
+  @annotation.targetName("uintNe")
+  def !==(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} != ${b.wgsl})")
+
+// ---------------------------------------------------------------------------
 // IntExpr — abs, sign, and bitwise operators
 // ---------------------------------------------------------------------------
 
@@ -906,42 +1024,54 @@ extension (a: IntExpr)
   def abs: IntExpr = IntExpr(s"abs(${a.wgsl})")
   def sign: IntExpr = IntExpr(s"sign(${a.wgsl})")
 
-  /** Bitwise OR — output bit is 1 if either operand has that bit set.
-    * Used to combine flag sets. Alias: [[or]]. */
+  /** Bitwise OR — output bit is 1 if either operand has that bit set. Used to
+    * combine flag sets. Alias: [[or]].
+    */
   @annotation.targetName("intOrExpr")
   def |(b: IntExpr): IntExpr = IntExpr(s"(${a.wgsl} | ${b.wgsl})")
-  /** Bitwise OR with a compile-time constant — useful for setting known flag bits. */
+
+  /** Bitwise OR with a compile-time constant — useful for setting known flag
+    * bits.
+    */
   @annotation.targetName("intOrInt")
   def |(b: Int): IntExpr = IntExpr(s"(${a.wgsl} | $b)")
 
   /** Bitwise AND — output bit is 1 only when both operands have that bit set.
-    * Standard masking tool: `x & 0xff` keeps the low 8 bits. Alias: [[and]]. */
+    * Standard masking tool: `x & 0xff` keeps the low 8 bits. Alias: [[and]].
+    */
   @annotation.targetName("intAndExpr")
   def &(b: IntExpr): IntExpr = IntExpr(s"(${a.wgsl} & ${b.wgsl})")
+
   /** Bitwise AND with a compile-time constant — useful for hex masks. */
   @annotation.targetName("intAndInt")
   def &(b: Int): IntExpr = IntExpr(s"(${a.wgsl} & $b)")
 
   /** Bitwise XOR — output bit is 1 when exactly one operand has that bit set.
-    * Core hash-mixing primitive (`x ^ (x >> 16)`). Alias: [[xor]]. */
+    * Core hash-mixing primitive (`x ^ (x >> 16)`). Alias: [[xor]].
+    */
   @annotation.targetName("intXorExpr")
   def ^(b: IntExpr): IntExpr = IntExpr(s"(${a.wgsl} ^ ${b.wgsl})")
+
   /** Bitwise XOR with a compile-time constant. */
   @annotation.targetName("intXorInt")
   def ^(b: Int): IntExpr = IntExpr(s"(${a.wgsl} ^ $b)")
 
-  /** Shift left by b positions — multiplies by 2^b, zero-fills low bits.
-    * Alias: [[shl]]. */
+  /** Shift left by b positions — multiplies by 2^b, zero-fills low bits. Alias:
+    * [[shl]].
+    */
   @annotation.targetName("intShlExpr")
   def <<(b: IntExpr): IntExpr = IntExpr(s"(${a.wgsl} << ${b.wgsl})")
+
   /** Shift left by a compile-time count. */
   @annotation.targetName("intShlInt")
   def <<(b: Int): IntExpr = IntExpr(s"(${a.wgsl} << $b)")
 
-  /** Arithmetic shift right — sign bit is preserved. Equivalent to division
-    * by 2^b rounding toward negative infinity. Alias: [[shr]]. */
+  /** Arithmetic shift right — sign bit is preserved. Equivalent to division by
+    * 2^b rounding toward negative infinity. Alias: [[shr]].
+    */
   @annotation.targetName("intShrExpr")
   def >>(b: IntExpr): IntExpr = IntExpr(s"(${a.wgsl} >> ${b.wgsl})")
+
   /** Arithmetic shift right by a compile-time count. */
   @annotation.targetName("intShrInt")
   def >>(b: Int): IntExpr = IntExpr(s"(${a.wgsl} >> $b)")
@@ -950,12 +1080,18 @@ extension (a: IntExpr)
   @annotation.targetName("intBitNot")
   def unary_~ : IntExpr = IntExpr(s"(~${a.wgsl})")
 
-  @annotation.targetName("intOr") inline def or(b: IntExpr): IntExpr = a | b
-  @annotation.targetName("intAnd") inline def and(b: IntExpr): IntExpr = a & b
-  @annotation.targetName("intXor") inline def xor(b: IntExpr): IntExpr = a ^ b
-  @annotation.targetName("intShl") inline def shl(b: IntExpr): IntExpr = a << b
-  @annotation.targetName("intShr") inline def shr(b: IntExpr): IntExpr = a >> b
-  @annotation.targetName("intNot") inline def not: IntExpr = ~a
+  @annotation.targetName("intOr")
+  inline def or(b: IntExpr): IntExpr = a | b
+  @annotation.targetName("intAnd")
+  inline def and(b: IntExpr): IntExpr = a & b
+  @annotation.targetName("intXor")
+  inline def xor(b: IntExpr): IntExpr = a ^ b
+  @annotation.targetName("intShl")
+  inline def shl(b: IntExpr): IntExpr = a << b
+  @annotation.targetName("intShr")
+  inline def shr(b: IntExpr): IntExpr = a >> b
+  @annotation.targetName("intNot")
+  inline def not: IntExpr = ~a
 
 // ---------------------------------------------------------------------------
 // UIntExpr — bitwise operators (logical right shift, u suffix on Int constants)
@@ -965,6 +1101,7 @@ extension (a: UIntExpr)
   /** Bitwise OR — combines bits from both operands. Alias: [[or]]. */
   @annotation.targetName("uintOrExpr")
   def |(b: UIntExpr): UIntExpr = UIntExpr(s"(${a.wgsl} | ${b.wgsl})")
+
   /** Bitwise OR with a compile-time constant (emits `u` suffix). */
   @annotation.targetName("uintOrInt")
   def |(b: Int): UIntExpr = UIntExpr(s"(${a.wgsl} | ${b}u)")
@@ -972,14 +1109,17 @@ extension (a: UIntExpr)
   /** Bitwise AND — keeps only bits set in both operands. Alias: [[and]]. */
   @annotation.targetName("uintAndExpr")
   def &(b: UIntExpr): UIntExpr = UIntExpr(s"(${a.wgsl} & ${b.wgsl})")
+
   /** Bitwise AND with a compile-time constant (emits `u` suffix). */
   @annotation.targetName("uintAndInt")
   def &(b: Int): UIntExpr = UIntExpr(s"(${a.wgsl} & ${b}u)")
 
   /** Bitwise XOR — flips bits where the other operand has 1s. The hashing
-    * workhorse. Alias: [[xor]]. */
+    * workhorse. Alias: [[xor]].
+    */
   @annotation.targetName("uintXorExpr")
   def ^(b: UIntExpr): UIntExpr = UIntExpr(s"(${a.wgsl} ^ ${b.wgsl})")
+
   /** Bitwise XOR with a compile-time constant (emits `u` suffix). */
   @annotation.targetName("uintXorInt")
   def ^(b: Int): UIntExpr = UIntExpr(s"(${a.wgsl} ^ ${b}u)")
@@ -987,14 +1127,17 @@ extension (a: UIntExpr)
   /** Shift left — zero-fills low bits. Alias: [[shl]]. */
   @annotation.targetName("uintShlExpr")
   def <<(b: UIntExpr): UIntExpr = UIntExpr(s"(${a.wgsl} << ${b.wgsl})")
+
   /** Shift left by a compile-time count (emits `u` suffix). */
   @annotation.targetName("uintShlInt")
   def <<(b: Int): UIntExpr = UIntExpr(s"(${a.wgsl} << ${b}u)")
 
   /** Logical (zero-fill) shift right — high bits become 0, unlike `IntExpr.>>`
-    * which preserves the sign bit. Alias: [[shr]]. */
+    * which preserves the sign bit. Alias: [[shr]].
+    */
   @annotation.targetName("uintShrExpr")
   def >>(b: UIntExpr): UIntExpr = UIntExpr(s"(${a.wgsl} >> ${b.wgsl})")
+
   /** Logical shift right by a compile-time count (emits `u` suffix). */
   @annotation.targetName("uintShrInt")
   def >>(b: Int): UIntExpr = UIntExpr(s"(${a.wgsl} >> ${b}u)")
@@ -1003,12 +1146,18 @@ extension (a: UIntExpr)
   @annotation.targetName("uintBitNot")
   def unary_~ : UIntExpr = UIntExpr(s"(~${a.wgsl})")
 
-  @annotation.targetName("uintOr") inline def or(b: UIntExpr): UIntExpr = a | b
-  @annotation.targetName("uintAnd") inline def and(b: UIntExpr): UIntExpr = a & b
-  @annotation.targetName("uintXor") inline def xor(b: UIntExpr): UIntExpr = a ^ b
-  @annotation.targetName("uintShl") inline def shl(b: UIntExpr): UIntExpr = a << b
-  @annotation.targetName("uintShr") inline def shr(b: UIntExpr): UIntExpr = a >> b
-  @annotation.targetName("uintNot") inline def not: UIntExpr = ~a
+  @annotation.targetName("uintOr")
+  inline def or(b: UIntExpr): UIntExpr = a | b
+  @annotation.targetName("uintAnd")
+  inline def and(b: UIntExpr): UIntExpr = a & b
+  @annotation.targetName("uintXor")
+  inline def xor(b: UIntExpr): UIntExpr = a ^ b
+  @annotation.targetName("uintShl")
+  inline def shl(b: UIntExpr): UIntExpr = a << b
+  @annotation.targetName("uintShr")
+  inline def shr(b: UIntExpr): UIntExpr = a >> b
+  @annotation.targetName("uintNot")
+  inline def not: UIntExpr = ~a
 
 // ---------------------------------------------------------------------------
 // Type conversion extensions (i32/u32/f32 casts)
@@ -1088,9 +1237,13 @@ extension (v: IVec2Expr)
   @annotation.targetName("ivec2Abs")
   def abs: IVec2Expr = IVec2Expr(s"abs(${v.wgsl})")
   @annotation.targetName("ivec2Min")
-  def min(other: IVec2Expr): IVec2Expr = IVec2Expr(s"min(${v.wgsl}, ${other.wgsl})")
+  def min(other: IVec2Expr): IVec2Expr = IVec2Expr(
+    s"min(${v.wgsl}, ${other.wgsl})",
+  )
   @annotation.targetName("ivec2Max")
-  def max(other: IVec2Expr): IVec2Expr = IVec2Expr(s"max(${v.wgsl}, ${other.wgsl})")
+  def max(other: IVec2Expr): IVec2Expr = IVec2Expr(
+    s"max(${v.wgsl}, ${other.wgsl})",
+  )
   @annotation.targetName("ivec2Or")
   def |(other: IVec2Expr): IVec2Expr = IVec2Expr(s"(${v.wgsl} | ${other.wgsl})")
   @annotation.targetName("ivec2And")
@@ -1122,9 +1275,13 @@ extension (v: UVec2Expr)
   @annotation.targetName("uvec2DivVec")
   def /(other: UVec2Expr): UVec2Expr = UVec2Expr(s"(${v.wgsl} / ${other.wgsl})")
   @annotation.targetName("uvec2Min")
-  def min(other: UVec2Expr): UVec2Expr = UVec2Expr(s"min(${v.wgsl}, ${other.wgsl})")
+  def min(other: UVec2Expr): UVec2Expr = UVec2Expr(
+    s"min(${v.wgsl}, ${other.wgsl})",
+  )
   @annotation.targetName("uvec2Max")
-  def max(other: UVec2Expr): UVec2Expr = UVec2Expr(s"max(${v.wgsl}, ${other.wgsl})")
+  def max(other: UVec2Expr): UVec2Expr = UVec2Expr(
+    s"max(${v.wgsl}, ${other.wgsl})",
+  )
   @annotation.targetName("uvec2Or")
   def |(other: UVec2Expr): UVec2Expr = UVec2Expr(s"(${v.wgsl} | ${other.wgsl})")
   @annotation.targetName("uvec2And")
@@ -1158,9 +1315,13 @@ extension (v: IVec3Expr)
   @annotation.targetName("ivec3Abs")
   def abs: IVec3Expr = IVec3Expr(s"abs(${v.wgsl})")
   @annotation.targetName("ivec3Min")
-  def min(other: IVec3Expr): IVec3Expr = IVec3Expr(s"min(${v.wgsl}, ${other.wgsl})")
+  def min(other: IVec3Expr): IVec3Expr = IVec3Expr(
+    s"min(${v.wgsl}, ${other.wgsl})",
+  )
   @annotation.targetName("ivec3Max")
-  def max(other: IVec3Expr): IVec3Expr = IVec3Expr(s"max(${v.wgsl}, ${other.wgsl})")
+  def max(other: IVec3Expr): IVec3Expr = IVec3Expr(
+    s"max(${v.wgsl}, ${other.wgsl})",
+  )
   @annotation.targetName("ivec3Or")
   def |(other: IVec3Expr): IVec3Expr = IVec3Expr(s"(${v.wgsl} | ${other.wgsl})")
   @annotation.targetName("ivec3And")
@@ -1190,9 +1351,13 @@ extension (v: UVec3Expr)
   @annotation.targetName("uvec3MulScalar")
   def *(s: UIntExpr): UVec3Expr = UVec3Expr(s"(${v.wgsl} * ${s.wgsl})")
   @annotation.targetName("uvec3Min")
-  def min(other: UVec3Expr): UVec3Expr = UVec3Expr(s"min(${v.wgsl}, ${other.wgsl})")
+  def min(other: UVec3Expr): UVec3Expr = UVec3Expr(
+    s"min(${v.wgsl}, ${other.wgsl})",
+  )
   @annotation.targetName("uvec3Max")
-  def max(other: UVec3Expr): UVec3Expr = UVec3Expr(s"max(${v.wgsl}, ${other.wgsl})")
+  def max(other: UVec3Expr): UVec3Expr = UVec3Expr(
+    s"max(${v.wgsl}, ${other.wgsl})",
+  )
   @annotation.targetName("uvec3Or")
   def |(other: UVec3Expr): UVec3Expr = UVec3Expr(s"(${v.wgsl} | ${other.wgsl})")
   @annotation.targetName("uvec3And")
