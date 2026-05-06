@@ -31,7 +31,7 @@ trait SceneObject[T]:
       if p.notNull then p.get.worldTransform * t
       else t
 
-    def modelMat: Mat4 = obj.worldTransform.toMatrix
+    def modelMat: Mat4 = obj.worldTransform.matrix
 
     def modelViewMat(cam: PerspectiveCamera): Mat4 = cam.viewMat * obj.modelMat
     def modelViewProjMat(cam: PerspectiveCamera): Mat4 =
