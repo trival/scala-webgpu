@@ -345,7 +345,7 @@ object Simplex:
   // ---------------------------------------------------------------------------
 
   private val permute1: WgslFn[(x: Float), Float] =
-    WgslFn.raw("permute_1_")("  return ((x * 34.0) + 10.0) * x % 289.0;")
+    WgslFn.raw("permute_1_")("  return ((x * 34.0) + 1.0) * x % 289.0;")
 
   private val taylorInvSqrt1: WgslFn[(r: Float), Float] =
     WgslFn.raw("taylor_inv_sqrt_1_")(
@@ -356,7 +356,8 @@ object Simplex:
     WgslFn.raw("grad_4_")("""
     let gj = floor(fract(j * ip.xyz) * 7.0) * ip.z - 1.0;
     var p = vec4<f32>(gj.x, gj.y, gj.z, 1.5 - dot(abs(gj), vec3<f32>(1.0, 1.0, 1.0)));
-    let s = step(vec4<f32>(0.0, 0.0, 0.0, 0.0), p);
+    // s = (p < 0) ? 1 : 0  — canonical Stegu lessThan(p, 0)
+    let s = vec4<f32>(1.0) - step(vec4<f32>(0.0, 0.0, 0.0, 0.0), p);
     let dp = (s.xyz * 2.0 - 1.0) * s.www;
     p.x = p.x + dp.x;
     p.y = p.y + dp.y;
@@ -379,8 +380,8 @@ object Simplex:
     let F4 = 0.309016994374947451;
     var i = floor(pos + dot(pos, vec4<f32>(F4, F4, F4, F4)));
     let x0 = pos - i + dot(i, c.xxxx);
-    let is_x = step(x0.xxx, x0.yzw);
-    let is_yz = step(x0.yyz, x0.zww);
+    let is_x = step(x0.yzw, x0.xxx);
+    let is_yz = step(x0.zww, x0.yyz);
     var i0 = vec4<f32>(is_x.x + is_x.y + is_x.z, 1.0 - is_x.x, 1.0 - is_x.y, 1.0 - is_x.z);
     i0.y = i0.y + is_yz.x + is_yz.y;
     i0.z = i0.z + (1.0 - is_yz.x) + is_yz.z;

@@ -117,8 +117,8 @@ class SimplexFnsTest extends FunSuite:
     val data = Simplex.simplexNoise4d.asInstanceOf[WgslFnData]
     assert(data.src.contains("fn simplex_noise_4d(pos: vec4<f32>)"), data.src)
     assert(data.src.contains("-> f32"), data.src)
-    assert(data.src.contains("step(x0.xxx, x0.yzw)"), data.src)
-    assert(data.src.contains("step(x0.yyz, x0.zww)"), data.src)
+    assert(data.src.contains("step(x0.yzw, x0.xxx)"), data.src)
+    assert(data.src.contains("step(x0.zww, x0.yyz)"), data.src)
     assert(data.src.contains("permute_1_"), data.src)
     assert(data.src.contains("grad_4_"), data.src)
 

@@ -13,6 +13,21 @@ Companion documents:
 - [done/wgsl-scala-dsl-implementation.md](done/wgsl-scala-dsl-implementation.md)
   — shader DSL expression AST, opaque-type layout, local-variable conventions.
 
+External shader references checked into the noise lib for cross-checking
+implementations (`src/graphics/shader/lib/random/`):
+
+- [noisy_bevy.wgsl](../src/graphics/shader/lib/random/noisy_bevy.wgsl) —
+  source the 2D/3D simplex + Worley + seeded variants were ported from.
+- [psrdnoise2.wgsl](../src/graphics/shader/lib/random/psrdnoise2.wgsl),
+  [psrdnoise3.wgsl](../src/graphics/shader/lib/random/psrdnoise3.wgsl) — Stefan
+  Gustavson's psrdnoise, source for the rotating/tiling/derivative variants.
+- [noise4D_stegu.glsl](../src/graphics/shader/lib/random/noise4D_stegu.glsl) —
+  canonical Ashima/Stegu GLSL `snoise(vec4)`. Reference for diagnosing 4D bugs.
+- [snoise_lygia.wgsl](../src/graphics/shader/lib/random/snoise_lygia.wgsl),
+  [snoise_lygia_helpers.wgsl](../src/graphics/shader/lib/random/snoise_lygia_helpers.wgsl)
+  — LYGIA WGSL port of `snoise4` plus its `grad4` / `permute` / `mod289`
+  helpers (snoise file `#include`s them).
+
 > **Note on the `done/` design docs.** These were the blueprint while the DSL
 > was being built and remain useful for understanding intent and rationale. When
 > implementing this feature, however, **always treat the code itself as the
@@ -29,51 +44,61 @@ Companion documents:
 
 ## Implementation Status
 
-| Phase | Description | Status |
-| ----- | ----------- | ------ |
-| 1 | Integer DSL integration | ✅ Complete |
-| 2 | Port `hash.rs` | ✅ Complete |
-| 3 | Port `color.rs` + `coords.rs` | ⬜ Not started |
-| 4a | Simplex noise — Gustavson classic 2D/3D + fBm + Worley | ✅ Complete |
-| 4a | Simplex noise — 4D + tiling via torus | ❌ Skipped (not needed for Phase 6) |
-| 4b | PSRD-noise 2D + 3D (tiling, rotating, derivatives) | ✅ Complete |
-| 5 | Gaussian blur library consolidation | ⬜ Not started |
-| 6 | `noise_tests` example | ✅ Complete |
+| Phase | Description                                            | Status                              |
+| ----- | ------------------------------------------------------ | ----------------------------------- |
+| 1     | Integer DSL integration                                | ✅ Complete                         |
+| 2     | Port `hash.rs`                                         | ✅ Complete                         |
+| 3     | Port `color.rs` + `coords.rs`                          | ⬜ Not started                      |
+| 4a    | Simplex noise — Gustavson classic 2D/3D + fBm + Worley | ✅ Complete                         |
+| 4a    | Simplex noise — 4D + tiling via torus                  | ✅ Complete                         |
+| 4b    | PSRD-noise 2D + 3D (tiling, rotating, derivatives)     | ✅ Complete                         |
+| 5     | Gaussian blur library consolidation                    | ⬜ Not started                      |
+| 6     | `noise_tests` example                                  | ✅ Complete                         |
 
 **Files shipped:**
 
-| Path | Phase |
-| ---- | ----- |
-| `trivalibs/src/utils/numbers/uint.scala` | 1 |
-| `src/graphics/math/gpu/int_types.scala` | 1 |
-| `src/graphics/math/gpu/expr.scala` (extended) | 1 |
-| `src/graphics/shader/types.scala` (extended) | 1 |
-| `src/graphics/shader/dsl/types.scala` (extended) | 1 |
-| `src/graphics/shader/dsl/fn.scala` (extended) | 1 |
-| `test/shader/IntDsl.test.scala` | 1 |
-| `src/graphics/shader/lib/random/hash.scala` | 2 |
-| `test/shader/lib/HashFns.test.scala` | 2 |
-| `src/graphics/shader/lib/random/simplex.scala` | 4a |
-| `test/shader/lib/SimplexFns.test.scala` | 4a |
-| `src/graphics/shader/lib/random/psrdnoise.scala` | 4b |
-| `test/shader/lib/PsrdnoiseFns.test.scala` | 4b |
-| `examples/noise_tests/` | 6 |
+| Path                                             | Phase |
+| ------------------------------------------------ | ----- |
+| `trivalibs/src/utils/numbers/uint.scala`         | 1     |
+| `src/graphics/math/gpu/int_types.scala`          | 1     |
+| `src/graphics/math/gpu/expr.scala` (extended)    | 1     |
+| `src/graphics/shader/types.scala` (extended)     | 1     |
+| `src/graphics/shader/dsl/types.scala` (extended) | 1     |
+| `src/graphics/shader/dsl/fn.scala` (extended)    | 1     |
+| `test/shader/IntDsl.test.scala`                  | 1     |
+| `src/graphics/shader/lib/random/hash.scala`      | 2     |
+| `test/shader/lib/HashFns.test.scala`             | 2     |
+| `src/graphics/shader/lib/random/simplex.scala`   | 4a    |
+| `test/shader/lib/SimplexFns.test.scala`          | 4a    |
+| `src/graphics/shader/lib/random/psrdnoise.scala` | 4b    |
+| `test/shader/lib/PsrdnoiseFns.test.scala`        | 4b    |
+| `examples/noise_tests/`                          | 6     |
 
 **Deviations from plan:**
 
-- Phase 4a: `simplexNoise4d` and `tilingSimplexNoise2d` were skipped — the
-  `noise_tests` example covers all other variants and the 4D/torus functions
-  were not required to demonstrate correctness. They can be added later
-  as purely additive changes.
+- Phase 4a: `simplexNoise4d` and `tilingSimplexNoise2d` were initially skipped
+  but later added (ported from the same Rust source). Three porting bugs were
+  found and fixed against the canonical Stegu GLSL + LYGIA WGSL references:
+  (1) `step` arg order swapped on `is_x` / `is_yz` rank-sort, (2) `permute_1_`
+  used `+ 10.0` instead of `+ 1.0`, (3) `grad_4_` sign correction inverted
+  (`step(0, p)` instead of `lessThan(p, 0)`, fixed by `1.0 - step(0, p)`).
+  Both shaders now render correctly. References are checked into
+  `src/graphics/shader/lib/random/` (see Companion documents above).
 - Phase 4a: seeded variants (`simplexNoise2dSeeded`, `simplexNoise3dSeeded`,
   `fbmSimplex2dSeeded`, `fbmSimplex3dSeeded`) were added beyond the plan scope,
   matching the Rust `noisy_bevy` port. Worley 2D (`worley2d`) was also added.
 - Phase 4b naming: functions follow the Rust `trivalibs_nostd` naming
   (`tilingRotNoise2d`, `tilingNoise2d`, `rotNoise2d`) rather than the plan's
-  `psrdNoise2d` alias — more descriptive and consistent with the upstream prefix.
-- Phase 6: 16 panels (vs. plan's 7) — all hash and noise variants are exercised
-  individually rather than grouped. Simplex 4D and tiling panels were replaced
-  with panels for seeded variants, Worley, and all psrdnoise sub-functions.
+  `psrdNoise2d` alias — more descriptive and consistent with the upstream
+  prefix.
+- Phase 6: 18 panels (vs. plan's 7) — all hash and noise variants are exercised
+  individually rather than grouped: hash, 2D/3D/4D simplex, 2D/3D seeded,
+  2D/3D fBm + seeded, tiling simplex 2D, Worley, plus six psrdnoise
+  sub-functions. The 18 shaders are now generated through a nested
+  `aspectShade(fns*)((uv, t, r, out) => Block)` helper that bakes in the
+  shared boilerplate (program.fn registrations including `aspectUv`, plus
+  ctx access). Hash and tiling-simplex shaders stay inline (different
+  shape).
 
 ---
 
@@ -1108,9 +1133,9 @@ reference point; re-using it wholesale is the cheapest path.
 
 ## 7. Phase 6 — Port the Rust `noise_tests` verification example
 
-> **Status: ✅ Complete.** `examples/noise_tests/` is shipped and compiles.
-> 16 panels cycle on click, covering all hash and noise variants. Dev servers
-> and the index page are updated. See the status table for panel-count deviation.
+> **Status: ✅ Complete.** `examples/noise_tests/` is shipped and compiles. 16
+> panels cycle on click, covering all hash and noise variants. Dev servers and
+> the index page are updated. See the status table for panel-count deviation.
 
 **Location:** `examples/noise_tests/` (new example dir, parallels the existing
 `examples/blur`, `examples/painter_dsl`, etc.).

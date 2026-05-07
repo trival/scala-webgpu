@@ -1,5 +1,44 @@
 # Shader DSL Control Flow Plan
 
+## Status: Implemented (2026-05-06)
+
+All planned items shipped, with two minor naming/shape deviations:
+
+- **`when` / `ifElse` are comma-form, not curried** —
+  `when(cond, body)` / `ifElse(cond, thenBody, elseBody)`
+  ([expr.scala:881-885](../src/graphics/math/gpu/expr.scala#L881-L885)).
+  The `Conversion[Stmt, Block]` already lets a single statement pass without
+  `Block(...)` wrapping, so currying for brace syntax wasn't needed.
+- **`BoolExpr.then` → `BoolExpr.thenDo`** — `then` is a Scala reserved soft
+  keyword in some positions; `thenDo` avoids the clash
+  ([expr.scala:896](../src/graphics/math/gpu/expr.scala#L896)).
+
+Shipped:
+
+- BoolExpr-returning `<`, `<=`, `>`, `>=`, `===`, `!==` on `FloatExpr`,
+  `IntExpr`, `UIntExpr`
+  ([expr.scala:366-376, 993-1017](../src/graphics/math/gpu/expr.scala#L366-L376)).
+- `&&`, `||`, `unary_!` on `BoolExpr`
+  ([expr.scala:903-909](../src/graphics/math/gpu/expr.scala#L903-L909)).
+- Both `select` forms — function (WGSL order) and `BoolExpr.select` extension
+  (flipped) ([expr.scala:875-892](../src/graphics/math/gpu/expr.scala#L875-L892)).
+- `Stmt.ifBlock` / `Stmt.ifElseBlock` with re-indented bodies
+  ([expr.scala:851-854](../src/graphics/math/gpu/expr.scala#L851-L854)).
+- Top-level `when` / `ifElse`, plus `BoolExpr.thenDo` / `BoolExpr.thenElse`
+  ([expr.scala:881-900](../src/graphics/math/gpu/expr.scala#L881-L900)).
+- Tests covering each operator and statement form, including nesting/indent
+  ([test/shader/ControlFlow.test.scala](../test/shader/ControlFlow.test.scala)).
+- `hashDisplay` rewritten as DSL using nested `ifElse` + `ifChain`
+  ([examples/noise_tests/NoiseTests.scala:23-68](../examples/noise_tests/NoiseTests.scala#L23-L68)).
+- **`elseIf` chain builder** — `ifChain(c, b).elseIf(c, b)...elseDo(b)`
+  ([expr.scala](../src/graphics/math/gpu/expr.scala)). `elseDo` (not `orElse`)
+  to avoid clashing with `trivalibs.utils.js.Opt.orElse`. `IfChain` is an
+  opaque String alias with implicit conversions to `Stmt` and `Block`, so a
+  chain without a final else can be used directly as a statement.
+
+Deferred items from "Out of Scope" remain deferred (loops, numeric `&&`/`||`/`!`,
+numeric `eq`/`ne`, vector bool ops, `switch`).
+
 ## Context
 
 The `hash_display` function in

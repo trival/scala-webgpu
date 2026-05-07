@@ -884,6 +884,25 @@ def when(cond: BoolExpr, body: Block): Stmt = Stmt.ifBlock(cond, body)
 def ifElse(cond: BoolExpr, thenBody: Block, elseBody: Block): Stmt =
   Stmt.ifElseBlock(cond, thenBody, elseBody)
 
+/** Multi-branch `if / else if / ... [/ else]` chain. Start with `ifChain`,
+  * append `.elseIf(...)` for each additional branch, terminate with
+  * `.orElse(...)` for a final else, or use the chain directly as a `Stmt`
+  * for an open-ended chain.
+  */
+opaque type IfChain = String
+
+def ifChain(cond: BoolExpr, body: Block): IfChain =
+  s"  if (${cond.wgsl}) {\n${indentBlock(body)}\n  }"
+
+extension (chain: IfChain)
+  def elseIf(cond: BoolExpr, body: Block): IfChain =
+    s"$chain else if (${cond.wgsl}) {\n${indentBlock(body)}\n  }"
+  def elseDo(body: Block): Stmt =
+    s"$chain else {\n${indentBlock(body)}\n  }"
+
+given Conversion[IfChain, Stmt] = c => c
+given Conversion[IfChain, Block] = c => c
+
 extension (cond: BoolExpr)
   /** Branchless conditional: `cond.select(onTrue, onFalse)`. */
   @annotation.targetName("boolSelect")

@@ -179,6 +179,35 @@ class ControlFlowTest extends FunSuite:
     )
 
   // ---------------------------------------------------------------------------
+  // ifChain / elseIf / orElse — multi-branch chain builder
+  // ---------------------------------------------------------------------------
+
+  test("ifChain + orElse generates if / else if / else"):
+    val s = ifChain(BoolExpr("c1"), Stmt.let("x", FloatExpr("1.0")))
+      .elseIf(BoolExpr("c2"), Stmt.let("x", FloatExpr("2.0")))
+      .elseDo(Stmt.let("x", FloatExpr("3.0")))
+    val expected =
+      """  if (c1) {
+        |    let x = 1.0;
+        |  } else if (c2) {
+        |    let x = 2.0;
+        |  } else {
+        |    let x = 3.0;
+        |  }""".stripMargin
+    assertEquals(s: String, expected)
+
+  test("ifChain without orElse acts as Stmt"):
+    val s: Stmt = ifChain(BoolExpr("c1"), Stmt.let("x", FloatExpr("1.0")))
+      .elseIf(BoolExpr("c2"), Stmt.let("x", FloatExpr("2.0")))
+    val expected =
+      """  if (c1) {
+        |    let x = 1.0;
+        |  } else if (c2) {
+        |    let x = 2.0;
+        |  }""".stripMargin
+    assertEquals(s: String, expected)
+
+  // ---------------------------------------------------------------------------
   // Integration — control flow inside WgslFn.dsl
   // ---------------------------------------------------------------------------
 
