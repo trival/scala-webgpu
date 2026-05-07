@@ -69,7 +69,7 @@ class PerspectiveCamera private (
   // ---- Matrix accessors ----
 
   def projectionMat: Mat4 = proj
-  def viewMat: Mat4 = transform.toMatrix.inverse
+  def viewMat: Mat4 = transform.matrix.inverse
   def viewProjMat: Mat4 = projectionMat * viewMat
 
   // ---- Ground reflection (for water / mirror effects) ----

@@ -230,10 +230,10 @@ def main(): Unit =
       val shapePV = shapeCam.viewProjMat
       val canvasPV = canvasCam.viewProjMat
 
-      triMvp.set(shapePV * triTransform.toMatrix)
-      quadMvp.set(shapePV * quadTransform.toMatrix)
-      leftMvp.set(canvasPV * leftTransform.toMatrix)
-      rightMvp.set(canvasPV * rightTransform.toMatrix)
+      triMvp.set(shapePV * triTransform.matrix)
+      quadMvp.set(shapePV * quadTransform.matrix)
+      leftMvp.set(canvasPV * leftTransform.matrix)
+      rightMvp.set(canvasPV * rightTransform.matrix)
 
       p.paint(trianglePanel, quadPanel, canvasPanel)
       p.show(canvasPanel)

@@ -55,7 +55,7 @@ extension (t: Transform)
 
   // ---- Matrix output ----
 
-  def toMatrix: Mat4 =
+  def matrix: Mat4 =
     Mat4.fromTranslationRotationScale(t.translation, t.rotation, t.scale)
 
   // ---- Local axes (derived from rotation) ----
