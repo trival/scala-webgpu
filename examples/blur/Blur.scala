@@ -5,6 +5,7 @@ import graphics.math.cpu.{*, given}
 import graphics.math.gpu.{*, given}
 import graphics.painter.*
 import graphics.shader.dsl.{*, given}
+import graphics.shader.lib.blur.Blur
 import graphics.shader.{*, given}
 import graphics.utils.animation.animate
 import org.scalajs.dom.HTMLCanvasElement
@@ -15,22 +16,6 @@ import trivalibs.utils.numbers.NumExt.given
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
-
-// 9-tap Gaussian blur (optimized linear sampling — 5 texture fetches)
-val gaussianBlur9: WgslFn[
-  (tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir: Vec2),
-  Vec4,
-] =
-  WgslFn.raw("gaussian_blur_9"):
-    """  var color = vec4(0.0);
-  let off1 = vec2<f32>(1.3846153846) * dir / res;
-  let off2 = vec2<f32>(3.2307692308) * dir / res;
-  color += textureSample(tex, s, uv)        * 0.2270270270;
-  color += textureSample(tex, s, uv + off1) * 0.3162162162;
-  color += textureSample(tex, s, uv - off1) * 0.3162162162;
-  color += textureSample(tex, s, uv + off2) * 0.0702702703;
-  color += textureSample(tex, s, uv - off2) * 0.0702702703;
-  return color;"""
 
 @JSExportTopLevel("main", moduleID = "blur")
 def main(): Unit =
@@ -81,9 +66,9 @@ def main(): Unit =
     type BlurPanels = (source: FragmentPanel)
 
     val blurShade = painter.layerShade[BlurUniforms, BlurPanels]: program =>
-      program.fn(gaussianBlur9)
+      program.fn(Blur.gaussianBlur9)
       program.frag: ctx =>
-        ctx.out.color := gaussianBlur9(
+        ctx.out.color := Blur.gaussianBlur9(
           ctx.textures.source,
           ctx.bindings.blurSampler,
           ctx.in.uv,

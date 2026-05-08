@@ -48,11 +48,11 @@ implementations (`src/graphics/shader/lib/random/`):
 | ----- | ------------------------------------------------------ | ----------------------------------- |
 | 1     | Integer DSL integration                                | ✅ Complete                         |
 | 2     | Port `hash.rs`                                         | ✅ Complete                         |
-| 3     | Port `color.rs` + `coords.rs`                          | ⬜ Not started                      |
+| 3     | Port `color.rs` + `coords.rs`                          | ✅ Complete                         |
 | 4a    | Simplex noise — Gustavson classic 2D/3D + fBm + Worley | ✅ Complete                         |
 | 4a    | Simplex noise — 4D + tiling via torus                  | ✅ Complete                         |
 | 4b    | PSRD-noise 2D + 3D (tiling, rotating, derivatives)     | ✅ Complete                         |
-| 5     | Gaussian blur library consolidation                    | ⬜ Not started                      |
+| 5     | Gaussian blur library consolidation                    | ✅ Complete                         |
 | 6     | `noise_tests` example                                  | ✅ Complete                         |
 
 **Files shipped:**
@@ -73,6 +73,12 @@ implementations (`src/graphics/shader/lib/random/`):
 | `src/graphics/shader/lib/random/psrdnoise.scala` | 4b    |
 | `test/shader/lib/PsrdnoiseFns.test.scala`        | 4b    |
 | `examples/noise_tests/`                          | 6     |
+| `src/graphics/shader/lib/color/color.scala`      | 3     |
+| `src/graphics/shader/lib/coords/polar.scala`     | 3     |
+| `src/graphics/shader/lib/blur/blur.scala`        | 5     |
+| `test/shader/lib/ColorFns.test.scala`            | 3     |
+| `test/shader/lib/CoordsFns.test.scala`           | 3     |
+| `test/shader/lib/BlurFns.test.scala`             | 5     |
 
 **Deviations from plan:**
 
