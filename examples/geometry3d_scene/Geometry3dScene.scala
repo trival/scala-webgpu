@@ -64,7 +64,6 @@ def main(): Unit =
       terrainGrid.addCol(col)
 
     val terrainMesh = Mesh(terrainGrid.ccwQuads)
-    terrainMesh.ensureFaceNormals()
 
     val terrainGeo = toBufferedGeometryN(
       terrainMesh,
@@ -112,7 +111,6 @@ def main(): Unit =
         radius: Double,
     ) =
       val mesh = sphereMesh(vSegs, hSegs)((p, _) => p * radius + center)
-      mesh.ensureFaceNormals()
       val geo = toBufferedGeometryN(
         mesh,
         MeshBufferType.FaceVerticesWithVertexNormal,
@@ -130,12 +128,6 @@ def main(): Unit =
     // Camera and panel
     // -------------------------------------------------------------------------
 
-    val viewProjBinding = painter.binding(Mat4.identity)
-    val aspect = canvas.width.toDouble / canvas.height.toDouble
-    val proj = Mat4.perspective(Math.PI / 4.0, aspect, 0.1, 200.0)
-    val view = Mat4.lookAt(-5.0, 15.0, 25.0, 3.0, 1.0, 5.0, 0.0, 1.0, 0.0)
-    viewProjBinding.set(proj * view)
-
     val sceneShapes = Arr(
       terrainShape,
       towerShape,
@@ -151,10 +143,11 @@ def main(): Unit =
         depthTest = true,
         shapes = sceneShapes,
       )
-      .bind("viewProj" := viewProjBinding)
+
+    val view = Mat4.lookAt(-5.0, 15.0, 25.0, 3.0, 1.0, 5.0, 0.0, 1.0, 0.0)
 
     painter.onResize: (w, h) =>
       val p = Mat4.perspective(Math.PI / 4.0, w / h, 0.1, 200.0)
-      viewProjBinding.set(p * view)
+      panel.bind("viewProj" := p * view)
       painter.paint(panel)
       painter.show(panel)
