@@ -522,7 +522,7 @@ class Painter(
   // Panel factory
   // =========================================================================
 
-  def panel[S <: Shape[?, ?]](
+  def panel[S <: AnyShape, L <: AnyLayer](
       width: Maybe[Int] = Maybe.Not,
       height: Maybe[Int] = Maybe.Not,
       clearColor: Maybe[Opt[ClearColor]] = Maybe.Not,
@@ -533,8 +533,8 @@ class Painter(
       formats: Maybe[Arr[String]] = Maybe.Not,
       shape: Maybe[S] = Maybe.Not,
       shapes: Maybe[Arr[S]] = Maybe.Not,
-      layer: Maybe[Layer[?, ?]] = Maybe.Not,
-      layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
+      layer: Maybe[L] = Maybe.Not,
+      layers: Maybe[Arr[L]] = Maybe.Not,
   ): Panel = Panel(this).set(
     width = width,
     height = height,
@@ -555,7 +555,7 @@ class Painter(
   // =========================================================================
 
   def draw(
-      shape: Shape[?, ?],
+      shape: AnyShape,
       clearColor: Opt[(Double, Double, Double, Double)] = null,
   ): Unit =
     val encoder = device.createCommandEncoder()
@@ -1077,7 +1077,7 @@ class Painter(
 
   private def renderShapeOnPass(
       pass: GPURenderPassEncoder,
-      shape: Shape[?, ?],
+      shape: AnyShape,
       depthTest: Boolean = false,
       multisample: Boolean = false,
       formats: Arr[String] = null,
@@ -1147,7 +1147,7 @@ class Painter(
 
   private def renderLayerOnPass(
       pass: GPURenderPassEncoder,
-      layer: Layer[?, ?],
+      layer: AnyLayer,
       depthTest: Boolean = false,
       multisample: Boolean = false,
       formats: Arr[String] = null,
