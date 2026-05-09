@@ -152,8 +152,8 @@ class Mesh[T: Position]:
     m
 
 extension [T: Position](m: Mesh[T])
-  def addFaces(
-      faces: Arr[Face[T]],
+  def addFaces[F <: Face[T]](
+      faces: Arr[F],
       normal: Opt[Vec3] = null,
       section: Int = 0,
   ): Unit =
@@ -163,8 +163,8 @@ extension [T: Position](m: Mesh[T])
       i += 1
 
 object Mesh:
-  def apply[T: Position](
-      faces: Arr[Face[T]],
+  def apply[T: Position, F <: Face[T]](
+      faces: Arr[F],
       normal: Opt[Vec3] = null,
       section: Int = 0,
   ): Mesh[T] =

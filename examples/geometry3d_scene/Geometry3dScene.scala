@@ -5,7 +5,6 @@ import graphics.geometry.{*, given}
 import graphics.math.cpu.*
 import graphics.math.cpu.Mat4
 import graphics.math.cpu.Vec3
-import graphics.math.cpu.Vec3Buffer
 import graphics.math.cpu.given
 import graphics.math.gpu.{*, given}
 import graphics.painter.*
@@ -14,6 +13,7 @@ import graphics.shader.{*, given}
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.document
 import trivalibs.utils.js.*
+import trivalibs.utils.numbers.NumExt.given
 
 import scala.scalajs.js.annotation.*
 
@@ -25,7 +25,6 @@ def main(): Unit =
     type SceneAttribs = (position: Vec3, normal: Vec3)
     type SceneVaryings = (normal: Vec3)
     type SceneUniforms = (viewProj: VertexUniform[Mat4])
-    type SceneFields = (Vec3Buffer, Vec3Buffer)
 
     val shade = painter.shade[SceneAttribs, SceneVaryings, SceneUniforms]:
       program =>
@@ -49,11 +48,6 @@ def main(): Unit =
             ctx.out.color := vec4(c, 1.0),
           )
 
-    val writeVertex: VertexWriterN[Vec3, SceneFields] =
-      (pos, normal, ref) =>
-        ref.set0(pos.x.toFloat, pos.y.toFloat, pos.z.toFloat)
-        ref.set1(normal.x.toFloat, normal.y.toFloat, normal.z.toFloat)
-
     // -------------------------------------------------------------------------
     // Terrain — 24×24 wave grid with smooth vertex normals
     // -------------------------------------------------------------------------
@@ -65,18 +59,16 @@ def main(): Unit =
       for gz <- 0 to segments do
         val wx = (gx - segments / 2).toDouble
         val wz = (gz - segments / 2).toDouble
-        val wy = Math.sin(wx * 0.45) * Math.cos(wz * 0.35) * 0.9
+        val wy = (wx * 0.45).sin * (wz * 0.35).cos * 0.9
         col.push(Vec3(wx, wy, wz))
       terrainGrid.addCol(col)
 
-    val terrainMesh = Mesh(terrainGrid.ccwQuads.asInstanceOf[Arr[Face[Vec3]]])
+    val terrainMesh = Mesh(terrainGrid.ccwQuads)
     terrainMesh.ensureFaceNormals()
 
-    val terrainGeo = toBufferedGeometry[Vec3, SceneFields](
+    val terrainGeo = toBufferedGeometryN(
       terrainMesh,
       MeshBufferType.FaceVerticesWithVertexNormal,
-      null,
-      writeVertex,
     )
     val terrainShape = painter.shape(
       painter.form(geometry = terrainGeo),
@@ -94,11 +86,9 @@ def main(): Unit =
       faces.foreach: (face, normal) =>
         mesh.addFace(face, normal)
 
-      val geo = toBufferedGeometry[Vec3, SceneFields](
+      val geo = toBufferedGeometryN(
         mesh,
         MeshBufferType.FaceVerticesWithFaceNormal,
-        null,
-        writeVertex,
       )
       painter.shape(
         painter.form(geometry = geo),
@@ -123,11 +113,9 @@ def main(): Unit =
     ) =
       val mesh = sphereMesh(vSegs, hSegs)((p, _) => p * radius + center)
       mesh.ensureFaceNormals()
-      val geo = toBufferedGeometry[Vec3, SceneFields](
+      val geo = toBufferedGeometryN(
         mesh,
         MeshBufferType.FaceVerticesWithVertexNormal,
-        null,
-        writeVertex,
       )
       painter.shape(
         painter.form(geometry = geo),
