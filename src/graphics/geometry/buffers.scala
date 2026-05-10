@@ -6,16 +6,17 @@ import graphics.math.cpu.Vec3
 import graphics.math.cpu.Vec3Buffer
 import graphics.math.cpu.Vec4
 import graphics.math.cpu.Vec4Buffer
+import trivalibs.bufferdata.StructArray
+import trivalibs.bufferdata.StructRef
+import trivalibs.bufferdata.ValueTuple
+import trivalibs.utils.js.*
+
 import scala.NamedTuple.AnyNamedTuple
 import scala.compiletime.erasedValue
 import scala.compiletime.summonFrom
 import scala.scalajs.js
 import scala.scalajs.js.typedarray.Uint16Array
 import scala.scalajs.js.typedarray.Uint32Array
-import trivalibs.bufferdata.StructArray
-import trivalibs.bufferdata.StructRef
-import trivalibs.bufferdata.ValueTuple
-import trivalibs.utils.js.*
 
 // ===========================================================================
 // FieldWriter — single CPU vec/mat → its buffer-tuple value
@@ -29,14 +30,14 @@ trait FieldWriter[T, B <: Tuple]:
 
 object FieldWriter:
   given vec2Writer: FieldWriter[Vec2, Vec2Buffer]:
-    def value(v: Vec2): Tuple = (v.x.toFloat, v.y.toFloat)
+    def value(v: Vec2): Tuple = (v.x, v.y)
 
   given vec3Writer: FieldWriter[Vec3, Vec3Buffer]:
-    def value(v: Vec3): Tuple = (v.x.toFloat, v.y.toFloat, v.z.toFloat)
+    def value(v: Vec3): Tuple = (v.x, v.y, v.z)
 
   given vec4Writer: FieldWriter[Vec4, Vec4Buffer]:
     def value(v: Vec4): Tuple =
-      (v.x.toFloat, v.y.toFloat, v.z.toFloat, v.w.toFloat)
+      (v.x, v.y, v.z, v.w)
 
 // ===========================================================================
 // VertexLayout — positional walk producing a flat buffer fields tuple F
@@ -50,8 +51,7 @@ trait VertexLayoutHelper[T, F <: Tuple]:
 
 object VertexLayoutHelper:
   given leaf: [T, B <: Tuple]
-    => FieldWriter[T, B]
-    => VertexLayoutHelper[T, B *: EmptyTuple]:
+    => FieldWriter[T, B] => VertexLayoutHelper[T, B *: EmptyTuple]:
     def value(t: T): Tuple = summon[FieldWriter[T, B]].value(t) *: EmptyTuple
 
   given nil: VertexLayoutHelper[EmptyTuple, EmptyTuple]:
@@ -59,8 +59,7 @@ object VertexLayoutHelper:
 
   given cons: [H, HB <: Tuple, Tail <: Tuple, TF <: Tuple]
     => FieldWriter[H, HB]
-    => VertexLayoutHelper[Tail, TF]
-    => VertexLayoutHelper[H *: Tail, HB *: TF]:
+    => VertexLayoutHelper[Tail, TF] => VertexLayoutHelper[H *: Tail, HB *: TF]:
     def value(t: H *: Tail): Tuple =
       summon[FieldWriter[H, HB]].value(t.head)
         *: summon[VertexLayoutHelper[Tail, TF]].value(t.tail)
@@ -71,14 +70,12 @@ trait VertexLayout[T, F <: Tuple]:
 object VertexLayout:
   // Direct: T is a leaf or positional tuple — defer to the helper.
   given direct: [T, F <: Tuple]
-    => VertexLayoutHelper[T, F]
-    => VertexLayout[T, F]:
+    => VertexLayoutHelper[T, F] => VertexLayout[T, F]:
     def value(t: T): Tuple = summon[VertexLayoutHelper[T, F]].value(t)
 
   // Named tuple / case class — strip names and route to the helper.
   given named: [T <: AnyNamedTuple, F <: Tuple]
-    => VertexLayoutHelper[NamedTuple.DropNames[T], F]
-    => VertexLayout[T, F]:
+    => VertexLayoutHelper[NamedTuple.DropNames[T], F] => VertexLayout[T, F]:
     def value(t: T): Tuple =
       summon[VertexLayoutHelper[NamedTuple.DropNames[T], F]]
         .value(t.asInstanceOf[NamedTuple.DropNames[T]])
@@ -115,7 +112,7 @@ class BufferedGeometry[F <: Tuple](
 opaque type MeshBufferType[Extra <: Tuple] = Int
 
 object MeshBufferType:
-  opaque type NoExtra <: Tuple    = EmptyTuple
+  opaque type NoExtra <: Tuple = EmptyTuple
   opaque type WithNormal <: Tuple = Vec3Buffer *: EmptyTuple
 
   val FaceVertices: MeshBufferType[NoExtra] = 0
@@ -139,17 +136,16 @@ transparent inline def toBufferedGeometry[T: Position, Extra <: Tuple](
     case vl: VertexLayout[T, f] =>
       inline erasedValue[Extra] match
         case _: MeshBufferType.NoExtra =>
-          val write: WriteOne[T, f] = (v, ref) =>
-            ref.set(vl.value(v).asInstanceOf[ValueTuple[f]])
+          val write: WriteOne[T, f] =
+            (v, ref) => ref.set(vl.value(v).asInstanceOf[ValueTuple[f]])
           if bufferType == MeshBufferType.FaceVertices then
             buildFaceVertices[T, f](mesh, write)
-          else
-            buildCompactVertices[T, f](mesh, write)
+          else buildCompactVertices[T, f](mesh, write)
 
         case _: MeshBufferType.WithNormal =>
           type FN = Tuple.Concat[f, Vec3Buffer *: EmptyTuple]
           val writeN: WriteOneN[T, FN] = (v, n, ref) =>
-            val nVal = (n.x.toFloat, n.y.toFloat, n.z.toFloat)
+            val nVal = (n.x, n.y, n.z)
             ref.set(
               (vl.value(v) ++ (nVal *: EmptyTuple))
                 .asInstanceOf[ValueTuple[FN]],
@@ -158,8 +154,7 @@ transparent inline def toBufferedGeometry[T: Position, Extra <: Tuple](
             buildFaceVerticesWithFaceNormal[T, FN](mesh, writeN)
           else if bufferType == MeshBufferType.FaceVerticesWithVertexNormal then
             buildFaceVerticesWithVertexNormal[T, FN](mesh, writeN)
-          else
-            buildCompactVerticesWithNormal[T, FN](mesh, writeN)
+          else buildCompactVerticesWithNormal[T, FN](mesh, writeN)
 
 // ---------------------------------------------------------------------------
 // Strategy implementations

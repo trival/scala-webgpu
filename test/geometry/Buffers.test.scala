@@ -12,6 +12,17 @@ class BuffersTest extends FunSuite:
   type XYZ = (F32, F32, F32)
   type XYZXYZ = (F32, F32, F32, F32, F32, F32)
 
+  def writePos(v: Vec3, ref: StructRef[XYZ]): Unit =
+    ref.setAt(0)(v.x.toFloat)
+    ref.setAt(1)(v.y.toFloat)
+    ref.setAt(2)(v.z.toFloat)
+
+  def writePosNorm(v: Vec3, n: Vec3, ref: StructRef[XYZXYZ]): Unit =
+    ref.setAt(0)(v.x.toFloat); ref.setAt(1)(v.y.toFloat);
+    ref.setAt(2)(v.z.toFloat)
+    ref.setAt(3)(n.x.toFloat); ref.setAt(4)(n.y.toFloat);
+    ref.setAt(5)(n.z.toFloat)
+
   // A simple unit-square mesh: 2 triangles sharing 4 vertices
   //   (0,1)----(1,1)
   //     |  \    |
