@@ -2,9 +2,9 @@ package graphics.shader.dsl
 
 import graphics.math.cpu.*
 import graphics.math.gpu.*
-import graphics.math.gpu.{IVec2, IVec3, IVec4, UInt, UVec2, UVec3, UVec4}
 import graphics.shader.WGSLType
 import trivalibs.utils.js.Arr
+
 import scala.NamedTuple.AnyNamedTuple
 import scala.compiletime.*
 
@@ -197,7 +197,11 @@ object WgslFn:
 
   // Arity 3 — unnamed
   extension [N1, N2, N3, R](fn: WgslFn[N1 *: N2 *: N3 *: EmptyTuple, R])
-    inline def apply(a1: ToExpr[N1], a2: ToExpr[N2], a3: ToExpr[N3]): ToExpr[R] =
+    inline def apply(
+        a1: ToExpr[N1],
+        a2: ToExpr[N2],
+        a3: ToExpr[N3],
+    ): ToExpr[R] =
       callExpr[R](s"${nameOf(fn)}($a1, $a2, $a3)")
 
   // Arity 3 — named tuple
@@ -207,11 +211,17 @@ object WgslFn:
         N1 *: N2 *: N3 *: EmptyTuple,
       ], R]
   )
-    inline def apply(a1: ToExpr[N1], a2: ToExpr[N2], a3: ToExpr[N3]): ToExpr[R] =
+    inline def apply(
+        a1: ToExpr[N1],
+        a2: ToExpr[N2],
+        a3: ToExpr[N3],
+    ): ToExpr[R] =
       callExpr[R](s"${nameOf(fn)}($a1, $a2, $a3)")
 
   // Arity 4 — unnamed
-  extension [N1, N2, N3, N4, R](fn: WgslFn[N1 *: N2 *: N3 *: N4 *: EmptyTuple, R])
+  extension [N1, N2, N3, N4, R](
+      fn: WgslFn[N1 *: N2 *: N3 *: N4 *: EmptyTuple, R]
+  )
     inline def apply(
         a1: ToExpr[N1],
         a2: ToExpr[N2],
@@ -387,4 +397,3 @@ class WgslFnCtx[P, L, R](
 class ReturnEmitter[R]:
   def apply(v: Expr): Stmt =
     Stmt.raw(s"  return ${v.wgsl};")
-

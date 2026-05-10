@@ -5,7 +5,8 @@ import trivalibs.bufferdata.StructArray
 import trivalibs.utils.js.*
 import webgpu.*
 
-import scala.scalajs.js.typedarray.{Uint16Array, Uint32Array}
+import scala.scalajs.js.typedarray.Uint16Array
+import scala.scalajs.js.typedarray.Uint32Array
 
 class Form(val painter: Painter):
   var vertexBuffer: Opt[GPUBuffer] = null
