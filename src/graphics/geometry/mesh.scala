@@ -13,15 +13,6 @@ class VertexPosition[T](val position: Vec3, val faces: Arr[PositionFaceRef])
 
 class FaceData(var normal: Opt[Vec3], val section: Int)
 
-opaque type MeshBufferType = Int
-
-object MeshBufferType:
-  val FaceVertices: MeshBufferType = 0
-  val FaceVerticesWithFaceNormal: MeshBufferType = 1
-  val FaceVerticesWithVertexNormal: MeshBufferType = 2
-  val CompactVertices: MeshBufferType = 3
-  val CompactVerticesWithNormal: MeshBufferType = 4
-
 class Mesh[T: Position]:
   val faces: Arr[Face[T]] = Arr()
   val faceData: Arr[FaceData] = Arr()

@@ -7,6 +7,7 @@ import graphics.math.cpu.Vec3Buffer
 import graphics.math.cpu.Vec4
 import graphics.math.cpu.Vec4Buffer
 import scala.NamedTuple.AnyNamedTuple
+import scala.compiletime.erasedValue
 import scala.compiletime.summonFrom
 import scala.scalajs.js
 import scala.scalajs.js.typedarray.Uint16Array
@@ -104,53 +105,61 @@ class BufferedGeometry[F <: Tuple](
 )
 
 // ---------------------------------------------------------------------------
-// Public entry points — transparent inline so F is concrete at every call
-// site, allowing StructArray.allocate[F] to evaluate constValue[TupleSize[F]].
+// MeshBufferType — phantom-typed strategy tag. The Extra type parameter
+// carries the buffer fields appended on top of the user vertex layout.
+// Both MeshBufferType and the Extra aliases are opaque, so user code cannot
+// construct new values or new Extra shapes. The inline match below is closed
+// in practice by the named vals.
 // ---------------------------------------------------------------------------
 
-transparent inline def toBufferedGeometry[T: Position](
-    mesh: Mesh[T],
-    bufferType: MeshBufferType,
-): Any =
-  summonFrom:
-    case vl: VertexLayout[T, f] =>
-      val write: WriteOne[T, f] = (v, ref) =>
-        ref.set(vl.value(v).asInstanceOf[ValueTuple[f]])
-      if bufferType == MeshBufferType.FaceVertices then
-        buildFaceVertices[T, f](mesh, write)
-      else if bufferType == MeshBufferType.CompactVertices then
-        buildCompactVertices[T, f](mesh, write)
-      else
-        throw js.JavaScriptException(
-          "toBufferedGeometry: bufferType "
-            + bufferType.toString
-            + " requires a normal — use toBufferedGeometryN instead",
-        )
+opaque type MeshBufferType[Extra <: Tuple] = Int
 
-transparent inline def toBufferedGeometryN[T: Position](
+object MeshBufferType:
+  opaque type NoExtra <: Tuple    = EmptyTuple
+  opaque type WithNormal <: Tuple = Vec3Buffer *: EmptyTuple
+
+  val FaceVertices: MeshBufferType[NoExtra] = 0
+  val CompactVertices: MeshBufferType[NoExtra] = 1
+  val FaceVerticesWithFaceNormal: MeshBufferType[WithNormal] = 2
+  val FaceVerticesWithVertexNormal: MeshBufferType[WithNormal] = 3
+  val CompactVerticesWithNormal: MeshBufferType[WithNormal] = 4
+
+// ---------------------------------------------------------------------------
+// Public entry point — transparent inline so F is concrete at every call
+// site, allowing StructArray.allocate[F] to evaluate constValue[TupleSize[F]].
+// Extra drives the field-tuple shape and writer choice at compile time;
+// the runtime if then picks among the build* functions in that branch.
+// ---------------------------------------------------------------------------
+
+transparent inline def toBufferedGeometry[T: Position, Extra <: Tuple](
     mesh: Mesh[T],
-    bufferType: MeshBufferType,
+    bufferType: MeshBufferType[Extra],
 ): Any =
   summonFrom:
     case vl: VertexLayout[T, f] =>
-      type FN = Tuple.Concat[f, Vec3Buffer *: EmptyTuple]
-      val writeN: WriteOneN[T, FN] = (v, n, ref) =>
-        val nVal = (n.x.toFloat, n.y.toFloat, n.z.toFloat)
-        ref.set(
-          (vl.value(v) ++ (nVal *: EmptyTuple)).asInstanceOf[ValueTuple[FN]],
-        )
-      if bufferType == MeshBufferType.FaceVerticesWithFaceNormal then
-        buildFaceVerticesWithFaceNormal[T, FN](mesh, writeN)
-      else if bufferType == MeshBufferType.FaceVerticesWithVertexNormal then
-        buildFaceVerticesWithVertexNormal[T, FN](mesh, writeN)
-      else if bufferType == MeshBufferType.CompactVerticesWithNormal then
-        buildCompactVerticesWithNormal[T, FN](mesh, writeN)
-      else
-        throw js.JavaScriptException(
-          "toBufferedGeometryN: bufferType "
-            + bufferType.toString
-            + " does not append a normal — use toBufferedGeometry instead",
-        )
+      inline erasedValue[Extra] match
+        case _: MeshBufferType.NoExtra =>
+          val write: WriteOne[T, f] = (v, ref) =>
+            ref.set(vl.value(v).asInstanceOf[ValueTuple[f]])
+          if bufferType == MeshBufferType.FaceVertices then
+            buildFaceVertices[T, f](mesh, write)
+          else
+            buildCompactVertices[T, f](mesh, write)
+
+        case _: MeshBufferType.WithNormal =>
+          type FN = Tuple.Concat[f, Vec3Buffer *: EmptyTuple]
+          val writeN: WriteOneN[T, FN] = (v, n, ref) =>
+            val nVal = (n.x.toFloat, n.y.toFloat, n.z.toFloat)
+            ref.set(
+              (vl.value(v) ++ (nVal *: EmptyTuple))
+                .asInstanceOf[ValueTuple[FN]],
+            )
+          if bufferType == MeshBufferType.FaceVerticesWithFaceNormal then
+            buildFaceVerticesWithFaceNormal[T, FN](mesh, writeN)
+          else if bufferType == MeshBufferType.FaceVerticesWithVertexNormal then
+            buildFaceVerticesWithVertexNormal[T, FN](mesh, writeN)
+          else
+            buildCompactVerticesWithNormal[T, FN](mesh, writeN)
 
 // ---------------------------------------------------------------------------
 // Strategy implementations

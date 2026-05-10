@@ -65,7 +65,7 @@ def main(): Unit =
 
     val terrainMesh = Mesh(terrainGrid.ccwQuads)
 
-    val terrainGeo = toBufferedGeometryN(
+    val terrainGeo = toBufferedGeometry(
       terrainMesh,
       MeshBufferType.FaceVerticesWithVertexNormal,
     )
@@ -85,7 +85,7 @@ def main(): Unit =
       faces.foreach: (face, normal) =>
         mesh.addFace(face, normal)
 
-      val geo = toBufferedGeometryN(
+      val geo = toBufferedGeometry(
         mesh,
         MeshBufferType.FaceVerticesWithFaceNormal,
       )
@@ -111,7 +111,7 @@ def main(): Unit =
         radius: Double,
     ) =
       val mesh = sphereMesh(vSegs, hSegs)((p, _) => p * radius + center)
-      val geo = toBufferedGeometryN(
+      val geo = toBufferedGeometry(
         mesh,
         MeshBufferType.FaceVerticesWithVertexNormal,
       )
