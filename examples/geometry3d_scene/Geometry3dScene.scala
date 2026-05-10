@@ -76,12 +76,12 @@ def main(): Unit =
     )
 
     // -------------------------------------------------------------------------
-    // Cuboids — flat face normals
+    // Boxes — flat face normals
     // -------------------------------------------------------------------------
 
-    def makeCuboidShape(cuboid: Cuboid) =
+    def makeBoxShape(box: Box) =
       val mesh = new Mesh[Vec3]()
-      val faces = cuboid.faces
+      val faces = box.faces
       faces.foreach: (face, normal) =>
         mesh.addFace(face, normal)
 
@@ -95,10 +95,10 @@ def main(): Unit =
         cullMode = CullMode.Back,
       )
 
-    val towerShape = makeCuboidShape(Cuboid(Vec3(3.0, 1.5, 3.0), 1.0, 3.0, 1.0))
+    val towerShape = makeBoxShape(Box(Vec3(3.0, 1.5, 3.0), 1.0, 3.0, 1.0))
     val platformShape =
-      makeCuboidShape(Cuboid(Vec3(8.0, 0.5, 4.5), 3.0, 1.0, 2.0))
-    val wallShape = makeCuboidShape(Cuboid(Vec3(4.5, 0.5, 10.0), 1.5, 1.0, 4.0))
+      makeBoxShape(Box(Vec3(8.0, 0.5, 4.5), 3.0, 1.0, 2.0))
+    val wallShape = makeBoxShape(Box(Vec3(4.5, 0.5, 10.0), 1.5, 1.0, 4.0))
 
     // -------------------------------------------------------------------------
     // Spheres — smooth vertex normals

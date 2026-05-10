@@ -10,22 +10,22 @@ class ShapesTest extends FunSuite:
   private val eps = 1e-9
 
   // ---------------------------------------------------------------------------
-  // Cuboid corners
+  // Box corners
   // ---------------------------------------------------------------------------
 
-  test("Cuboid(center, 1, 1, 1) unit cube corners"):
-    val c = Cuboid(Vec3(0, 0, 0), 1.0, 1.0, 1.0)
-    assert(c.frontTopLeft.approxEq(Vec3(-0.5,  0.5,  0.5)))
-    assert(c.frontTopRight.approxEq(Vec3( 0.5,  0.5,  0.5)))
-    assert(c.frontBottomLeft.approxEq(Vec3(-0.5, -0.5,  0.5)))
-    assert(c.frontBottomRight.approxEq(Vec3( 0.5, -0.5,  0.5)))
-    assert(c.backTopLeft.approxEq(Vec3(-0.5,  0.5, -0.5)))
-    assert(c.backTopRight.approxEq(Vec3( 0.5,  0.5, -0.5)))
+  test("Box(center, 1, 1, 1) unit cube corners"):
+    val c = Box(Vec3(0, 0, 0), 1.0, 1.0, 1.0)
+    assert(c.frontTopLeft.approxEq(Vec3(-0.5, 0.5, 0.5)))
+    assert(c.frontTopRight.approxEq(Vec3(0.5, 0.5, 0.5)))
+    assert(c.frontBottomLeft.approxEq(Vec3(-0.5, -0.5, 0.5)))
+    assert(c.frontBottomRight.approxEq(Vec3(0.5, -0.5, 0.5)))
+    assert(c.backTopLeft.approxEq(Vec3(-0.5, 0.5, -0.5)))
+    assert(c.backTopRight.approxEq(Vec3(0.5, 0.5, -0.5)))
     assert(c.backBottomLeft.approxEq(Vec3(-0.5, -0.5, -0.5)))
-    assert(c.backBottomRight.approxEq(Vec3( 0.5, -0.5, -0.5)))
+    assert(c.backBottomRight.approxEq(Vec3(0.5, -0.5, -0.5)))
 
-  test("Cuboid off-center corners"):
-    val c = Cuboid(Vec3(1, 2, 3), 2.0, 4.0, 6.0)
+  test("Box off-center corners"):
+    val c = Box(Vec3(1, 2, 3), 2.0, 4.0, 6.0)
     assert(c.frontTopLeft.approxEq(Vec3(0, 4, 6)))
     assert(c.backBottomRight.approxEq(Vec3(2, 0, 0)))
 
@@ -34,7 +34,7 @@ class ShapesTest extends FunSuite:
   // ---------------------------------------------------------------------------
 
   test("frontFace positions match frontXxx corners"):
-    val c = Cuboid.unit
+    val c = Box.unit
     val q = c.frontFace
     assert(q.tl.approxEq(c.frontTopLeft))
     assert(q.bl.approxEq(c.frontBottomLeft))
@@ -42,7 +42,7 @@ class ShapesTest extends FunSuite:
     assert(q.tr.approxEq(c.frontTopRight))
 
   test("backFace positions match backXxx corners"):
-    val c = Cuboid.unit
+    val c = Box.unit
     val q = c.backFace
     // back face: tl=backTopRight, bl=backBottomRight, br=backBottomLeft, tr=backTopLeft
     assert(q.tl.approxEq(c.backTopRight))
@@ -55,7 +55,7 @@ class ShapesTest extends FunSuite:
   // ---------------------------------------------------------------------------
 
   test("frontFace uvw.z == 0 for all vertices"):
-    val c = Cuboid.unit
+    val c = Box.unit
     val q = c.frontFace[(Vec3, Vec3)]((pos, uvw) => (pos, uvw))
     var i = 0
     while i < 4 do
@@ -63,7 +63,7 @@ class ShapesTest extends FunSuite:
       i += 1
 
   test("backFace uvw.z == 1 for all vertices"):
-    val c = Cuboid.unit
+    val c = Box.unit
     val q = c.backFace[(Vec3, Vec3)]((pos, uvw) => (pos, uvw))
     var i = 0
     while i < 4 do
@@ -71,7 +71,7 @@ class ShapesTest extends FunSuite:
       i += 1
 
   test("leftFace uvw.x == 0 for all vertices"):
-    val c = Cuboid.unit
+    val c = Box.unit
     val q = c.leftFace[(Vec3, Vec3)]((pos, uvw) => (pos, uvw))
     var i = 0
     while i < 4 do
@@ -79,7 +79,7 @@ class ShapesTest extends FunSuite:
       i += 1
 
   test("rightFace uvw.x == 1 for all vertices"):
-    val c = Cuboid.unit
+    val c = Box.unit
     val q = c.rightFace[(Vec3, Vec3)]((pos, uvw) => (pos, uvw))
     var i = 0
     while i < 4 do
@@ -87,7 +87,7 @@ class ShapesTest extends FunSuite:
       i += 1
 
   test("topFace uvw.y == 0 for all vertices"):
-    val c = Cuboid.unit
+    val c = Box.unit
     val q = c.topFace[(Vec3, Vec3)]((pos, uvw) => (pos, uvw))
     var i = 0
     while i < 4 do
@@ -95,7 +95,7 @@ class ShapesTest extends FunSuite:
       i += 1
 
   test("bottomFace uvw.y == 1 for all vertices"):
-    val c = Cuboid.unit
+    val c = Box.unit
     val q = c.bottomFace[(Vec3, Vec3)]((pos, uvw) => (pos, uvw))
     var i = 0
     while i < 4 do
@@ -107,14 +107,14 @@ class ShapesTest extends FunSuite:
   // ---------------------------------------------------------------------------
 
   test("faces returns 6 faces with correct normals"):
-    val c = Cuboid.unit
+    val c = Box.unit
     val expected = Arr(
-      Vec3( 0,  0,  1),
-      Vec3( 0,  0, -1),
-      Vec3(-1,  0,  0),
-      Vec3( 1,  0,  0),
-      Vec3( 0,  1,  0),
-      Vec3( 0, -1,  0),
+      Vec3(0, 0, 1),
+      Vec3(0, 0, -1),
+      Vec3(-1, 0, 0),
+      Vec3(1, 0, 0),
+      Vec3(0, 1, 0),
+      Vec3(0, -1, 0),
     )
     val fs = c.faces
     assertEquals(fs.length, 6)
@@ -129,15 +129,21 @@ class ShapesTest extends FunSuite:
 
   test("fromDimensionsCenter normal=(0,0,1) center=(0,3,0) width=4 height=2"):
     // Mirrors Rust test at lines 5793-5808
-    val q = Quad.fromDimensionsCenter[Vec3](4.0, 2.0, Vec3(0, 0, 1), Vec3(0, 3, 0)):
-      (pos, _) => pos
+    val q =
+      Quad.fromDimensionsCenter[Vec3](4.0, 2.0, Vec3(0, 0, 1), Vec3(0, 3, 0)):
+        (pos, _) => pos
     assert(q.tl.approxEq(Vec3(-2, 4, 0)))
     assert(q.bl.approxEq(Vec3(-2, 2, 0)))
-    assert(q.br.approxEq(Vec3( 2, 2, 0)))
-    assert(q.tr.approxEq(Vec3( 2, 4, 0)))
+    assert(q.br.approxEq(Vec3(2, 2, 0)))
+    assert(q.tr.approxEq(Vec3(2, 4, 0)))
     // UVs — access via index (no Position needed for Vec2)
-    val quv = Quad.fromDimensionsCenter[(Vec3, Vec2)](4.0, 2.0, Vec3(0, 0, 1), Vec3(0, 3, 0)):
-      (pos, uv) => (pos, uv)
+    val quv = Quad.fromDimensionsCenter[(Vec3, Vec2)](
+      4.0,
+      2.0,
+      Vec3(0, 0, 1),
+      Vec3(0, 3, 0),
+    ): (pos, uv) =>
+      (pos, uv)
     assertEqualsDouble(quv(0)._2.x, 0.0, eps) // tl uv = (0,0)
     assertEqualsDouble(quv(0)._2.y, 0.0, eps)
     assertEqualsDouble(quv(2)._2.x, 1.0, eps) // br uv = (1,1)
@@ -146,12 +152,18 @@ class ShapesTest extends FunSuite:
   test("fromDimensions with uvAtPivot=(1,1) bottom-right pivot"):
     // Mirrors Rust test at lines 5810-5829
     // normal=(0,3.3,0) ≈ (0,1,0), pivot=(0,0,0), uvAtPivot=(1,1), w=h=1
-    val q = Quad.fromDimensions[Vec3](1.0, 1.0, Vec3(0, 3.3, 0), Vec3(0, 0, 0), Vec2(1.0, 1.0)):
-      (pos, _) => pos
+    val q = Quad.fromDimensions[Vec3](
+      1.0,
+      1.0,
+      Vec3(0, 3.3, 0),
+      Vec3(0, 0, 0),
+      Vec2(1.0, 1.0),
+    ): (pos, _) =>
+      pos
     assert(q.tl.approxEq(Vec3(-1, 0, -1)))
-    assert(q.bl.approxEq(Vec3(-1, 0,  0)))
-    assert(q.br.approxEq(Vec3( 0, 0,  0)))
-    assert(q.tr.approxEq(Vec3( 0, 0, -1)))
+    assert(q.bl.approxEq(Vec3(-1, 0, 0)))
+    assert(q.br.approxEq(Vec3(0, 0, 0)))
+    assert(q.tr.approxEq(Vec3(0, 0, -1)))
 
   // ---------------------------------------------------------------------------
   // Quad.fromCorners
@@ -173,12 +185,14 @@ class ShapesTest extends FunSuite:
   // Quad.fromThreeCorners
   // ---------------------------------------------------------------------------
 
-  test("fromThreeCorners(BottomRight) recovers cuboid front face"):
-    val c = Cuboid.unit
+  test("fromThreeCorners(BottomRight) recovers box front face"):
+    val c = Box.unit
     val tl = c.frontTopLeft
     val bl = c.frontBottomLeft
     val tr = c.frontTopRight
-    val q = Quad.fromThreeCorners[Vec3](tl, bl, tr, QuadCorner.BottomRight)((pos, _) => pos)
+    val q = Quad.fromThreeCorners[Vec3](tl, bl, tr, QuadCorner.BottomRight)(
+      (pos, _) => pos,
+    )
     assert(q.br.approxEq(c.frontBottomRight))
 
   test("fromThreeCorners(TopLeft) recovers missing tl"):
@@ -187,7 +201,9 @@ class ShapesTest extends FunSuite:
     val br = Vec3(1, 0, 0)
     val tr = Vec3(1, 1, 0)
     val expected = Vec3(0, 1, 0) // tl = bl + tr - br
-    val q = Quad.fromThreeCorners[Vec3](bl, br, tr, QuadCorner.TopLeft)((pos, _) => pos)
+    val q = Quad.fromThreeCorners[Vec3](bl, br, tr, QuadCorner.TopLeft)(
+      (pos, _) => pos,
+    )
     assert(q.tl.approxEq(expected))
 
   test("fromThreeCorners(TopRight) recovers missing tr"):
@@ -196,7 +212,9 @@ class ShapesTest extends FunSuite:
     val bl = Vec3(0, 0, 0)
     val br = Vec3(1, 0, 0)
     val expected = Vec3(1, 1, 0) // tr = tl + br - bl
-    val q = Quad.fromThreeCorners[Vec3](tl, bl, br, QuadCorner.TopRight)((pos, _) => pos)
+    val q = Quad.fromThreeCorners[Vec3](tl, bl, br, QuadCorner.TopRight)(
+      (pos, _) => pos,
+    )
     assert(q.tr.approxEq(expected))
 
   // ---------------------------------------------------------------------------
