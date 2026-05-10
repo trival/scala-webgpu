@@ -6,6 +6,7 @@ import graphics.math.cpu.Vec3
 import graphics.math.cpu.Vec3Buffer
 import graphics.math.cpu.Vec4
 import graphics.math.cpu.Vec4Buffer
+import trivalibs.bufferdata.F32
 import trivalibs.bufferdata.StructArray
 import trivalibs.bufferdata.StructRef
 import trivalibs.bufferdata.ValueTuple
@@ -29,6 +30,12 @@ trait FieldWriter[T, B <: Tuple]:
   def value(t: T): Tuple
 
 object FieldWriter:
+  given floatWriter: FieldWriter[Float, F32 *: EmptyTuple]:
+    def value(f: Float): Tuple = f *: EmptyTuple
+
+  given doubleWriter: FieldWriter[Double, F32 *: EmptyTuple]:
+    def value(d: Double): Tuple = d.toFloat *: EmptyTuple
+
   given vec2Writer: FieldWriter[Vec2, Vec2Buffer]:
     def value(v: Vec2): Tuple = (v.x, v.y)
 
