@@ -34,7 +34,7 @@ object FieldWriter:
     def value(f: Float): Tuple = f *: EmptyTuple
 
   given doubleWriter: FieldWriter[Double, F32 *: EmptyTuple]:
-    def value(d: Double): Tuple = d.toFloat *: EmptyTuple
+    def value(d: Double): Tuple = d *: EmptyTuple
 
   given vec2Writer: FieldWriter[Vec2, Vec2Buffer]:
     def value(v: Vec2): Tuple = (v.x, v.y)
