@@ -2,10 +2,15 @@ package graphics.shader.lib.random
 
 // Imported and ported from https://www.shadertoy.com/view/WttXWX
 
-import graphics.math.cpu.{Vec2, Vec3, Vec4}
-import graphics.math.gpu.{UInt, UVec2, UVec3, UVec4}
-import graphics.shader.{given}
+import graphics.math.cpu.Vec2
+import graphics.math.cpu.Vec3
+import graphics.math.cpu.Vec4
+import graphics.math.gpu.UInt
+import graphics.math.gpu.UVec2
+import graphics.math.gpu.UVec3
+import graphics.math.gpu.UVec4
 import graphics.shader.dsl.WgslFn
+import graphics.shader.given
 
 object Hash:
 
@@ -22,10 +27,11 @@ object Hash:
   // from Chris Wellons https://nullprogram.com/blog/2018/07/31/
   // https://github.com/skeeto/hash-prospector
 
-  /** bias: 0.10760229515479501
-   *  Has excellent results if tested here: https://www.shadertoy.com/view/XlGcRh */
-  val hashU32: WgslFn[(x: UInt), UInt] =
-    WgslFn.raw("hash_u32"):
+  /** bias: 0.10760229515479501. Has excellent results if tested here:
+    * https://www.shadertoy.com/view/XlGcRh
+    */
+  val hash1i: WgslFn[(x: UInt), UInt] =
+    WgslFn.raw("hash1i"):
       """  var v = x;
   v ^= v >> 16u;
   v = v * 0x21f0aaadu;
@@ -33,10 +39,11 @@ object Hash:
   v = v * 0xd35a2d97u;
   return v ^ (v >> 15u);"""
 
-  /** bias: 0.020888578919738908 = minimal theoretic limit
-   *  Probably hashU32 is good enough for most cases. */
-  val hashU32Triple32: WgslFn[(x: UInt), UInt] =
-    WgslFn.raw("hash_u32_triple32"):
+  /** bias: 0.020888578919738908 = minimal theoretic limit Probably hash1i is
+    * good enough for most cases.
+    */
+  val hash1iTriple32: WgslFn[(x: UInt), UInt] =
+    WgslFn.raw("hash1i_triple32"):
       """  var v = x;
   v ^= v >> 17u;
   v = v * 0xed5ad4bbu;
@@ -46,10 +53,12 @@ object Hash:
   v = v * 0x31848babu;
   return v ^ (v >> 14u);"""
 
-  /** Hash a u32 to a normalised f32 in [0, 1). Calls hash_u32 and u32_to_f32. */
+  /** Hash a u32 to a normalised f32 in [0, 1). Calls hash1i and u32_to_f32.
+    */
   val hash1: WgslFn[(x: UInt), Float] =
-    WgslFn.raw("hash1")("  return u32_to_f32(hash_u32(x));")
-      .withDeps(hashU32, u32ToF32)
+    WgslFn
+      .raw("hash1")("  return u32_to_f32(hash1i(x));")
+      .withDeps(hash1i, u32ToF32)
 
   // ---------------------------------------------------------------------------
   // 2D → scalar (Inigo Quilez)
@@ -89,7 +98,8 @@ object Hash:
 
   /** Hash UVec2 to a normalised f32 in [0, 1). */
   val hash21: WgslFn[(p: UVec2), Float] =
-    WgslFn.raw("hash21")("  return u32_to_f32(hash21i(p));")
+    WgslFn
+      .raw("hash21")("  return u32_to_f32(hash21i(p));")
       .withDeps(hash21i, u32ToF32)
 
   // ---------------------------------------------------------------------------
@@ -102,8 +112,8 @@ object Hash:
   // see https://www.shadertoy.com/view/XlGcRh
 
   /** Hash UVec2 to UVec2. */
-  val hash2di: WgslFn[(v: UVec2), UVec2] =
-    WgslFn.raw("hash2di"):
+  val hash2i: WgslFn[(v: UVec2), UVec2] =
+    WgslFn.raw("hash2i"):
       """  var h = v;
   h = h * vec2<u32>(1664525u, 1013904223u);
   h.x = h.x + h.y * 1664525u;
@@ -115,19 +125,21 @@ object Hash:
   return h;"""
 
   /** Hash UVec2 to a Vec2 with components in [0, 1). */
-  val hash2d: WgslFn[(v: UVec2), Vec2] =
-    WgslFn.raw("hash2d")(
-      """  let h = hash2di(v);
+  val hash2: WgslFn[(v: UVec2), Vec2] =
+    WgslFn
+      .raw("hash2")(
+        """  let h = hash2i(v);
   return vec2<f32>(u32_to_f32(h.x), u32_to_f32(h.y));""",
-    ).withDeps(hash2di, u32ToF32)
+      )
+      .withDeps(hash2i, u32ToF32)
 
   // ---------------------------------------------------------------------------
   // 3D → 3D integer / float
   // ---------------------------------------------------------------------------
 
   /** Hash UVec3 to UVec3. */
-  val hash3di: WgslFn[(v: UVec3), UVec3] =
-    WgslFn.raw("hash3di"):
+  val hash3i: WgslFn[(v: UVec3), UVec3] =
+    WgslFn.raw("hash3i"):
       """  var h = v;
   h = h * vec3<u32>(1664525u, 1013904223u, 1013904223u);
   h.x = h.x + h.y * h.z;
@@ -140,19 +152,21 @@ object Hash:
   return h;"""
 
   /** Hash UVec3 to a Vec3 with components in [0, 1). */
-  val hash3d: WgslFn[(v: UVec3), Vec3] =
-    WgslFn.raw("hash3d")(
-      """  let h = hash3di(v);
+  val hash3: WgslFn[(v: UVec3), Vec3] =
+    WgslFn
+      .raw("hash3")(
+        """  let h = hash3i(v);
   return vec3<f32>(u32_to_f32(h.x), u32_to_f32(h.y), u32_to_f32(h.z));""",
-    ).withDeps(hash3di, u32ToF32)
+      )
+      .withDeps(hash3i, u32ToF32)
 
   // ---------------------------------------------------------------------------
   // 4D → 4D integer / float
   // ---------------------------------------------------------------------------
 
   /** Hash UVec4 to UVec4. */
-  val hash4di: WgslFn[(v: UVec4), UVec4] =
-    WgslFn.raw("hash4di"):
+  val hash4i: WgslFn[(v: UVec4), UVec4] =
+    WgslFn.raw("hash4i"):
       """  var h = v;
   h = h * vec4<u32>(1664525u, 1013904223u, 1013904223u, 1013904223u);
   h.x = h.x + h.y * h.w;
@@ -167,11 +181,13 @@ object Hash:
   return h;"""
 
   /** Hash UVec4 to a Vec4 with components in [0, 1). */
-  val hash4d: WgslFn[(v: UVec4), Vec4] =
-    WgslFn.raw("hash4d")(
-      """  let h = hash4di(v);
+  val hash4: WgslFn[(v: UVec4), Vec4] =
+    WgslFn
+      .raw("hash4")(
+        """  let h = hash4i(v);
   return vec4<f32>(u32_to_f32(h.x), u32_to_f32(h.y), u32_to_f32(h.z), u32_to_f32(h.w));""",
-    ).withDeps(hash4di, u32ToF32)
+      )
+      .withDeps(hash4i, u32ToF32)
 
   // ---------------------------------------------------------------------------
   // Float-input ergonomic wrappers
@@ -179,22 +195,27 @@ object Hash:
   // Both the wrapper and its underlying hash must be registered via program.fn.
   // ---------------------------------------------------------------------------
 
-  /** Hash a Float to a normalised f32 in [0, 1) by bit-reinterpreting as u32. */
-  val hash1FromFloat: WgslFn[(x: Float), Float] =
-    WgslFn.raw("hash1_from_float")("  return hash1(bitcast<u32>(x));")
+  /** Hash a Float to a normalised f32 in [0, 1) by bit-reinterpreting as u32.
+    */
+  val hash1f: WgslFn[(x: Float), Float] =
+    WgslFn
+      .raw("hash1f")("  return hash1(bitcast<u32>(x));")
       .withDeps(hash1)
 
   /** Hash a Vec2 to a Vec2 in [0, 1) by bit-casting to UVec2 first. */
-  val hash2dFromVec: WgslFn[(v: Vec2), Vec2] =
-    WgslFn.raw("hash2d_from_vec")("  return hash2d(bitcast<vec2<u32>>(v));")
-      .withDeps(hash2d)
+  val hash2f: WgslFn[(v: Vec2), Vec2] =
+    WgslFn
+      .raw("hash2f")("  return hash2(bitcast<vec2<u32>>(v));")
+      .withDeps(hash2)
 
   /** Hash a Vec3 to a Vec3 in [0, 1) by bit-casting to UVec3 first. */
-  val hash3dFromVec: WgslFn[(v: Vec3), Vec3] =
-    WgslFn.raw("hash3d_from_vec")("  return hash3d(bitcast<vec3<u32>>(v));")
-      .withDeps(hash3d)
+  val hash3f: WgslFn[(v: Vec3), Vec3] =
+    WgslFn
+      .raw("hash3f")("  return hash3(bitcast<vec3<u32>>(v));")
+      .withDeps(hash3)
 
   /** Hash a Vec4 to a Vec4 in [0, 1) by bit-casting to UVec4 first. */
-  val hash4dFromVec: WgslFn[(v: Vec4), Vec4] =
-    WgslFn.raw("hash4d_from_vec")("  return hash4d(bitcast<vec4<u32>>(v));")
-      .withDeps(hash4d)
+  val hash4f: WgslFn[(v: Vec4), Vec4] =
+    WgslFn
+      .raw("hash4f")("  return hash4(bitcast<vec4<u32>>(v));")
+      .withDeps(hash4)

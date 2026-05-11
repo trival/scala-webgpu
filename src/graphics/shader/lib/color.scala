@@ -1,6 +1,5 @@
 package graphics.shader.lib.color
 
-// Ported from trivalibs_nostd/src/color.rs (MIT — see trivalibs upstream).
 // hsv2rgb family adapted from Iñigo Quilez — https://www.shadertoy.com/view/MsS3Wc
 //
 // HSL vs HSV — both share hue and saturation axes but differ in the third
@@ -13,14 +12,10 @@ package graphics.shader.lib.color
 // They are NOT round-trip-equivalent: rgb2hsl(hsv2rgb(c)) ≠ c, and likewise.
 // Pick the space that matches your intuition for the third channel and stay
 // in it.
-//
-// Note on Rust upstream: `color.rs::rgb2hsl` returns max(R,G,B) — that's V,
-// not L, so it's actually rgb2hsv. We expose it under the correct name here
-// and provide a proper rgb2hsl alongside.
 
 import graphics.math.cpu.Vec3
-import graphics.shader.{given}
 import graphics.shader.dsl.WgslFn
+import graphics.shader.given
 
 object Color:
 
@@ -31,7 +26,7 @@ object Color:
   /** RGB → HSV. Input components in [0, 1]; output `(hue, saturation, value)`
     * with hue in [0, 1] (1.0 == 360°) and `value = max(R, G, B)`.
     *
-    * The natural inverse for [[hsv2rgb]] (and its smooth variants).
+    * The natural inverse for [[hsv2rgb]].
     */
   val rgb2hsv: WgslFn[(c: Vec3), Vec3] =
     WgslFn.raw("rgb2hsv"):
@@ -43,11 +38,11 @@ object Color:
   return vec3<f32>(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);"""
 
   /** RGB → HSL. Input components in [0, 1]; output `(hue, saturation,
-    * lightness)` with hue in [0, 1] (1.0 == 360°) and `lightness = (max +
-    * min) / 2`.
+    * lightness)` with hue in [0, 1] (1.0 == 360°) and `lightness = (max + min)
+    * / 2`.
     *
-    * The natural inverse for [[hsl2rgb]]. Saturation here uses the HSL
-    * formula `chroma / (1 - |2L − 1|)` — different from HSV saturation.
+    * The natural inverse for [[hsl2rgb]]. Saturation here uses the HSL formula
+    * `chroma / (1 - |2L − 1|)` — different from HSV saturation.
     */
   val rgb2hsl: WgslFn[(c: Vec3), Vec3] =
     WgslFn.raw("rgb2hsl"):
@@ -74,8 +69,8 @@ object Color:
       """  let rgb = clamp(abs(((c.x * 6.0 + vec3<f32>(0.0, 4.0, 2.0)) % 6.0) - 3.0) - 1.0, vec3<f32>(0.0), vec3<f32>(1.0));
   return c.z * mix(vec3<f32>(1.0), rgb, c.y);"""
 
-  /** HSV → RGB with cubic smoothstep on the rgb ramp (`t·t·(3 − 2·t)`).
-    * Removes the slope discontinuities of [[hsv2rgb]] for ~free.
+  /** HSV → RGB with cubic smoothstep on the rgb ramp (`t·t·(3 − 2·t)`). Removes
+    * the slope discontinuities of [[hsv2rgb]] for ~free.
     */
   val hsv2rgbSmooth: WgslFn[(c: Vec3), Vec3] =
     WgslFn.raw("hsv2rgb_smooth"):
@@ -108,12 +103,12 @@ object Color:
   // HSL → RGB
   // ---------------------------------------------------------------------------
 
-  /** HSL → RGB. Input `(hue, saturation, lightness)` in [0, 1]; output RGB
-    * in [0, 1]. The natural inverse for [[rgb2hsl]].
+  /** HSL → RGB. Input `(hue, saturation, lightness)` in [0, 1]; output RGB in
+    * [0, 1]. The natural inverse for [[rgb2hsl]].
     *
     * Lightness scales symmetrically: `L = 0` is black, `L = 1` is white,
-    * `L = 0.5` is the fully-saturated hue. This differs from HSV `value`,
-    * where the fully-saturated hue is at `V = 1`.
+    * `L = 0.5` is the fully-saturated hue. This differs from HSV `value`, where
+    * the fully-saturated hue is at `V = 1`.
     */
   val hsl2rgb: WgslFn[(c: Vec3), Vec3] =
     WgslFn.raw("hsl2rgb"):

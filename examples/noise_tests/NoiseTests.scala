@@ -49,22 +49,22 @@ private val hashDisplay: WgslFn[(uv: Vec2, time: Float), Vec4] =
         ifElse(
           qi.y === 0.u,
           ifChain(qi.x === 0.u, color := vec3(Hash.hash1(qa.x.bitsToU32)))
-            .elseIf(qi.x === 1.u, color := vec3(Hash.hash1FromFloat(qa.x)))
+            .elseIf(qi.x === 1.u, color := vec3(Hash.hash1f(qa.x)))
             .elseIf(qi.x === 2.u, color := vec3(Hash.hash21(qa.bitsToU32)))
             .elseDo(color := vec3(Hash.u32ToF32(Hash.hash21i(qa.bitsToU32)))),
-          ifChain(qi.x === 0.u, color := vec3(Hash.hash2d(qa.bitsToU32), 0.0))
-            .elseIf(qi.x === 1.u, color := vec3(Hash.hash2dFromVec(qa), 0.0))
-            .elseIf(qi.x === 2.u, color := Hash.hash3d(qa3.bitsToU32))
-            .elseDo(color := Hash.hash3dFromVec(qa3)),
+          ifChain(qi.x === 0.u, color := vec3(Hash.hash2(qa.bitsToU32), 0.0))
+            .elseIf(qi.x === 1.u, color := vec3(Hash.hash2f(qa), 0.0))
+            .elseIf(qi.x === 2.u, color := Hash.hash3(qa3.bitsToU32))
+            .elseDo(color := Hash.hash3f(qa3)),
         ),
         ret(vec4(color, 1.0)),
       )
     .withDeps(
-      Hash.hash1FromFloat,
+      Hash.hash1f,
       Hash.hash21,
       Hash.u32ToF32,
-      Hash.hash2dFromVec,
-      Hash.hash3dFromVec,
+      Hash.hash2f,
+      Hash.hash3f,
     )
 
 @JSExportTopLevel("main", moduleID = "noise_tests")

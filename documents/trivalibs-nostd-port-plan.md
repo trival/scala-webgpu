@@ -82,6 +82,9 @@ implementations (`src/graphics/shader/lib/random/`):
 
 **Deviations from plan:**
 
+- Phase 3: Rust upstream's `color.rs::rgb2hsl` returns `max(R,G,B)` — that's V,
+  not L, so it's actually `rgb2hsv`. The Scala port exposes it under the correct
+  name (`rgb2hsv`) and provides a proper `rgb2hsl` alongside.
 - Phase 4a: `simplexNoise4d` and `tilingSimplexNoise2d` were initially skipped
   but later added (ported from the same Rust source). Three porting bugs were
   found and fixed against the canonical Stegu GLSL + LYGIA WGSL references:

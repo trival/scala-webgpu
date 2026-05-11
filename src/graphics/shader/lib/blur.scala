@@ -1,14 +1,16 @@
 package graphics.shader.lib.blur
 
-// Ported from trivalibs_nostd/src/blur.rs (MIT). Separable Gaussian + box
-// blurs. The 5/9/13-tap variants use precomputed weights (linear-sampling
-// trick — every two adjacent samples collapse into one bilinear fetch). The
-// general `gaussianBlur` derives σ from a runtime diameter and loops.
+// Separable Gaussian + box blurs.
+// The 5/9/13-tap variants use precomputed weights (linear-sampling trick —
+// every two adjacent samples collapse into one bilinear fetch).
+// The general `gaussianBlur` derives σ from a runtime diameter and loops.
 
-import graphics.math.cpu.{Vec2, Vec4}
-import graphics.math.gpu.{Sampler, Texture2D}
-import graphics.shader.{given}
+import graphics.math.cpu.Vec2
+import graphics.math.cpu.Vec4
+import graphics.math.gpu.Sampler
+import graphics.math.gpu.Texture2D
 import graphics.shader.dsl.WgslFn
+import graphics.shader.given
 
 object Blur:
 
@@ -35,19 +37,19 @@ object Blur:
     * @param res
     *   image resolution in pixels — converts pixel offsets to uv space
     * @param dir
-    *   step direction in screen-space units. `(1,0)` for horizontal,
-    *   `(0,1)` for vertical (need not be axis-aligned).
+    *   step direction in screen-space units. `(1,0)` for horizontal, `(0,1)`
+    *   for vertical (need not be axis-aligned).
     */
   val gaussianBlur: WgslFn[
-      (
-          tex: Texture2D,
-          s: Sampler,
-          diameter: Float,
-          uv: Vec2,
-          res: Vec2,
-          dir: Vec2,
-      ),
-      Vec4,
+    (
+        tex: Texture2D,
+        s: Sampler,
+        diameter: Float,
+        uv: Vec2,
+        res: Vec2,
+        dir: Vec2,
+    ),
+    Vec4,
   ] =
     WgslFn.raw("gaussian_blur"):
       """  let sigma = diameter * 0.25;
@@ -79,8 +81,8 @@ object Blur:
     *   step direction in screen-space units (`(1,0)` or `(0,1)` typically)
     */
   val gaussianBlur5: WgslFn[
-      (tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir: Vec2),
-      Vec4,
+    (tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir: Vec2),
+    Vec4,
   ] =
     WgslFn.raw("gaussian_blur_5"):
       """  let off1 = vec2<f32>(1.3333333333333333) * dir / res;
@@ -95,8 +97,8 @@ object Blur:
     * Run twice (H + V) for a 2D blur.
     */
   val gaussianBlur9: WgslFn[
-      (tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir: Vec2),
-      Vec4,
+    (tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir: Vec2),
+    Vec4,
   ] =
     WgslFn.raw("gaussian_blur_9"):
       """  let off1 = vec2<f32>(1.3846153846) * dir / res;
@@ -108,14 +110,14 @@ object Blur:
   color += textureSample(tex, s, uv - off2) * 0.0702702703;
   return color;"""
 
-  /** Precalculated 13-tap Gaussian blur (7 texture fetches, fixed 13px
-    * diameter circle of confusion). Highest quality of the baked variants.
+  /** Precalculated 13-tap Gaussian blur (7 texture fetches, fixed 13px diameter
+    * circle of confusion). Highest quality of the baked variants.
     *
     * Run twice (H + V) for a 2D blur.
     */
   val gaussianBlur13: WgslFn[
-      (tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir: Vec2),
-      Vec4,
+    (tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir: Vec2),
+    Vec4,
   ] =
     WgslFn.raw("gaussian_blur_13"):
       """  let off1 = vec2<f32>(1.411764705882353) * dir / res;
@@ -141,15 +143,15 @@ object Blur:
     *   step direction in screen-space units (need not be axis-aligned)
     */
   val boxBlur: WgslFn[
-      (
-          tex: Texture2D,
-          s: Sampler,
-          diameter: Float,
-          uv: Vec2,
-          res: Vec2,
-          dir: Vec2,
-      ),
-      Vec4,
+    (
+        tex: Texture2D,
+        s: Sampler,
+        diameter: Float,
+        uv: Vec2,
+        res: Vec2,
+        dir: Vec2,
+    ),
+    Vec4,
   ] =
     WgslFn.raw("box_blur"):
       """  let support: i32 = i32(floor(diameter * 0.5));
