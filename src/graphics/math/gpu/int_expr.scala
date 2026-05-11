@@ -7,9 +7,7 @@ import trivalibs.utils.numbers.NumOps
 // Zero-cost unsigned 32-bit type for the shader DSL.
 // Bit-identical to Int at runtime; distinct in the type system so that
 // WgslFn parameter / return types and ToExpr match cases stay unambiguous.
-// Keeping it here (alongside Sampler, Texture2D, and the phantom vec types)
-// rather than in trivalibs reflects that u32 is a GPU / WGSL concept with no
-// general Scala utility.
+// U32 is a GPU / WGSL concept with no general Scala utility.
 // ---------------------------------------------------------------------------
 
 final class UInt(val toInt: Int) extends AnyVal
