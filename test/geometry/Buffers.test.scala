@@ -19,7 +19,7 @@ class BuffersTest extends FunSuite:
 
   def writePosNorm(v: Vec3, n: Vec3, ref: StructRef[XYZXYZ]): Unit =
     ref.setAt(0)(v.x)
-    ref.setAt(1)(v.y);
+    ref.setAt(1)(v.y)
     ref.setAt(2)(v.z)
     ref.setAt(3)(n.x)
     ref.setAt(4)(n.y)

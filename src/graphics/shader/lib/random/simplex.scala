@@ -215,6 +215,14 @@ object Simplex:
   // Fractional brownian motion
   // ---------------------------------------------------------------------------
 
+  /** Fractal Brownian motion using 2D simplex noise.
+    *
+    *   - `pos`: sample position.
+    *   - `octaves`: number of noise layers summed (higher = more detail, more
+    *     cost).
+    *   - `lacunarity`: frequency multiplier between octaves (typical: 2.0).
+    *   - `gain`: amplitude multiplier between octaves (typical: 0.5).
+    */
   val fbmSimplex2d: WgslFn[
     (pos: Vec2, octaves: Int, lacunarity: Float, gain: Float),
     Float,
@@ -232,6 +240,16 @@ object Simplex:
     return sum;""")
       .withDeps(simplexNoise2d)
 
+  /** Fractal Brownian motion using 2D simplex noise, with a seed offset for
+    * deterministic variation.
+    *
+    *   - `pos`: sample position.
+    *   - `octaves`: number of noise layers summed (higher = more detail, more
+    *     cost).
+    *   - `lacunarity`: frequency multiplier between octaves (typical: 2.0).
+    *   - `gain`: amplitude multiplier between octaves (typical: 0.5).
+    *   - `seed`: shifts the hash to produce a different noise pattern.
+    */
   val fbmSimplex2dSeeded: WgslFn[
     (pos: Vec2, octaves: Int, lacunarity: Float, gain: Float, seed: Float),
     Float,
@@ -249,6 +267,14 @@ object Simplex:
     return sum;""")
       .withDeps(simplexNoise2dSeeded)
 
+  /** Fractal Brownian motion using 3D simplex noise.
+    *
+    *   - `pos`: sample position.
+    *   - `octaves`: number of noise layers summed (higher = more detail, more
+    *     cost).
+    *   - `lacunarity`: frequency multiplier between octaves (typical: 2.0).
+    *   - `gain`: amplitude multiplier between octaves (typical: 0.5).
+    */
   val fbmSimplex3d: WgslFn[
     (pos: Vec3, octaves: Int, lacunarity: Float, gain: Float),
     Float,
@@ -266,6 +292,17 @@ object Simplex:
     return sum;""")
       .withDeps(simplexNoise3d)
 
+  /** Fractal Brownian motion using 3D simplex noise, with a seed offset for
+    * deterministic variation.
+    *
+    *   - `pos`: sample position.
+    *   - `octaves`: number of noise layers summed (higher = more detail, more
+    *     cost).
+    *   - `lacunarity`: frequency multiplier between octaves (typical: 2.0).
+    *   - `gain`: amplitude multiplier between octaves (typical: 0.5).
+    *   - `seed`: per-axis offset added to the hash to produce a different noise
+    *     pattern.
+    */
   val fbmSimplex3dSeeded: WgslFn[
     (pos: Vec3, octaves: Int, lacunarity: Float, gain: Float, seed: Vec3),
     Float,
