@@ -70,18 +70,17 @@ Rename to fit the `trivalibs.*` namespace:
 - `webgpu` → `trivalibs.graphics.painter` (merge facade types into the painter
   package; they aren't a standalone module)
 
-Open question: keep the `graphics.` segment or flatten (e.g.
-`trivalibs.painter`, `trivalibs.shader`, `trivalibs.math`)? Recommendation:
-**keep `graphics.`**. The whole rendering stack is one coherent group; a top
-level `trivalibs.graphics` umbrella keeps it discoverable and leaves space for
-non-graphics additions (`trivalibs.preact`, `trivalibs.utils`,
+Why keep the `graphics.` segment instead of flattening to `trivalibs.painter`,
+`trivalibs.shader`, `trivalibs.math`: the whole rendering stack is one coherent
+group; a top-level `trivalibs.graphics` umbrella keeps it discoverable and
+leaves space for non-graphics additions (`trivalibs.preact`, `trivalibs.utils`,
 `trivalibs.bufferdata`).
 
-The old bare-`webgpu` package gets folded into `trivalibs.graphics.painter`.
-The facades aren't a generic WebGPU binding — every type and method in there
-exists to serve the painter's needs. Keeping them as a sibling package would
-falsely advertise a reusable facade layer; making them painter-internal is
-honest and lets us evolve them freely.
+The old bare-`webgpu` package gets folded into `trivalibs.graphics.painter`. The
+facades aren't a generic WebGPU binding — every type and method in there exists
+to serve the painter's needs. Keeping them as a sibling package would falsely
+advertise a reusable facade layer; making them painter-internal is honest and
+lets us evolve them freely.
 
 ## 3. Mechanical migration steps
 
@@ -99,12 +98,12 @@ all-or-nothing.
 4. Move `examples/` → `trivalibs/examples/`. Add `trivalibs/serve.ts` (minimal
    static Bun server) and `trivalibs/package.json` with build/dev scripts
    mirroring this repo's but pointing at the new locations.
-5. Merge `test/geometry/` and `test/shader/` into `trivalibs/test/`. Drop the
-   now-stale `using file ../trivalibs/src` line from `test/test-setup.scala` and
-   delete the file; `trivalibs/test/test-setup.scala` already has the right
-   `using file ../src` reference. Bump its munit version to 1.2.4 to match the
-   merged suite. Delete the empty `test/` from this repo (it has no
-   playground-specific tests).
+5. Merge `test/geometry/` and `test/shader/` into `trivalibs/test/`. Delete both
+   `test-setup.scala` files (this repo's and trivalibs's existing one) — their
+   directives now live in the new `trivalibs/project.scala` (§4). Delete the
+   empty `test/` from this repo. Same goes for any inline `using` directives
+   that might exist in `trivalibs/examples/` — none of the example folders need
+   their own setup file anymore.
 6. Update this repo's `project.scala`: keep `using exclude trivalibs/test/**`
    and also exclude `trivalibs/examples/**` so the playground build doesn't pull
    example sources in.
@@ -127,25 +126,46 @@ in the same workspace, and scala-cli is deliberately not a multi-project build
 tool. The existing convention already works around this: nested setups
 (`test/test-setup.scala`, `trivalibs/test/test-setup.scala`) live in folders
 that the outer build excludes via `using exclude …/test/**`. The IDE only sees
-one set of directives at a time because only the outer build picks up the
-outer `project.scala`.
+one set of directives at a time because only the outer build picks up the outer
+`project.scala`.
 
-We extend the same pattern to trivalibs itself:
+The library needs to be openable as a **standalone workspace** in the IDE (when
+working only on trivalibs, or in its own repo after a future split). That means
+trivalibs needs a setup file at its root carrying all the `using` directives.
+scala-cli reads directives from any `.scala` file in the project, so the
+filename isn't strictly mandatory — but `project.scala` is the canonical
+convention, clearest signal of intent, and what most tooling docs assume. We use
+it. So:
 
-- The outer `project.scala` (in this playground repo) remains the **only**
-  project file Metals sees for normal day-to-day work, including when editing
-  files inside `trivalibs/src/`.
-- A nested setup file `trivalibs/lib-setup.scala` (different name, no
-  conflict) carries the directives needed to build / package trivalibs in
-  isolation. Outer `project.scala` excludes it with
-  `using exclude trivalibs/lib-setup.scala` so Metals never loads two configs.
-- Standalone build is invoked from inside trivalibs:
-  `cd trivalibs && scala-cli package src --js -o dist/trivalibs.js` (or
-  whatever the publish flow needs — see Option 3/4 in §5). At that point
-  scala-cli sees only `lib-setup.scala`, not the outer file.
+- `trivalibs/project.scala` is the canonical Metals entry point. It covers
+  **everything** in trivalibs — lib + tests + examples — as a single scala-cli
+  project. Opening `trivalibs/` directly in VS Code / Metals gives a fully
+  type-checked view of the whole library and its examples.
+- The outer playground `project.scala` excludes `trivalibs/project.scala` by
+  filename plus the test and examples folders, so Metals (when the playground is
+  the workspace root) only loads one config:
 
-`trivalibs/lib-setup.scala` content (mirrors the outer build's relevant
-directives, minus example/test inclusion):
+  ```scala
+  //> using exclude trivalibs/project.scala
+  //> using exclude trivalibs/test/**
+  //> using exclude trivalibs/examples/**
+  ```
+
+- Inside trivalibs, the test and examples folders no longer need their own setup
+  files when Metals is loading them as part of `trivalibs/project.scala`. But
+  scala-cli still needs them as **invocation roots** for separate build outputs:
+  - Tests: `cd trivalibs && scala-cli test test` — scala-cli auto-detects the
+    `.test.scala` files under `test/`. The directives from `project.scala`
+    apply, no separate test setup needed.
+  - Examples:
+    `cd trivalibs && scala-cli --power package examples --js -o examples/out -f -w`.
+    scala-cli uses the root `project.scala` and treats `examples/` as the source
+    set to bundle.
+- A jar publish run is rare; extra publish-specific options can be passed on the
+  command line:
+  `cd trivalibs && scala-cli --power publish local src \   --organization me.trival --name trivalibs --project-version 0.1.0-SNAPSHOT`
+
+`trivalibs/project.scala` — single source of truth for the trivalibs workspace:
 
 ```scala
 //> using scala 3.8.4-RC2
@@ -153,28 +173,75 @@ directives, minus example/test inclusion):
 //> using option -Wconf:msg=differs.only.in.case:s
 
 //> using jsVersion 1.21.0
+//> using jsMode full
 //> using jsModuleKind es
+//> using jsEsVersionStr es2021
+//> using jsModuleSplitStyleStr fewestmodules
 
 //> using dep org.scala-js::scalajs-dom::2.8.1
 
-//> using exclude examples/**
-//> using exclude test/**
+//> using test.dep org.scalameta::munit::1.2.4
 ```
 
-Outer `project.scala` additions:
+Trade-off: the lib-only build (e.g. `scala-cli compile src` from `trivalibs/`)
+will pull in the example bundle settings too (jsMode full, fewestmodules).
+That's fine for type-checking but a wasted setting for `publish local`. We
+accept this minor over-specification rather than split into multiple setup files
+and lose the single-workspace IDE experience.
 
-```scala
-//> using exclude trivalibs/test/**
-//> using exclude trivalibs/examples/**
-//> using exclude trivalibs/lib-setup.scala
+### Dedicated `trivalibs/package.json`
+
+Trivalibs gets its own `package.json` so all JS/Bun deps and build invocations
+live with the library, not in the playground. Downstream consumers can use
+trivalibs's scripts directly, or copy them as a starting point. Sketch:
+
+Trivalibs has no JS entry points of its own — it is consumed only as Scala
+sources (or, eventually, a Scala artifact) by other Scala.js projects. So there
+is no `build`/`watch` that produces a `trivalibs.js` bundle. Instead the scripts
+cover **lib type-checking, examples build, tests, publish**:
+
+```json
+{
+	"name": "trivalibs",
+	"type": "module",
+	"scripts": {
+		"check": "scala-cli compile src",
+		"examples:build": "scala-cli --power package examples --js -o examples/out -f",
+		"examples:watch": "scala-cli --power package examples --js -o examples/out -f -w",
+		"examples:dev": "bun --bun serve.ts",
+		"test": "scala-cli test test",
+		"publish:local": "scala-cli --power publish local src --organization me.trival --name trivalibs --project-version 0.1.0-SNAPSHOT"
+	},
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"dependencies": {
+		"@webgpu/types": "^0.1.69"
+	}
+}
 ```
 
-Yes, the directive set is duplicated between the two files. That's the price
-of avoiding Metals confusion, and the set is small enough that drift is easy
-to spot in review. If duplication becomes painful, the cleaner long-term
-solution is **publishing trivalibs as an artifact** (§5 Option 3/4) so
-consumers stop needing the outer-build trick at all — the IDE constraint then
-only applies inside trivalibs's own repo, which is a single-project workspace.
+Notes:
+
+- All scripts run from the trivalibs root and inherit directives from
+  `project.scala`. No `cd` into nested folders, no per-folder setup files.
+- `check` uses `scala-cli compile` (not `package`) — type-checks the library in
+  isolation without producing a bundle. Useful for CI.
+- `examples:watch` + `examples:dev` are meant to run side-by-side (two terminals
+  or a process manager) when iterating on lib + examples together. The watch
+  step rebuilds JS into `examples/out/` on every change, the dev server serves
+  the static `examples/*/index.html` files alongside it.
+- `publish:local` produces a Scala artifact in `~/.ivy2/local`. That is the only
+  "build output" trivalibs has — everything else is sources consumed by
+  downstream Scala.js builds (§5 Option 1) or by the local publish flow (§5
+  Option 3).
+- The playground repo's own `package.json` keeps its scripts pointing at the
+  outer build; it does not depend on trivalibs's `package.json` at all. Same
+  pattern as having two `node_modules` trees — each project is self-contained.
+- `@webgpu/types` and `@types/bun` migrate from the playground's `package.json`
+  to trivalibs's; the playground's `package.json` can keep them as well if any
+  playground-only sketches still need them, but the authoritative copy lives
+  with the lib.
 
 ## 5. Workflow options for downstream projects
 
@@ -201,7 +268,7 @@ whole library re-compiles into the consumer's JS output).
 **Use when:** actively co-evolving trivalibs and a consumer project. This is the
 recommended default while trivalibs is pre-1.0.
 
-### Option 2 — Submodule + scala-cli `using file`
+### Option 2 — Submodule + scala-cli `using filethe`
 
 Same as Option 1 but using `//> using file trivalibs/src` instead of the exclude
 trick. Slightly more explicit; scala-cli treats trivalibs as a sibling module
@@ -240,29 +307,47 @@ starts hurting iteration but the API still churns weekly.
 
 ## 6. Addressing the 4-second compile
 
-A 4 s full-build is mostly Scala.js linking + Scala 3 macros (the shader DSL
-uses inline + summonFrom heavily). Worth measuring before optimizing. Likely
-contributors, in descending order:
+The 4 s is the **watch-mode incremental rebuild cost per file change**, not
+cold start (cold start is longer). So `bun run watch` doesn't help; this is
+already the warm path. Mostly Scala.js linking + Scala 3 macros (the shader
+DSL uses inline + summonFrom heavily). Worth measuring before optimizing.
+Likely contributors, in descending order:
 
-1. **Scala.js linker** turning all transitively-referenced classes into ES
-   modules. `fewestmodules` mode (current) is already the cheap option.
+1. **Scala.js linker** re-emitting ES modules for the full reachable graph.
+   `fewestmodules` is the cheap option already; it still has to re-link the
+   whole reachable set on every change. The linker is the prime suspect for
+   the 4 s figure since it always runs and scales with library surface.
 2. **Macro expansion** in shader derivation (`ShaderDef`, `WGSLType` summons,
-   `allocateAttribs`).
-3. **Scala 3 typer** on the math library (lots of given chains).
+   `allocateAttribs`). Only re-runs for files that touch macro call sites,
+   but those are common in examples.
+3. **Scala 3 typer** on the math library (lots of given chains). Incremental
+   compilation skips unchanged files, so this is mostly a cold-start cost.
 
-Mitigations, again in order of bang-for-buck:
+Mitigations, in order of expected impact:
 
-- **Incremental: use `bun run watch`.** It already does the right thing — the ~4
-  s number is cold-build only.
-- **Precompile trivalibs to a JAR** (Option 3/4). This removes ~all of cost (1)
-  and (3) for trivalibs sources. Cost (2) stays because macros expand at the
-  _consumer_ call site regardless of whether the macro definition is in source
-  or JAR form.
-- **Move heavy macros behind smaller surface APIs** so call sites trigger less
-  work. Out of scope for this port; track separately.
+- **Precompile trivalibs to a JAR** (Option 3/4). Removes the lib from the
+  per-change recompile path entirely. Cost (1) shrinks dramatically because
+  the linker can treat the JAR as a stable input and only re-link the
+  consumer's own changed code. Cost (3) goes away for lib sources. Cost (2)
+  stays because macros expand at the _consumer_ call site regardless of
+  whether the macro definition is in source or JAR form.
+- **Switch to `smallestmodules` only when packaging for production**, leave
+  watch builds in `fewestmodules` (already the case). No further tuning to
+  do here.
+- **Track Scala.js linker caching upstream.**
+  [scala-js/scala-js#5352](https://github.com/scala-js/scala-js/pull/5352)
+  adds incremental linking support, currently surfaced through sbt 2. Open
+  question whether scala-cli's `package --js -w` mode picks it up
+  automatically once it lands in a released Scala.js version, or whether
+  scala-cli needs its own integration work. If/when this ships end-to-end,
+  the 4 s figure could drop dramatically without any of the JAR-publish
+  workarounds. Worth a separate spike before committing to Option 3/4.
+- **Move heavy macros behind smaller surface APIs** so call sites trigger
+  less work. Out of scope for this port; track separately.
 
-Suggested action: do the port first (Option 1), measure clean-build numbers in a
-real downstream project, decide on Option 3/4 based on data.
+Suggested action: do the port first (Option 1), then **measure the
+incremental rebuild before and after `publish:local`** to confirm the JAR
+route actually shrinks the 4 s. Decide on Option 3/4 based on data.
 
 ## 7. Consumer project template
 
@@ -313,18 +398,11 @@ This is identical to today's setup, only with `graphics.*` imports replaced by
    with build / watch / dev scripts.
 4. `chore: merge test/ into trivalibs/test/` — consolidate test suites, collapse
    the two `test-setup.scala` files into one.
-5. `chore: add trivalibs/project.scala for standalone builds` (§4).
+5. `chore: add trivalibs/project.scala + trivalibs/package.json` for the
+   standalone trivalibs workspace (§4); update outer `project.scala` to exclude
+   the nested `project.scala` and the `test/` + `examples/` trees.
 6. `chore: add trivalibs/examples/_starter/` scaffold for downstream consumers.
 7. `docs: update CLAUDE.md and trivalibs README for new layout`.
 8. `docs: add trivalibs-port notes to design docs/done/`.
 
 Each commit independently leaves the build green.
-
-## 9. Open questions for the user
-
-- Confirm namespace shape: `trivalibs.graphics.{painter,shader,math,…}` vs flat
-  `trivalibs.{painter,shader,math,…}`. (Recommendation: keep `graphics.`)
-- Submodule URL: keep trivalibs as a subdirectory of this repo's history, or
-  spin out a fresh standalone repo? A standalone repo is cleaner for downstream
-  consumers but means losing the colocated history. Probably do this **before**
-  the rename PR, so the rename happens in the new repo.
