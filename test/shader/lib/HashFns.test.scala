@@ -1,9 +1,9 @@
-package graphics.shader.lib.random
+package trivalibs.graphics.shader.lib.random
 
-import graphics.math.gpu.{*, given}
-import graphics.math.gpu.Expr.*
-import graphics.shader.{given}
-import graphics.shader.dsl.WgslFnData
+import trivalibs.graphics.math.gpu.{*, given}
+import trivalibs.graphics.math.gpu.Expr.*
+import trivalibs.graphics.shader.{given}
+import trivalibs.graphics.shader.dsl.WgslFnData
 import munit.FunSuite
 
 class HashFnsTest extends FunSuite:

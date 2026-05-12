@@ -1,6 +1,6 @@
-package graphics.shader.lib.random
+package trivalibs.graphics.shader.lib.random
 
-import graphics.shader.dsl.WgslFnData
+import trivalibs.graphics.shader.dsl.WgslFnData
 import munit.FunSuite
 
 class SimplexFnsTest extends FunSuite:
@@ -136,10 +136,10 @@ class SimplexFnsTest extends FunSuite:
   // ---------------------------------------------------------------------------
 
   test("fbmSimplex2d dep chain reaches permute_3_ transitively"):
-    import graphics.shader.dsl.{Program, WgslFn}
-    import graphics.math.cpu.*
-    import graphics.math.gpu.*
-    import graphics.shader.{given}
+    import trivalibs.graphics.shader.dsl.{Program, WgslFn}
+    import trivalibs.graphics.math.cpu.*
+    import trivalibs.graphics.math.gpu.*
+    import trivalibs.graphics.shader.{given}
     val prog = Program[EmptyTuple, EmptyTuple, EmptyTuple, EmptyTuple, EmptyTuple]()
     prog.fn(Simplex.fbmSimplex2d)
     val src = prog.helperFnsStr

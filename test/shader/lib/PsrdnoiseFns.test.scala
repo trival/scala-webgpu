@@ -1,6 +1,6 @@
-package graphics.shader.lib.random
+package trivalibs.graphics.shader.lib.random
 
-import graphics.shader.dsl.WgslFnData
+import trivalibs.graphics.shader.dsl.WgslFnData
 import munit.FunSuite
 
 class PsrdnoiseFnsTest extends FunSuite:
@@ -126,10 +126,10 @@ class PsrdnoiseFnsTest extends FunSuite:
   // ---------------------------------------------------------------------------
 
   test("tilingNoise2d dep chain reaches mod289v3f transitively"):
-    import graphics.shader.dsl.{Program, WgslFn}
-    import graphics.math.cpu.*
-    import graphics.math.gpu.*
-    import graphics.shader.{given}
+    import trivalibs.graphics.shader.dsl.{Program, WgslFn}
+    import trivalibs.graphics.math.cpu.*
+    import trivalibs.graphics.math.gpu.*
+    import trivalibs.graphics.shader.{given}
     val prog = Program[EmptyTuple, EmptyTuple, EmptyTuple, EmptyTuple, EmptyTuple]()
     prog.fn(Psrdnoise.tilingNoise2d)
     val src = prog.helperFnsStr
@@ -140,10 +140,10 @@ class PsrdnoiseFnsTest extends FunSuite:
     assert(src.indexOf("fn tiling_rot_noise_2d") < src.indexOf("fn tiling_noise_2d"), src)
 
   test("tilingNoise3d dep chain reaches mod289v4f and permute289v4f transitively"):
-    import graphics.shader.dsl.{Program, WgslFn}
-    import graphics.math.cpu.*
-    import graphics.math.gpu.*
-    import graphics.shader.{given}
+    import trivalibs.graphics.shader.dsl.{Program, WgslFn}
+    import trivalibs.graphics.math.cpu.*
+    import trivalibs.graphics.math.gpu.*
+    import trivalibs.graphics.shader.{given}
     val prog = Program[EmptyTuple, EmptyTuple, EmptyTuple, EmptyTuple, EmptyTuple]()
     prog.fn(Psrdnoise.tilingNoise3d)
     val src = prog.helperFnsStr

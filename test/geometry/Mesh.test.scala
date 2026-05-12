@@ -1,8 +1,8 @@
-package graphics.geometry
+package trivalibs.graphics.geometry
 
 import munit.FunSuite
-import graphics.math.cpu.Vec3
-import graphics.math.cpu.given
+import trivalibs.graphics.math.cpu.Vec3
+import trivalibs.graphics.math.cpu.given
 import trivalibs.utils.js.*
 
 class MeshTest extends FunSuite:

@@ -1,6 +1,6 @@
-package graphics.shader.lib.coords
+package trivalibs.graphics.shader.lib.coords
 
-import graphics.shader.dsl.WgslFnData
+import trivalibs.graphics.shader.dsl.WgslFnData
 import munit.FunSuite
 
 class CoordsFnsTest extends FunSuite:

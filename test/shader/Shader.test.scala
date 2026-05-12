@@ -1,6 +1,6 @@
-package graphics.shader
+package trivalibs.graphics.shader
 
-import graphics.math.gpu.*
+import trivalibs.graphics.math.gpu.*
 import munit.FunSuite
 
 class ShaderTest extends FunSuite:

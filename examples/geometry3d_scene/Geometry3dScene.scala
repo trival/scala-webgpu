@@ -1,15 +1,15 @@
 package examples.geometry3d_scene
 
-import graphics.buffers.*
-import graphics.geometry.{*, given}
-import graphics.math.cpu.*
-import graphics.math.cpu.Mat4
-import graphics.math.cpu.Vec3
-import graphics.math.cpu.given
-import graphics.math.gpu.{*, given}
-import graphics.painter.*
-import graphics.shader.dsl.{*, given}
-import graphics.shader.{*, given}
+import trivalibs.graphics.buffers.*
+import trivalibs.graphics.geometry.{*, given}
+import trivalibs.graphics.math.cpu.*
+import trivalibs.graphics.math.cpu.Mat4
+import trivalibs.graphics.math.cpu.Vec3
+import trivalibs.graphics.math.cpu.given
+import trivalibs.graphics.math.gpu.{*, given}
+import trivalibs.graphics.painter.*
+import trivalibs.graphics.shader.dsl.{*, given}
+import trivalibs.graphics.shader.{*, given}
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.document
 import trivalibs.utils.js.*

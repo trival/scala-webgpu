@@ -1,12 +1,12 @@
 package examples.simple_triangle
 
-import graphics.math.cpu.*
+import trivalibs.graphics.math.cpu.*
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
 import trivalibs.utils.js.*
-import webgpu.*
+import trivalibs.graphics.painter.*
 
 import scala.scalajs.js.annotation.*
 
@@ -50,8 +50,8 @@ object SimpleTriangle:
       canvas: HTMLCanvasElement,
       setStatus: (String, Boolean) => Unit,
   ): Unit =
-    import graphics.shader.{*, given}
-    import graphics.shader.None as GPUNone
+    import trivalibs.graphics.shader.{*, given}
+    import trivalibs.graphics.shader.None as GPUNone
 
     // Use the full API to add vertex_index builtin input
     val triangleShader = Shader.full[

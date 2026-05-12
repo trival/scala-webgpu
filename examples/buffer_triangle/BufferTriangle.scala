@@ -1,14 +1,14 @@
 package examples.buffer_triangle
 
-import graphics.buffers.*
-import graphics.math.cpu.{*, given}
+import trivalibs.graphics.buffers.*
+import trivalibs.graphics.math.cpu.{*, given}
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
 import trivalibs.utils.js.*
 import trivalibs.utils.numbers.NumExt.given
-import webgpu.*
+import trivalibs.graphics.painter.*
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
@@ -53,9 +53,9 @@ object BufferTriangle:
       canvas: HTMLCanvasElement,
       setStatus: (String, Boolean) => Unit,
   ): Unit =
-    import graphics.shader.{*, given}
-    import graphics.math.{*, given}
-    import graphics.shader.None as GPUNone
+    import trivalibs.graphics.shader.{*, given}
+    import trivalibs.graphics.math.{*, given}
+    import trivalibs.graphics.shader.None as GPUNone
 
     // Get WebGPU context
     val context = WebGPU.getContext(canvas)

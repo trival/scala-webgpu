@@ -1,6 +1,6 @@
-package graphics.shader.lib.color
+package trivalibs.graphics.shader.lib.color
 
-import graphics.shader.dsl.WgslFnData
+import trivalibs.graphics.shader.dsl.WgslFnData
 import munit.FunSuite
 
 class ColorFnsTest extends FunSuite:

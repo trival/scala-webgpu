@@ -1,14 +1,14 @@
 package examples.noise_tests
 
-import graphics.math.cpu.{*, given}
-import graphics.math.gpu.{*, given}
-import graphics.painter.*
-import graphics.shader.dsl.{*, given}
-import graphics.shader.lib.random.Hash
-import graphics.shader.lib.random.Psrdnoise
-import graphics.shader.lib.random.Simplex
-import graphics.shader.{*, given}
-import graphics.utils.animation.animate
+import trivalibs.graphics.math.cpu.{*, given}
+import trivalibs.graphics.math.gpu.{*, given}
+import trivalibs.graphics.painter.*
+import trivalibs.graphics.shader.dsl.{*, given}
+import trivalibs.graphics.shader.lib.random.Hash
+import trivalibs.graphics.shader.lib.random.Psrdnoise
+import trivalibs.graphics.shader.lib.random.Simplex
+import trivalibs.graphics.shader.{*, given}
+import trivalibs.utils.animation.animate
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.document

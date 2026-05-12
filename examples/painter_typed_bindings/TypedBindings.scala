@@ -1,13 +1,13 @@
 package examples.painter_typed_bindings
 
-import graphics.buffers.*
-import graphics.math.cpu.Mat2.given
-import graphics.math.cpu.Mat2Buffer.given
-import graphics.math.cpu.{*, given}
-import graphics.painter.*
-import graphics.shader.None as GPUNone
-import graphics.shader.{*, given}
-import graphics.utils.animation.animate
+import trivalibs.graphics.buffers.*
+import trivalibs.graphics.math.cpu.Mat2.given
+import trivalibs.graphics.math.cpu.Mat2Buffer.given
+import trivalibs.graphics.math.cpu.{*, given}
+import trivalibs.graphics.painter.*
+import trivalibs.graphics.shader.None as GPUNone
+import trivalibs.graphics.shader.{*, given}
+import trivalibs.utils.animation.animate
 import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.document

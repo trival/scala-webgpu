@@ -1,7 +1,7 @@
-package graphics.shader.dsl
+package trivalibs.graphics.shader.dsl
 
-import graphics.math.gpu.{*, given}
-import graphics.shader.{FragOut, FragmentUniform, VertexUniform}
+import trivalibs.graphics.math.gpu.{*, given}
+import trivalibs.graphics.shader.{FragOut, FragmentUniform, VertexUniform}
 import munit.FunSuite
 
 class ShaderDslTest extends FunSuite:

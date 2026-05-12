@@ -1,4 +1,4 @@
-package graphics.geometry
+package trivalibs.graphics.geometry
 
 import munit.FunSuite
 import trivalibs.utils.js.*
