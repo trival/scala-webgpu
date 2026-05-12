@@ -43,21 +43,31 @@ const ansi = /\x1b\[[0-9;]*m/g
 const formatMs = (ms: number) =>
 	ms < 1000 ? `${ms.toFixed(0)}ms` : `${(ms / 1000).toFixed(2)}s`
 
-let startTime = performance.now()
+// Initial fallback: covers the cached one-off case where scala-cli
+// skips the "Compiling project" line and jumps straight to "Wrote …".
+// Watch-mode rebuilds always print "Compiling project", which resets the
+// clock to the real start of work, so the idle wait between rebuilds is
+// not counted.
+let startTime: number | undefined = performance.now()
 
 const annotate = (line: string): string => {
 	const plain = line.replace(ansi, "")
-	if (plain.startsWith("Wrote ")) {
-		const ms = performance.now() - startTime
+	if (plain.startsWith("Compiling project")) {
 		startTime = performance.now()
+		return line
+	}
+	if (plain.startsWith("Wrote ") && startTime !== undefined) {
+		const ms = performance.now() - startTime
+		startTime = undefined
 		return `${line} [${formatMs(ms)}]`
 	}
 	if (
-		plain.startsWith("Error compiling") ||
-		plain.startsWith("Compilation failed")
+		(plain.startsWith("Error compiling") ||
+			plain.startsWith("Compilation failed")) &&
+		startTime !== undefined
 	) {
 		const ms = performance.now() - startTime
-		startTime = performance.now()
+		startTime = undefined
 		return `${line} [failed after ${formatMs(ms)}]`
 	}
 	return line
