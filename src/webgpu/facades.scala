@@ -122,6 +122,9 @@ trait GPURenderPassEncoder extends js.Object:
       firstVertex: Int,
       firstInstance: Int,
   ): Unit = js.native
+  def setIndexBuffer(buffer: GPUBuffer, indexFormat: String): Unit = js.native
+  def drawIndexed(indexCount: Int): Unit = js.native
+  def drawIndexed(indexCount: Int, instanceCount: Int): Unit = js.native
   def end(): Unit = js.native
 
 @js.native

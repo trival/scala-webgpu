@@ -1,9 +1,5 @@
 package graphics.math.gpu
 
-import graphics.math.*
-import trivalibs.utils.numbers.NumExt
-import trivalibs.utils.numbers.NumOps
-
 // ---------------------------------------------------------------------------
 // Expression base class — wraps a WGSL string, toString = wgsl so string
 // interpolation works naturally.
@@ -129,6 +125,86 @@ object Expr:
   opaque type ConstVec4 <: Vec4Expr & ConstExpr = ConstExpr
   object ConstVec4 { def apply(s: String): ConstVec4 = new ConstExpr(s) }
 
+  // ---------------------------------------------------------------------------
+  // Integer scalar expression types
+  // ---------------------------------------------------------------------------
+
+  opaque type IntExpr <: Expr = Expr
+  object IntExpr:
+    def apply(s: String): IntExpr = new Expr(s)
+    def apply(v: Int): IntExpr = new Expr(v.toString)
+
+  opaque type UIntExpr <: Expr = Expr
+  object UIntExpr:
+    def apply(s: String): UIntExpr = new Expr(s)
+    def apply(v: Int): UIntExpr = new Expr(s"${v}u")
+
+  // ---------------------------------------------------------------------------
+  // Integer vector expression types (GPU-only phantoms)
+  // ---------------------------------------------------------------------------
+
+  opaque type IVec2Expr <: Expr = Expr
+  object IVec2Expr { def apply(s: String): IVec2Expr = new Expr(s) }
+
+  opaque type IVec3Expr <: Expr = Expr
+  object IVec3Expr { def apply(s: String): IVec3Expr = new Expr(s) }
+
+  opaque type IVec4Expr <: Expr = Expr
+  object IVec4Expr { def apply(s: String): IVec4Expr = new Expr(s) }
+
+  opaque type UVec2Expr <: Expr = Expr
+  object UVec2Expr { def apply(s: String): UVec2Expr = new Expr(s) }
+
+  opaque type UVec3Expr <: Expr = Expr
+  object UVec3Expr { def apply(s: String): UVec3Expr = new Expr(s) }
+
+  opaque type UVec4Expr <: Expr = Expr
+  object UVec4Expr { def apply(s: String): UVec4Expr = new Expr(s) }
+
+  // ---------------------------------------------------------------------------
+  // Let/Var/Const variants for integer scalar types
+  // ---------------------------------------------------------------------------
+
+  opaque type LetInt <: IntExpr & LetExpr = LetExpr
+  object LetInt { def apply(s: String): LetInt = new LetExpr(s) }
+
+  opaque type VarInt <: IntExpr & VarExpr = VarExpr
+  object VarInt { def apply(s: String): VarInt = new VarExpr(s) }
+
+  opaque type ConstInt <: IntExpr & ConstExpr = ConstExpr
+  object ConstInt { def apply(s: String): ConstInt = new ConstExpr(s) }
+
+  opaque type LetUInt <: UIntExpr & LetExpr = LetExpr
+  object LetUInt { def apply(s: String): LetUInt = new LetExpr(s) }
+
+  opaque type VarUInt <: UIntExpr & VarExpr = VarExpr
+  object VarUInt { def apply(s: String): VarUInt = new VarExpr(s) }
+
+  opaque type ConstUInt <: UIntExpr & ConstExpr = ConstExpr
+  object ConstUInt { def apply(s: String): ConstUInt = new ConstExpr(s) }
+
+  // ---------------------------------------------------------------------------
+  // Let variants for integer vector types (Var/Const added as needed)
+  // ---------------------------------------------------------------------------
+
+  opaque type LetIVec2 <: IVec2Expr & LetExpr = LetExpr
+  object LetIVec2 { def apply(s: String): LetIVec2 = new LetExpr(s) }
+
+  opaque type LetIVec3 <: IVec3Expr & LetExpr = LetExpr
+  object LetIVec3 { def apply(s: String): LetIVec3 = new LetExpr(s) }
+
+  opaque type LetIVec4 <: IVec4Expr & LetExpr = LetExpr
+  object LetIVec4 { def apply(s: String): LetIVec4 = new LetExpr(s) }
+
+  opaque type LetUVec2 <: UVec2Expr & LetExpr = LetExpr
+  object LetUVec2 { def apply(s: String): LetUVec2 = new LetExpr(s) }
+
+  opaque type LetUVec3 <: UVec3Expr & LetExpr = LetExpr
+  object LetUVec3 { def apply(s: String): LetUVec3 = new LetExpr(s) }
+
+  opaque type LetUVec4 <: UVec4Expr & LetExpr = LetExpr
+  object LetUVec4 { def apply(s: String): LetUVec4 = new LetExpr(s) }
+
 extension (tex: Expr.Texture2D)
   def sample(uv: Expr.Vec2Expr, sampler: Expr.Sampler): Expr.Vec4Expr =
     Expr.Vec4Expr(s"textureSample(${tex.wgsl}, ${sampler.wgsl}, ${uv.wgsl})")
@@ -156,6 +232,14 @@ export Expr.{
   BoolExpr,
   Texture2D,
   Sampler,
+  IntExpr,
+  UIntExpr,
+  IVec2Expr,
+  IVec3Expr,
+  IVec4Expr,
+  UVec2Expr,
+  UVec3Expr,
+  UVec4Expr,
   LetFloat,
   LetVec2,
   LetVec3,
@@ -172,527 +256,19 @@ export Expr.{
   ConstVec2,
   ConstVec3,
   ConstVec4,
+  LetInt,
+  VarInt,
+  ConstInt,
+  LetUInt,
+  VarUInt,
+  ConstUInt,
+  LetIVec2,
+  LetIVec3,
+  LetIVec4,
+  LetUVec2,
+  LetUVec3,
+  LetUVec4,
 }
-
-// ---------------------------------------------------------------------------
-// Implicit conversions from numeric literals
-// ---------------------------------------------------------------------------
-
-private def floatToWgsl(v: Double): String =
-  val s = v.toString
-  if s.contains('.') || s.contains('E') || s.contains('e') then s
-  else s + ".0"
-
-given Conversion[Double, FloatExpr] = v => FloatExpr(floatToWgsl(v))
-given Conversion[Float, FloatExpr] = v => FloatExpr(floatToWgsl(v.toDouble))
-given Conversion[Int, FloatExpr] = v => FloatExpr(s"f32($v)")
-
-// ---------------------------------------------------------------------------
-// NumOps / NumExt for FloatExpr
-// LocalFloat <: FloatExpr, so these apply to LocalFloat too.
-// ---------------------------------------------------------------------------
-
-given NumOps[FloatExpr]:
-  extension (a: FloatExpr)
-    def +(b: FloatExpr): FloatExpr = FloatExpr(s"(${a.wgsl} + ${b.wgsl})")
-    def -(b: FloatExpr): FloatExpr = FloatExpr(s"(${a.wgsl} - ${b.wgsl})")
-    def *(b: FloatExpr): FloatExpr = FloatExpr(s"(${a.wgsl} * ${b.wgsl})")
-    def /(b: FloatExpr): FloatExpr = FloatExpr(s"(${a.wgsl} / ${b.wgsl})")
-    def unary_- : FloatExpr = FloatExpr(s"(-${a.wgsl})")
-  def zero: FloatExpr = FloatExpr("0.0")
-  def one: FloatExpr = FloatExpr("1.0")
-
-given NumExt[FloatExpr]:
-  extension (a: FloatExpr)
-    def sqrt: FloatExpr = FloatExpr(s"sqrt(${a.wgsl})")
-    def pow(exp: FloatExpr): FloatExpr = FloatExpr(
-      s"pow(${a.wgsl}, ${exp.wgsl})",
-    )
-    def abs: FloatExpr = FloatExpr(s"abs(${a.wgsl})")
-    def sign: FloatExpr = FloatExpr(s"sign(${a.wgsl})")
-    def floor: FloatExpr = FloatExpr(s"floor(${a.wgsl})")
-    def ceil: FloatExpr = FloatExpr(s"ceil(${a.wgsl})")
-    def round: FloatExpr = FloatExpr(s"round(${a.wgsl})")
-    def fract: FloatExpr = FloatExpr(s"fract(${a.wgsl})")
-    def exp: FloatExpr = FloatExpr(s"exp(${a.wgsl})")
-    def log: FloatExpr = FloatExpr(s"log(${a.wgsl})")
-    def log2: FloatExpr = FloatExpr(s"log2(${a.wgsl})")
-    def sin: FloatExpr = FloatExpr(s"sin(${a.wgsl})")
-    def cos: FloatExpr = FloatExpr(s"cos(${a.wgsl})")
-    def tan: FloatExpr = FloatExpr(s"tan(${a.wgsl})")
-    def asin: FloatExpr = FloatExpr(s"asin(${a.wgsl})")
-    def acos: FloatExpr = FloatExpr(s"acos(${a.wgsl})")
-    def atan: FloatExpr = FloatExpr(s"atan(${a.wgsl})")
-    def atan2(other: FloatExpr): FloatExpr = FloatExpr(
-      s"atan2(${a.wgsl}, ${other.wgsl})",
-    )
-    def min(other: FloatExpr): FloatExpr = FloatExpr(
-      s"min(${a.wgsl}, ${other.wgsl})",
-    )
-    def max(other: FloatExpr): FloatExpr = FloatExpr(
-      s"max(${a.wgsl}, ${other.wgsl})",
-    )
-    def clamp(min: FloatExpr, max: FloatExpr): FloatExpr =
-      FloatExpr(s"clamp(${a.wgsl}, ${min.wgsl}, ${max.wgsl})")
-    def clamp01: FloatExpr = FloatExpr(s"saturate(${a.wgsl})")
-    def fit0111: FloatExpr = FloatExpr(s"(${a.wgsl} * 2.0 - 1.0)")
-    def fit1101: FloatExpr = FloatExpr(s"(${a.wgsl} * 0.5 + 0.5)")
-    def mix(b: FloatExpr, t: FloatExpr): FloatExpr =
-      FloatExpr(s"mix(${a.wgsl}, ${b.wgsl}, ${t.wgsl})")
-    def gte(edge: FloatExpr): FloatExpr = FloatExpr(
-      s"step(${edge.wgsl}, ${a.wgsl})",
-    )
-    def gt(edge: FloatExpr): FloatExpr = FloatExpr(
-      s"(1.0 - step(${a.wgsl}, ${edge.wgsl}))",
-    )
-    def lte(edge: FloatExpr): FloatExpr = FloatExpr(
-      s"step(${a.wgsl}, ${edge.wgsl})",
-    )
-    def lt(edge: FloatExpr): FloatExpr = FloatExpr(
-      s"(1.0 - step(${edge.wgsl}, ${a.wgsl}))",
-    )
-    def smoothstep(edge0: FloatExpr, edge1: FloatExpr): FloatExpr =
-      FloatExpr(s"smoothstep(${edge0.wgsl}, ${edge1.wgsl}, ${a.wgsl})")
-
-// ---------------------------------------------------------------------------
-// Vec2 — LocalVec2 <: Vec2Expr, so only one Base + one ImmutableOps needed
-// ---------------------------------------------------------------------------
-
-given Vec2BaseG[FloatExpr, Vec2Expr] =
-  new Vec2BaseG[FloatExpr, Vec2Expr]:
-    extension (v: Vec2Expr)
-      def x: FloatExpr = FloatExpr(s"${v.wgsl}.x")
-      def y: FloatExpr = FloatExpr(s"${v.wgsl}.y")
-      def dot(other: Vec2Expr): FloatExpr = FloatExpr(
-        s"dot(${v.wgsl}, ${other.wgsl})",
-      )
-      def length_squared: FloatExpr = FloatExpr(s"dot(${v.wgsl}, ${v.wgsl})")
-      def length: FloatExpr = FloatExpr(s"length(${v.wgsl})")
-
-given Vec2ImmutableOpsG[FloatExpr, Vec2Expr]:
-  def create(x: FloatExpr, y: FloatExpr): Vec2Expr =
-    Vec2Expr(s"vec2<f32>(${x.wgsl}, ${y.wgsl})")
-
-  extension (v: Vec2Expr)(using Vec2BaseG[FloatExpr, Vec2Expr])
-    @annotation.targetName("addVecG")
-    override def +(other: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"(${v.wgsl} + ${other.wgsl})")
-    @annotation.targetName("addScalarG")
-    override def +(scalar: FloatExpr): Vec2Expr =
-      Vec2Expr(s"(${v.wgsl} + ${scalar.wgsl})")
-    def +(scalar: Double): Vec2Expr = v + (scalar: FloatExpr)
-    @annotation.targetName("negateVecG")
-    override def unary_- : Vec2Expr = Vec2Expr(s"(-${v.wgsl})")
-    @annotation.targetName("subVecG")
-    override def -(other: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"(${v.wgsl} - ${other.wgsl})")
-    @annotation.targetName("subScalarG")
-    override def -(scalar: FloatExpr): Vec2Expr =
-      Vec2Expr(s"(${v.wgsl} - ${scalar.wgsl})")
-    def -(scalar: Double): Vec2Expr = v - (scalar: FloatExpr)
-    @annotation.targetName("mulVecG")
-    override def *(other: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"(${v.wgsl} * ${other.wgsl})")
-    @annotation.targetName("mulScalarG")
-    override def *(scalar: FloatExpr): Vec2Expr =
-      Vec2Expr(s"(${v.wgsl} * ${scalar.wgsl})")
-    def *(scalar: Double): Vec2Expr = v * (scalar: FloatExpr)
-    @annotation.targetName("divVecG")
-    override def /(other: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"(${v.wgsl} / ${other.wgsl})")
-    @annotation.targetName("divScalarG")
-    override def /(scalar: FloatExpr): Vec2Expr =
-      Vec2Expr(s"(${v.wgsl} / ${scalar.wgsl})")
-    def /(scalar: Double): Vec2Expr = v / (scalar: FloatExpr)
-
-    override def normalize: Vec2Expr = Vec2Expr(s"normalize(${v.wgsl})")
-    override def abs: Vec2Expr = Vec2Expr(s"abs(${v.wgsl})")
-    override def sign: Vec2Expr = Vec2Expr(s"sign(${v.wgsl})")
-    override def floor: Vec2Expr = Vec2Expr(s"floor(${v.wgsl})")
-    override def ceil: Vec2Expr = Vec2Expr(s"ceil(${v.wgsl})")
-    override def round: Vec2Expr = Vec2Expr(s"round(${v.wgsl})")
-    override def fract: Vec2Expr = Vec2Expr(s"fract(${v.wgsl})")
-    override def exp: Vec2Expr = Vec2Expr(s"exp(${v.wgsl})")
-    override def log: Vec2Expr = Vec2Expr(s"log(${v.wgsl})")
-    override def log2: Vec2Expr = Vec2Expr(s"log2(${v.wgsl})")
-    override def sqrt: Vec2Expr = Vec2Expr(s"sqrt(${v.wgsl})")
-    override def min(other: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"min(${v.wgsl}, ${other.wgsl})")
-    override def max(other: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"max(${v.wgsl}, ${other.wgsl})")
-    override def clamp(lo: FloatExpr, hi: FloatExpr): Vec2Expr =
-      Vec2Expr(s"clamp(${v.wgsl}, ${lo.wgsl}, ${hi.wgsl})")
-    override def fit0111: Vec2Expr = Vec2Expr(s"(${v.wgsl} * 2.0 - 1.0)")
-    override def fit1101: Vec2Expr = Vec2Expr(s"(${v.wgsl} * 0.5 + 0.5)")
-    @annotation.targetName("mixVecG")
-    override def mix(b: Vec2Expr, t: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
-    @annotation.targetName("mixScalarG")
-    override def mix(b: Vec2Expr, t: FloatExpr): Vec2Expr =
-      Vec2Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
-    @annotation.targetName("stepVecG")
-    override def step(edge: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"step(${edge.wgsl}, ${v.wgsl})")
-    @annotation.targetName("stepScalarG")
-    override def step(edge: FloatExpr): Vec2Expr =
-      Vec2Expr(s"step(${edge.wgsl}, ${v.wgsl})")
-    override def smoothstep(edge0: Vec2Expr, edge1: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"smoothstep(${edge0.wgsl}, ${edge1.wgsl}, ${v.wgsl})")
-    @annotation.targetName("ltVecG")
-    override def <(other: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"(1.0 - step(${other.wgsl}, ${v.wgsl}))")
-    @annotation.targetName("lteVecG")
-    override def <=(other: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"step(${v.wgsl}, ${other.wgsl})")
-    @annotation.targetName("gtVecG")
-    override def >(other: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"(1.0 - step(${v.wgsl}, ${other.wgsl}))")
-    @annotation.targetName("gteVecG")
-    override def >=(other: Vec2Expr): Vec2Expr =
-      Vec2Expr(s"step(${other.wgsl}, ${v.wgsl})")
-
-// ---------------------------------------------------------------------------
-// Vec3 — LocalVec3 <: Vec3Expr
-// ---------------------------------------------------------------------------
-
-given Vec3BaseG[FloatExpr, Vec3Expr] =
-  new Vec3BaseG[FloatExpr, Vec3Expr]:
-    extension (v: Vec3Expr)
-      def x: FloatExpr = FloatExpr(s"${v.wgsl}.x")
-      def y: FloatExpr = FloatExpr(s"${v.wgsl}.y")
-      def z: FloatExpr = FloatExpr(s"${v.wgsl}.z")
-      def dot(other: Vec3Expr): FloatExpr = FloatExpr(
-        s"dot(${v.wgsl}, ${other.wgsl})",
-      )
-      def length_squared: FloatExpr = FloatExpr(s"dot(${v.wgsl}, ${v.wgsl})")
-      def length: FloatExpr = FloatExpr(s"length(${v.wgsl})")
-
-given Vec3ImmutableOpsG[FloatExpr, Vec3Expr]:
-  def create(x: FloatExpr, y: FloatExpr, z: FloatExpr): Vec3Expr =
-    Vec3Expr(s"vec3<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl})")
-
-  extension (v: Vec3Expr)(using Vec3BaseG[FloatExpr, Vec3Expr])
-    @annotation.targetName("addVecG")
-    override def +(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"(${v.wgsl} + ${other.wgsl})")
-    @annotation.targetName("addScalarG")
-    override def +(scalar: FloatExpr): Vec3Expr =
-      Vec3Expr(s"(${v.wgsl} + ${scalar.wgsl})")
-    def +(scalar: Double): Vec3Expr = v + (scalar: FloatExpr)
-    @annotation.targetName("negateVecG")
-    override def unary_- : Vec3Expr = Vec3Expr(s"(-${v.wgsl})")
-    @annotation.targetName("subVecG")
-    override def -(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"(${v.wgsl} - ${other.wgsl})")
-    @annotation.targetName("subScalarG")
-    override def -(scalar: FloatExpr): Vec3Expr =
-      Vec3Expr(s"(${v.wgsl} - ${scalar.wgsl})")
-    def -(scalar: Double): Vec3Expr = v - (scalar: FloatExpr)
-    @annotation.targetName("mulVecG")
-    override def *(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"(${v.wgsl} * ${other.wgsl})")
-    @annotation.targetName("mulScalarG")
-    override def *(scalar: FloatExpr): Vec3Expr =
-      Vec3Expr(s"(${v.wgsl} * ${scalar.wgsl})")
-    def *(scalar: Double): Vec3Expr = v * (scalar: FloatExpr)
-    @annotation.targetName("divVecG")
-    override def /(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"(${v.wgsl} / ${other.wgsl})")
-    @annotation.targetName("divScalarG")
-    override def /(scalar: FloatExpr): Vec3Expr =
-      Vec3Expr(s"(${v.wgsl} / ${scalar.wgsl})")
-    def /(scalar: Double): Vec3Expr = v / (scalar: FloatExpr)
-
-    override def cross(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"cross(${v.wgsl}, ${other.wgsl})")
-    override def normalize: Vec3Expr = Vec3Expr(s"normalize(${v.wgsl})")
-    override def abs: Vec3Expr = Vec3Expr(s"abs(${v.wgsl})")
-    override def sign: Vec3Expr = Vec3Expr(s"sign(${v.wgsl})")
-    override def floor: Vec3Expr = Vec3Expr(s"floor(${v.wgsl})")
-    override def ceil: Vec3Expr = Vec3Expr(s"ceil(${v.wgsl})")
-    override def round: Vec3Expr = Vec3Expr(s"round(${v.wgsl})")
-    override def fract: Vec3Expr = Vec3Expr(s"fract(${v.wgsl})")
-    override def exp: Vec3Expr = Vec3Expr(s"exp(${v.wgsl})")
-    override def log: Vec3Expr = Vec3Expr(s"log(${v.wgsl})")
-    override def log2: Vec3Expr = Vec3Expr(s"log2(${v.wgsl})")
-    override def sqrt: Vec3Expr = Vec3Expr(s"sqrt(${v.wgsl})")
-    override def min(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"min(${v.wgsl}, ${other.wgsl})")
-    override def max(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"max(${v.wgsl}, ${other.wgsl})")
-    override def clamp(lo: FloatExpr, hi: FloatExpr): Vec3Expr =
-      Vec3Expr(s"clamp(${v.wgsl}, ${lo.wgsl}, ${hi.wgsl})")
-    override def fit0111: Vec3Expr = Vec3Expr(s"(${v.wgsl} * 2.0 - 1.0)")
-    override def fit1101: Vec3Expr = Vec3Expr(s"(${v.wgsl} * 0.5 + 0.5)")
-    @annotation.targetName("mixVecG")
-    override def mix(b: Vec3Expr, t: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
-    @annotation.targetName("mixScalarG")
-    override def mix(b: Vec3Expr, t: FloatExpr): Vec3Expr =
-      Vec3Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
-    @annotation.targetName("stepVecG")
-    override def step(edge: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"step(${edge.wgsl}, ${v.wgsl})")
-    @annotation.targetName("stepScalarG")
-    override def step(edge: FloatExpr): Vec3Expr =
-      Vec3Expr(s"step(${edge.wgsl}, ${v.wgsl})")
-    override def smoothstep(edge0: Vec3Expr, edge1: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"smoothstep(${edge0.wgsl}, ${edge1.wgsl}, ${v.wgsl})")
-    @annotation.targetName("ltVecG")
-    override def <(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"(1.0 - step(${other.wgsl}, ${v.wgsl}))")
-    @annotation.targetName("lteVecG")
-    override def <=(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"step(${v.wgsl}, ${other.wgsl})")
-    @annotation.targetName("gtVecG")
-    override def >(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"(1.0 - step(${v.wgsl}, ${other.wgsl}))")
-    @annotation.targetName("gteVecG")
-    override def >=(other: Vec3Expr): Vec3Expr =
-      Vec3Expr(s"step(${other.wgsl}, ${v.wgsl})")
-
-// ---------------------------------------------------------------------------
-// Vec4 — LocalVec4 <: Vec4Expr
-// ---------------------------------------------------------------------------
-
-given Vec4BaseG[FloatExpr, Vec4Expr] =
-  new Vec4BaseG[FloatExpr, Vec4Expr]:
-    extension (v: Vec4Expr)
-      def x: FloatExpr = FloatExpr(s"${v.wgsl}.x")
-      def y: FloatExpr = FloatExpr(s"${v.wgsl}.y")
-      def z: FloatExpr = FloatExpr(s"${v.wgsl}.z")
-      def w: FloatExpr = FloatExpr(s"${v.wgsl}.w")
-      def dot(other: Vec4Expr): FloatExpr = FloatExpr(
-        s"dot(${v.wgsl}, ${other.wgsl})",
-      )
-      def length_squared: FloatExpr = FloatExpr(s"dot(${v.wgsl}, ${v.wgsl})")
-      def length: FloatExpr = FloatExpr(s"length(${v.wgsl})")
-
-given Vec4ImmutableOpsG[FloatExpr, Vec4Expr]:
-  def create(x: FloatExpr, y: FloatExpr, z: FloatExpr, w: FloatExpr): Vec4Expr =
-    Vec4Expr(s"vec4<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl}, ${w.wgsl})")
-
-  extension (v: Vec4Expr)(using Vec4BaseG[FloatExpr, Vec4Expr])
-    @annotation.targetName("addVecG")
-    override def +(other: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"(${v.wgsl} + ${other.wgsl})")
-    @annotation.targetName("addScalarG")
-    override def +(scalar: FloatExpr): Vec4Expr =
-      Vec4Expr(s"(${v.wgsl} + ${scalar.wgsl})")
-    @annotation.targetName("negateVecG")
-    override def unary_- : Vec4Expr = Vec4Expr(s"(-${v.wgsl})")
-    @annotation.targetName("subVecG")
-    override def -(other: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"(${v.wgsl} - ${other.wgsl})")
-    @annotation.targetName("subScalarG")
-    override def -(scalar: FloatExpr): Vec4Expr =
-      Vec4Expr(s"(${v.wgsl} - ${scalar.wgsl})")
-    @annotation.targetName("mulVecG")
-    override def *(other: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"(${v.wgsl} * ${other.wgsl})")
-    @annotation.targetName("mulScalarG")
-    override def *(scalar: FloatExpr): Vec4Expr =
-      Vec4Expr(s"(${v.wgsl} * ${scalar.wgsl})")
-    @annotation.targetName("divVecG")
-    override def /(other: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"(${v.wgsl} / ${other.wgsl})")
-    @annotation.targetName("divScalarG")
-    override def /(scalar: FloatExpr): Vec4Expr =
-      Vec4Expr(s"(${v.wgsl} / ${scalar.wgsl})")
-
-    override def normalize: Vec4Expr = Vec4Expr(s"normalize(${v.wgsl})")
-    override def abs: Vec4Expr = Vec4Expr(s"abs(${v.wgsl})")
-    override def sign: Vec4Expr = Vec4Expr(s"sign(${v.wgsl})")
-    override def floor: Vec4Expr = Vec4Expr(s"floor(${v.wgsl})")
-    override def ceil: Vec4Expr = Vec4Expr(s"ceil(${v.wgsl})")
-    override def round: Vec4Expr = Vec4Expr(s"round(${v.wgsl})")
-    override def fract: Vec4Expr = Vec4Expr(s"fract(${v.wgsl})")
-    override def exp: Vec4Expr = Vec4Expr(s"exp(${v.wgsl})")
-    override def log: Vec4Expr = Vec4Expr(s"log(${v.wgsl})")
-    override def log2: Vec4Expr = Vec4Expr(s"log2(${v.wgsl})")
-    override def sqrt: Vec4Expr = Vec4Expr(s"sqrt(${v.wgsl})")
-    override def min(other: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"min(${v.wgsl}, ${other.wgsl})")
-    override def max(other: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"max(${v.wgsl}, ${other.wgsl})")
-    override def clamp(lo: FloatExpr, hi: FloatExpr): Vec4Expr =
-      Vec4Expr(s"clamp(${v.wgsl}, ${lo.wgsl}, ${hi.wgsl})")
-    override def fit0111: Vec4Expr = Vec4Expr(s"(${v.wgsl} * 2.0 - 1.0)")
-    override def fit1101: Vec4Expr = Vec4Expr(s"(${v.wgsl} * 0.5 + 0.5)")
-    @annotation.targetName("mixVecG")
-    override def mix(b: Vec4Expr, t: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
-    @annotation.targetName("mixScalarG")
-    override def mix(b: Vec4Expr, t: FloatExpr): Vec4Expr =
-      Vec4Expr(s"mix(${v.wgsl}, ${b.wgsl}, ${t.wgsl})")
-    @annotation.targetName("stepVecG")
-    override def step(edge: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"step(${edge.wgsl}, ${v.wgsl})")
-    @annotation.targetName("stepScalarG")
-    override def step(edge: FloatExpr): Vec4Expr =
-      Vec4Expr(s"step(${edge.wgsl}, ${v.wgsl})")
-    override def smoothstep(edge0: Vec4Expr, edge1: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"smoothstep(${edge0.wgsl}, ${edge1.wgsl}, ${v.wgsl})")
-    @annotation.targetName("ltVecG")
-    override def <(other: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"(1.0 - step(${other.wgsl}, ${v.wgsl}))")
-    @annotation.targetName("lteVecG")
-    override def <=(other: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"step(${v.wgsl}, ${other.wgsl})")
-    @annotation.targetName("gtVecG")
-    override def >(other: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"(1.0 - step(${v.wgsl}, ${other.wgsl}))")
-    @annotation.targetName("gteVecG")
-    override def >=(other: Vec4Expr): Vec4Expr =
-      Vec4Expr(s"step(${other.wgsl}, ${v.wgsl})")
-
-// ---------------------------------------------------------------------------
-// Mat2
-// ---------------------------------------------------------------------------
-
-given Mat2BaseG[FloatExpr, Mat2Expr] =
-  new Mat2BaseG[FloatExpr, Mat2Expr]:
-    extension (m: Mat2Expr)
-      def m00: FloatExpr = FloatExpr(s"${m.wgsl}[0][0]")
-      def m01: FloatExpr = FloatExpr(s"${m.wgsl}[0][1]")
-      def m10: FloatExpr = FloatExpr(s"${m.wgsl}[1][0]")
-      def m11: FloatExpr = FloatExpr(s"${m.wgsl}[1][1]")
-      def determinant: FloatExpr =
-        FloatExpr(s"determinant(${m.wgsl})")
-
-given Mat2ImmutableOpsG[FloatExpr, Mat2Expr]:
-  def create(
-      m00: FloatExpr,
-      m01: FloatExpr,
-      m10: FloatExpr,
-      m11: FloatExpr,
-  ): Mat2Expr =
-    Mat2Expr(s"mat2x2<f32>(${m00.wgsl}, ${m01.wgsl}, ${m10.wgsl}, ${m11.wgsl})")
-
-  extension (m: Mat2Expr)(using Mat2BaseG[FloatExpr, Mat2Expr])
-    @annotation.targetName("matMulG")
-    override def *(other: Mat2Expr): Mat2Expr =
-      Mat2Expr(s"(${m.wgsl} * ${other.wgsl})")
-    @annotation.targetName("vecMulG")
-    override def *[Vec](v: Vec)(using
-        Vec2BaseG[FloatExpr, Vec],
-        Vec2ImmutableOpsG[FloatExpr, Vec],
-    ): Vec =
-      Vec2Expr(s"(${m.wgsl} * ${v.asInstanceOf[Expr].wgsl})").asInstanceOf[Vec]
-
-// ---------------------------------------------------------------------------
-// Mat3
-// ---------------------------------------------------------------------------
-
-given Mat3BaseG[FloatExpr, Mat3Expr] =
-  new Mat3BaseG[FloatExpr, Mat3Expr]:
-    extension (m: Mat3Expr)
-      def m00: FloatExpr = FloatExpr(s"${m.wgsl}[0][0]")
-      def m01: FloatExpr = FloatExpr(s"${m.wgsl}[0][1]")
-      def m02: FloatExpr = FloatExpr(s"${m.wgsl}[0][2]")
-      def m10: FloatExpr = FloatExpr(s"${m.wgsl}[1][0]")
-      def m11: FloatExpr = FloatExpr(s"${m.wgsl}[1][1]")
-      def m12: FloatExpr = FloatExpr(s"${m.wgsl}[1][2]")
-      def m20: FloatExpr = FloatExpr(s"${m.wgsl}[2][0]")
-      def m21: FloatExpr = FloatExpr(s"${m.wgsl}[2][1]")
-      def m22: FloatExpr = FloatExpr(s"${m.wgsl}[2][2]")
-      def determinant: FloatExpr =
-        FloatExpr(s"determinant(${m.wgsl})")
-
-given Mat3ImmutableOpsG[FloatExpr, Mat3Expr]:
-  def create(
-      m00: FloatExpr,
-      m01: FloatExpr,
-      m02: FloatExpr,
-      m10: FloatExpr,
-      m11: FloatExpr,
-      m12: FloatExpr,
-      m20: FloatExpr,
-      m21: FloatExpr,
-      m22: FloatExpr,
-  ): Mat3Expr =
-    Mat3Expr(
-      s"mat3x3<f32>(${m00.wgsl}, ${m01.wgsl}, ${m02.wgsl}, ${m10.wgsl}, ${m11.wgsl}, ${m12.wgsl}, ${m20.wgsl}, ${m21.wgsl}, ${m22.wgsl})",
-    )
-
-  extension (m: Mat3Expr)(using Mat3BaseG[FloatExpr, Mat3Expr])
-    @annotation.targetName("matMulG")
-    override def *(other: Mat3Expr): Mat3Expr =
-      Mat3Expr(s"(${m.wgsl} * ${other.wgsl})")
-    @annotation.targetName("vecMulG")
-    override def *[Vec](v: Vec)(using
-        Vec3BaseG[FloatExpr, Vec],
-        Vec3ImmutableOpsG[FloatExpr, Vec],
-    ): Vec =
-      Vec3Expr(s"(${m.wgsl} * ${v.asInstanceOf[Expr].wgsl})").asInstanceOf[Vec]
-
-// ---------------------------------------------------------------------------
-// Mat4
-// ---------------------------------------------------------------------------
-
-given Mat4BaseG[FloatExpr, Mat4Expr] =
-  new Mat4BaseG[FloatExpr, Mat4Expr]:
-    extension (m: Mat4Expr)
-      def m00: FloatExpr = FloatExpr(s"${m.wgsl}[0][0]")
-      def m01: FloatExpr = FloatExpr(s"${m.wgsl}[0][1]")
-      def m02: FloatExpr = FloatExpr(s"${m.wgsl}[0][2]")
-      def m03: FloatExpr = FloatExpr(s"${m.wgsl}[0][3]")
-      def m10: FloatExpr = FloatExpr(s"${m.wgsl}[1][0]")
-      def m11: FloatExpr = FloatExpr(s"${m.wgsl}[1][1]")
-      def m12: FloatExpr = FloatExpr(s"${m.wgsl}[1][2]")
-      def m13: FloatExpr = FloatExpr(s"${m.wgsl}[1][3]")
-      def m20: FloatExpr = FloatExpr(s"${m.wgsl}[2][0]")
-      def m21: FloatExpr = FloatExpr(s"${m.wgsl}[2][1]")
-      def m22: FloatExpr = FloatExpr(s"${m.wgsl}[2][2]")
-      def m23: FloatExpr = FloatExpr(s"${m.wgsl}[2][3]")
-      def m30: FloatExpr = FloatExpr(s"${m.wgsl}[3][0]")
-      def m31: FloatExpr = FloatExpr(s"${m.wgsl}[3][1]")
-      def m32: FloatExpr = FloatExpr(s"${m.wgsl}[3][2]")
-      def m33: FloatExpr = FloatExpr(s"${m.wgsl}[3][3]")
-      def determinant: FloatExpr =
-        FloatExpr(s"determinant(${m.wgsl})")
-
-// format: off
-given Mat4ImmutableOpsG[FloatExpr, Mat4Expr]:
-  def create(
-      m00: FloatExpr, m01: FloatExpr, m02: FloatExpr, m03: FloatExpr,
-      m10: FloatExpr, m11: FloatExpr, m12: FloatExpr, m13: FloatExpr,
-      m20: FloatExpr, m21: FloatExpr, m22: FloatExpr, m23: FloatExpr,
-      m30: FloatExpr, m31: FloatExpr, m32: FloatExpr, m33: FloatExpr,
-  ): Mat4Expr =
-    Mat4Expr(s"mat4x4<f32>(${m00.wgsl}, ${m01.wgsl}, ${m02.wgsl}, ${m03.wgsl}, ${m10.wgsl}, ${m11.wgsl}, ${m12.wgsl}, ${m13.wgsl}, ${m20.wgsl}, ${m21.wgsl}, ${m22.wgsl}, ${m23.wgsl}, ${m30.wgsl}, ${m31.wgsl}, ${m32.wgsl}, ${m33.wgsl})")
-  // format: on
-
-  extension (m: Mat4Expr)(using Mat4BaseG[FloatExpr, Mat4Expr])
-    @annotation.targetName("matMulG")
-    override def *(other: Mat4Expr): Mat4Expr =
-      Mat4Expr(s"(${m.wgsl} * ${other.wgsl})")
-    @annotation.targetName("vecMulG")
-    override def *[Vec](v: Vec)(using
-        Vec4BaseG[FloatExpr, Vec],
-        Vec4ImmutableOpsG[FloatExpr, Vec],
-    ): Vec =
-      Vec4Expr(s"(${m.wgsl} * ${v.asInstanceOf[Expr].wgsl})").asInstanceOf[Vec]
-
-// ---------------------------------------------------------------------------
-// Vector constructors (lowercase, matching WGSL syntax)
-// ---------------------------------------------------------------------------
-
-object vec2:
-  def apply(x: FloatExpr, y: FloatExpr): Vec2Expr =
-    Vec2Expr(s"vec2<f32>(${x.wgsl}, ${y.wgsl})")
-
-object vec3:
-  def apply(x: FloatExpr, y: FloatExpr, z: FloatExpr): Vec3Expr =
-    Vec3Expr(s"vec3<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl})")
-
-object vec4:
-  def apply(x: FloatExpr, y: FloatExpr, z: FloatExpr, w: FloatExpr): Vec4Expr =
-    Vec4Expr(s"vec4<f32>(${x.wgsl}, ${y.wgsl}, ${z.wgsl}, ${w.wgsl})")
-  def apply(xyz: Vec3Expr, w: FloatExpr): Vec4Expr =
-    Vec4Expr(s"vec4<f32>(${xyz.wgsl}, ${w.wgsl})")
-  def apply(xy: Vec2Expr, z: FloatExpr, w: FloatExpr): Vec4Expr =
-    Vec4Expr(s"vec4<f32>(${xy.wgsl}, ${z.wgsl}, ${w.wgsl})")
 
 // ---------------------------------------------------------------------------
 // Stmt and Block opaque types
@@ -716,9 +292,130 @@ object Stmt:
     s"  $name = ${value.wgsl};"
   inline def raw(s: String): Stmt = s
 
+  def ifBlock(cond: BoolExpr, body: Block): Stmt =
+    s"  if (${cond.wgsl}) {\n${indentBlock(body)}\n  }"
+  def ifElseBlock(cond: BoolExpr, thenBody: Block, elseBody: Block): Stmt =
+    s"  if (${cond.wgsl}) {\n${indentBlock(thenBody)}\n  } else {\n${indentBlock(elseBody)}\n  }"
+
 given Conversion[Stmt, Block] = s => s
 
 object Block:
   def apply(stmts: Stmt*): Block = stmts.mkString("\n")
   def empty: Block = ""
   def unwrap(b: Block): String = b.asInstanceOf[String]
+
+// ---------------------------------------------------------------------------
+// Control flow — if / if-else statement constructors and helpers.
+// Re-indents nested blocks by adding two spaces to every line, so nesting
+// works recursively without explicit indentation tracking.
+// ---------------------------------------------------------------------------
+
+private def indentBlock(body: Block): String =
+  Block.unwrap(body).split('\n').map(line => s"  $line").mkString("\n")
+
+/** Branchless conditional. WGSL signature:
+  * `select(falseValue, trueValue, cond)`.
+  */
+def select[T <: Expr](onFalse: T, onTrue: T, cond: BoolExpr): T =
+  Expr
+    .raw(s"select(${onFalse.wgsl}, ${onTrue.wgsl}, ${cond.wgsl})")
+    .asInstanceOf[T]
+
+/** Single-branch `if (cond) { ... }`. */
+def when(cond: BoolExpr, body: Block): Stmt = Stmt.ifBlock(cond, body)
+
+/** Two-branch `if (cond) { ... } else { ... }`. */
+def ifElse(cond: BoolExpr, thenBody: Block, elseBody: Block): Stmt =
+  Stmt.ifElseBlock(cond, thenBody, elseBody)
+
+/** Multi-branch `if / else if / ... [/ else]` chain. Start with `ifChain`,
+  * append `.elseIf(...)` for each additional branch, terminate with
+  * `.orElse(...)` for a final else, or use the chain directly as a `Stmt`
+  * for an open-ended chain.
+  */
+opaque type IfChain = String
+
+def ifChain(cond: BoolExpr, body: Block): IfChain =
+  s"  if (${cond.wgsl}) {\n${indentBlock(body)}\n  }"
+
+extension (chain: IfChain)
+  def elseIf(cond: BoolExpr, body: Block): IfChain =
+    s"$chain else if (${cond.wgsl}) {\n${indentBlock(body)}\n  }"
+  def elseDo(body: Block): Stmt =
+    s"$chain else {\n${indentBlock(body)}\n  }"
+
+given Conversion[IfChain, Stmt] = c => c
+given Conversion[IfChain, Block] = c => c
+
+extension (cond: BoolExpr)
+  /** Branchless conditional: `cond.select(onTrue, onFalse)`. */
+  @annotation.targetName("boolSelect")
+  def select[T <: Expr](onTrue: T, onFalse: T): T =
+    Expr
+      .raw(s"select(${onFalse.wgsl}, ${onTrue.wgsl}, ${cond.wgsl})")
+      .asInstanceOf[T]
+
+  /** `cond.thenDo(body)` — single-branch `if`. */
+  def thenDo(body: Block): Stmt = Stmt.ifBlock(cond, body)
+
+  /** `cond.thenElse(thenBody, elseBody)` — `if`/`else` chain. */
+  def thenElse(thenBody: Block, elseBody: Block): Stmt =
+    Stmt.ifElseBlock(cond, thenBody, elseBody)
+
+  @annotation.targetName("boolAnd")
+  def &&(other: BoolExpr): BoolExpr =
+    BoolExpr(s"(${cond.wgsl} && ${other.wgsl})")
+  @annotation.targetName("boolOr")
+  def ||(other: BoolExpr): BoolExpr =
+    BoolExpr(s"(${cond.wgsl} || ${other.wgsl})")
+  @annotation.targetName("boolNot")
+  def unary_! : BoolExpr = BoolExpr(s"!(${cond.wgsl})")
+
+// ---------------------------------------------------------------------------
+// Numeric comparison operators (return BoolExpr).
+// Symbolic comparisons live here together because Scala 3 disallows
+// overloaded top-level methods spread across files. Numeric step-based
+// helpers .gt/.lt/.gte/.lte stay with their respective numeric files.
+// ---------------------------------------------------------------------------
+
+extension (a: FloatExpr)
+  @annotation.targetName("floatLt")
+  def <(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} < ${b.wgsl})")
+  @annotation.targetName("floatLte")
+  def <=(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} <= ${b.wgsl})")
+  @annotation.targetName("floatGt")
+  def >(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} > ${b.wgsl})")
+  @annotation.targetName("floatGte")
+  def >=(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} >= ${b.wgsl})")
+  @annotation.targetName("floatEq")
+  def ===(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} == ${b.wgsl})")
+  @annotation.targetName("floatNe")
+  def !==(b: FloatExpr): BoolExpr = BoolExpr(s"(${a.wgsl} != ${b.wgsl})")
+
+extension (a: IntExpr)
+  @annotation.targetName("intLt")
+  def <(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} < ${b.wgsl})")
+  @annotation.targetName("intLte")
+  def <=(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} <= ${b.wgsl})")
+  @annotation.targetName("intGt")
+  def >(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} > ${b.wgsl})")
+  @annotation.targetName("intGte")
+  def >=(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} >= ${b.wgsl})")
+  @annotation.targetName("intEq")
+  def ===(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} == ${b.wgsl})")
+  @annotation.targetName("intNe")
+  def !==(b: IntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} != ${b.wgsl})")
+
+extension (a: UIntExpr)
+  @annotation.targetName("uintLt")
+  def <(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} < ${b.wgsl})")
+  @annotation.targetName("uintLte")
+  def <=(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} <= ${b.wgsl})")
+  @annotation.targetName("uintGt")
+  def >(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} > ${b.wgsl})")
+  @annotation.targetName("uintGte")
+  def >=(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} >= ${b.wgsl})")
+  @annotation.targetName("uintEq")
+  def ===(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} == ${b.wgsl})")
+  @annotation.targetName("uintNe")
+  def !==(b: UIntExpr): BoolExpr = BoolExpr(s"(${a.wgsl} != ${b.wgsl})")

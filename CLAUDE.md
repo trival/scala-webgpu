@@ -132,6 +132,8 @@ features. Every runtime construct must compile to minimal JS:
   a dedicated Color type.
 - **Examples**: Each implementation step gets a new example in `examples/`.
   Previous examples are never deleted and must keep compiling.
+- When writing new shader code in examples and sketches using our painter API,
+  prefer the scala shader DSL over raw WGSL strings.
 
 ## Scala Conventions
 

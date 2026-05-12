@@ -149,7 +149,7 @@ def main(): Unit =
       (0.02, 0.02, 0.98, 0.98), // top-right: mip 6
     )
 
-    val displayShapes = Arr[Shape[?, ?]]()
+    val displayShapes = Arr[AnyShape]()
     var i = 0
     while i < 4 do
       val (x0, y0, x1, y1) = positions(i)

@@ -279,7 +279,20 @@ object derive:
             summonFrom:
               case _: (V =:= Expected) => ()
               case _: (V <:< BufferBinding[Expected, ?]) => ()
-              case _ => error("Binding type mismatch: value type does not match uniform field type")
+              // Float ↔ Double interchange — both map to WGSL f32.
+              case _ =>
+                summonFrom:
+                  case _: (Expected =:= Float) =>
+                    summonFrom:
+                      case _: (V =:= Double) => ()
+                      case _: (V <:< BufferBinding[Double, ?]) => ()
+                      case _ => error("Binding type mismatch: value type does not match uniform field type")
+                  case _: (Expected =:= Double) =>
+                    summonFrom:
+                      case _: (V =:= Float) => ()
+                      case _: (V <:< BufferBinding[Float, ?]) => ()
+                      case _ => error("Binding type mismatch: value type does not match uniform field type")
+                  case _ => error("Binding type mismatch: value type does not match uniform field type")
           case _ =>
             checkFieldTypeImpl[Name, V, namesRest, typesRest]
 

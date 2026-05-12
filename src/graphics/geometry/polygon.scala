@@ -1,7 +1,7 @@
 package graphics.geometry
 
 import graphics.math.*
-import graphics.math.cpu.Vec3
+import graphics.math.cpu.{Vec2, Vec3}
 import graphics.math.cpu.given
 import trivalibs.utils.js.*
 
@@ -36,8 +36,87 @@ object Triangle:
 // Quad winding: tl(0), bl(1), br(2), tr(3) — CCW viewed from front.
 opaque type Quad[T] <: Arr[T] = Arr[T]
 
+opaque type QuadCorner = Int
+
+object QuadCorner:
+  val TopLeft:     QuadCorner = 0
+  val BottomLeft:  QuadCorner = 1
+  val BottomRight: QuadCorner = 2
+  val TopRight:    QuadCorner = 3
+
 object Quad:
   def apply[T](tl: T, bl: T, br: T, tr: T): Quad[T] = Arr(tl, bl, br, tr)
+
+  // Dimensioned construction.  uvAtPivot: (0,0)=top-left, (0.5,0.5)=center, (1,1)=bottom-right.
+  def fromDimensions[T](
+      width: Double,
+      height: Double,
+      normal: Vec3,
+      pivot: Vec3,
+      uvAtPivot: Vec2 = Vec2(0.5, 0.5),
+  )(f: (Vec3, Vec2) => T): Quad[T] =
+    val n = normal.normalize
+    val up = if math.abs(n.y) > 0.999 then -Vec3.Z else Vec3.Y
+    val uDir = up.cross(n)
+    val uVec = uDir * width
+    val vVec = -(n.cross(uDir)) * height
+    val tlPos = pivot - uVec * uvAtPivot.x - vVec * uvAtPivot.y
+    val trPos = tlPos + uVec
+    val blPos = tlPos + vVec
+    val brPos = blPos + uVec
+    Quad(
+      f(tlPos, Vec2(0.0, 0.0)),
+      f(blPos, Vec2(0.0, 1.0)),
+      f(brPos, Vec2(1.0, 1.0)),
+      f(trPos, Vec2(1.0, 0.0)),
+    )
+
+  inline def fromDimensionsCenter[T](
+      w: Double,
+      h: Double,
+      n: Vec3,
+      center: Vec3,
+  )(f: (Vec3, Vec2) => T): Quad[T] =
+    fromDimensions(w, h, n, center, Vec2(0.5, 0.5))(f)
+
+  inline def fromDimensionsTopLeft[T](
+      w: Double,
+      h: Double,
+      n: Vec3,
+      tl: Vec3,
+  )(f: (Vec3, Vec2) => T): Quad[T] =
+    fromDimensions(w, h, n, tl, Vec2(0.0, 0.0))(f)
+
+  // From 4 explicit corner positions.  Normal is readable via Quad.normal on the result.
+  def fromCorners[T](
+      tl: Vec3,
+      bl: Vec3,
+      br: Vec3,
+      tr: Vec3,
+  )(f: (Vec3, Vec2) => T): Quad[T] =
+    Quad(
+      f(tl, Vec2(0.0, 0.0)),
+      f(bl, Vec2(0.0, 1.0)),
+      f(br, Vec2(1.0, 1.0)),
+      f(tr, Vec2(1.0, 0.0)),
+    )
+
+  // Infer missing 4th corner from 3 adjacent corners (parallelogram rule).
+  // a, b, c are the three known corners in the order tl(0) bl(1) br(2) tr(3),
+  // skipping the missing slot.
+  def fromThreeCorners[T](
+      a: Vec3,
+      b: Vec3,
+      c: Vec3,
+      missing: QuadCorner,
+  )(f: (Vec3, Vec2) => T): Quad[T] =
+    import QuadCorner.*
+    val (tl, bl, br, tr) = missing match
+      case TopLeft     => (a + c - b, a, b, c) // a=bl b=br c=tr
+      case BottomLeft  => (a, a + b - c, b, c) // a=tl b=br c=tr
+      case BottomRight => (a, b, b + c - a, c) // a=tl b=bl c=tr
+      case _           => (a, b, c, a + c - b) // TopRight: a=tl b=bl c=br
+    fromCorners(tl, bl, br, tr)(f)
 
   extension [T: Position](q: Quad[T])
     def tl: T = q(0)

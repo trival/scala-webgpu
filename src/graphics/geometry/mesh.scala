@@ -13,15 +13,6 @@ class VertexPosition[T](val position: Vec3, val faces: Arr[PositionFaceRef])
 
 class FaceData(var normal: Opt[Vec3], val section: Int)
 
-opaque type MeshBufferType = Int
-
-object MeshBufferType:
-  val FaceVertices: MeshBufferType = 0
-  val FaceVerticesWithFaceNormal: MeshBufferType = 1
-  val FaceVerticesWithVertexNormal: MeshBufferType = 2
-  val CompactVertices: MeshBufferType = 3
-  val CompactVerticesWithNormal: MeshBufferType = 4
-
 class Mesh[T: Position]:
   val faces: Arr[Face[T]] = Arr()
   val faceData: Arr[FaceData] = Arr()
@@ -152,8 +143,8 @@ class Mesh[T: Position]:
     m
 
 extension [T: Position](m: Mesh[T])
-  def addFaces(
-      faces: Arr[Face[T]],
+  def addFaces[F <: Face[T]](
+      faces: Arr[F],
       normal: Opt[Vec3] = null,
       section: Int = 0,
   ): Unit =
@@ -163,8 +154,8 @@ extension [T: Position](m: Mesh[T])
       i += 1
 
 object Mesh:
-  def apply[T: Position](
-      faces: Arr[Face[T]],
+  def apply[T: Position, F <: Face[T]](
+      faces: Arr[F],
       normal: Opt[Vec3] = null,
       section: Int = 0,
   ): Mesh[T] =

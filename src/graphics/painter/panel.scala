@@ -27,8 +27,8 @@ class Panel(val painter: Painter):
   var multisample: Boolean = false
   var mipLevels: Int = 1
   var formats: Arr[String] = Arr()
-  var shapes: Arr[Shape[?, ?]] = Arr()
-  var layers: Arr[Layer[?, ?]] = Arr()
+  var shapes: Arr[AnyShape] = Arr()
+  var layers: Arr[AnyLayer] = Arr()
   var runtimeBindings: js.Dictionary[PanelBindingValue] = js.Dictionary()
 
   private var _textures: Arr[GPUTexture] = Arr()
@@ -115,7 +115,7 @@ class Panel(val painter: Painter):
   private[painter] def setOutputView(view: GPUTextureView): Unit =
     _outputView = view
 
-  def set(
+  def set[S <: AnyShape, L <: AnyLayer](
       width: Maybe[Int] = Maybe.Not,
       height: Maybe[Int] = Maybe.Not,
       clearColor: Maybe[Opt[ClearColor]] = Maybe.Not,
@@ -124,10 +124,10 @@ class Panel(val painter: Painter):
       mipLevels: Maybe[Int] = Maybe.Not,
       format: Maybe[String] = Maybe.Not,
       formats: Maybe[Arr[String]] = Maybe.Not,
-      shape: Maybe[Shape[?, ?]] = Maybe.Not,
-      shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
-      layer: Maybe[Layer[?, ?]] = Maybe.Not,
-      layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
+      shape: Maybe[S] = Maybe.Not,
+      shapes: Maybe[Arr[S]] = Maybe.Not,
+      layer: Maybe[L] = Maybe.Not,
+      layers: Maybe[Arr[L]] = Maybe.Not,
   ): this.type =
     width.foreach(v => this.specWidth = v)
     height.foreach(v => this.specHeight = v)
@@ -136,8 +136,12 @@ class Panel(val painter: Painter):
     multisample.foreach(v => this.multisample = v)
     mipLevels.foreach(v => this.mipLevels = v)
     formats.orMaybe(format.map(f => Arr(f))).foreach(v => this.formats = v)
-    shapes.orMaybe(shape.map(s => Arr(s))).foreach(v => this.shapes = v)
-    layers.orMaybe(layer.map(l => Arr(l))).foreach(v => this.layers = v)
+    shapes
+      .orMaybe(shape.map(s => Arr(s.asInstanceOf[AnyShape])))
+      .foreach(v => this.shapes = v.asInstanceOf[Arr[AnyShape]])
+    layers
+      .orMaybe(layer.map(l => Arr(l)))
+      .foreach(v => this.layers = v.asInstanceOf[Arr[AnyLayer]])
     this
 
   private inline def processPanelEntry[N <: String & Singleton, V](

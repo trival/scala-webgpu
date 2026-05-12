@@ -1,4 +1,4 @@
-# 3D Geometry Helpers — Grid, Cuboid, Sphere
+# 3D Geometry Helpers — Grid, Cuboid, Sphere ✅ Done
 
 Port of `trivalibs_core` 3D geometry helpers: a coordinate grid with wrap-around
 strategies, Cuboid / Quad factories, and a sphere mesh generator. Culminates in
@@ -333,11 +333,11 @@ drawn in the same render pass.
 
 ## 5. Implementation order
 
-1. **Grid** — `grid.scala` + `Grid.test.scala`. Pure CPU; no GPU. Done when §2.5
+1. ✅ **Grid** — `grid.scala` + `Grid.test.scala`. Pure CPU; no GPU. Done when §2.5
    passes.
-2. **Shapes** — `shapes.scala` + `Shapes.test.scala`. Extend `object Quad`; add
+2. ✅ **Shapes** — `shapes.scala` + `Shapes.test.scala`. Extend `object Quad`; add
    `Cuboid`; add `sphereMesh`. Done when §3.4 passes.
-3. **Scene example** — `examples/geometry3d_scene/`. Verify visually with
+3. ✅ **Scene example** — `examples/geometry3d_scene/`. Verify visually with
    `bun run dev`. Grid wave surface, three cuboids, two spheres, diffuse
    lighting.
 
@@ -379,3 +379,16 @@ bun run build   # zero errors
 bun run test    # all geometry tests pass
 bun run dev     # open :3000/geometry3d_scene — wave terrain + boxes + spheres visible
 ```
+
+**Status: ✅ All phases complete.** Build passes, tests pass, scene renders at
+`/geometry3d_scene/`. Notable deviations from the plan:
+
+- Indexed rendering was added as a prerequisite (`Form` now holds an index
+  buffer; `GPURenderPassEncoder` gained `setIndexBuffer` / `drawIndexed`).
+- `toBufferedGeometry` generates index buffers automatically when quads are
+  present — no manual pre-triangulation needed in user code.
+- `painter.panel` / `Panel.set` gained a `[S <: Shape[?, ?]]` type parameter so
+  `Arr(s1, s2, ...)` can be passed without explicit type annotation.
+- `type AnyShape = Shape[?, ?]` added to painter package for empty-array construction.
+- Scene shader uses the Scala DSL (`program.vert` / `program.frag`) rather than
+  raw WGSL strings.

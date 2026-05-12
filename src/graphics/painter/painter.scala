@@ -1,6 +1,7 @@
 package graphics.painter
 
 import graphics.buffers.*
+import graphics.geometry.BufferedGeometry
 import graphics.math.*
 import graphics.math.cpu.*
 import graphics.math.cpu.Vec2
@@ -475,10 +476,11 @@ class Painter(
   // =========================================================================
 
   def form[F <: Tuple](
+      geometry: Maybe[BufferedGeometry[F]] = Maybe.Not,
       vertices: Maybe[StructArray[F]] = Maybe.Not,
       topology: Maybe[PrimitiveTopology] = Maybe.Not,
       frontFace: Maybe[FrontFace] = Maybe.Not,
-  ): Form = Form(this).set(vertices, topology, frontFace)
+  ): Form = Form(this).set(geometry, vertices, topology, frontFace)
 
   // =========================================================================
   // Binding factory
@@ -520,7 +522,7 @@ class Painter(
   // Panel factory
   // =========================================================================
 
-  def panel(
+  def panel[S <: AnyShape, L <: AnyLayer](
       width: Maybe[Int] = Maybe.Not,
       height: Maybe[Int] = Maybe.Not,
       clearColor: Maybe[Opt[ClearColor]] = Maybe.Not,
@@ -529,10 +531,10 @@ class Painter(
       mipLevels: Maybe[Int] = Maybe.Not,
       format: Maybe[String] = Maybe.Not,
       formats: Maybe[Arr[String]] = Maybe.Not,
-      shape: Maybe[Shape[?, ?]] = Maybe.Not,
-      shapes: Maybe[Arr[Shape[?, ?]]] = Maybe.Not,
-      layer: Maybe[Layer[?, ?]] = Maybe.Not,
-      layers: Maybe[Arr[Layer[?, ?]]] = Maybe.Not,
+      shape: Maybe[S] = Maybe.Not,
+      shapes: Maybe[Arr[S]] = Maybe.Not,
+      layer: Maybe[L] = Maybe.Not,
+      layers: Maybe[Arr[L]] = Maybe.Not,
   ): Panel = Panel(this).set(
     width = width,
     height = height,
@@ -553,7 +555,7 @@ class Painter(
   // =========================================================================
 
   def draw(
-      shape: Shape[?, ?],
+      shape: AnyShape,
       clearColor: Opt[(Double, Double, Double, Double)] = null,
   ): Unit =
     val encoder = device.createCommandEncoder()
@@ -1075,7 +1077,7 @@ class Painter(
 
   private def renderShapeOnPass(
       pass: GPURenderPassEncoder,
-      shape: Shape[?, ?],
+      shape: AnyShape,
       depthTest: Boolean = false,
       multisample: Boolean = false,
       formats: Arr[String] = null,
@@ -1095,9 +1097,16 @@ class Painter(
 
     pass.setPipeline(pipeline)
     pass.setVertexBuffer(0, shape.form.vertexBuffer)
+    val hasIndex = shape.form.indexBuffer.notNull
+    if hasIndex then
+      pass.setIndexBuffer(shape.form.indexBuffer.get, shape.form.indexFormat)
 
     val instanceCount = shape.instances.length
     val hasPanelBinds = hasPanelRuntimeBindings(panel)
+
+    inline def drawCall(): Unit =
+      if hasIndex then pass.drawIndexed(shape.form.indexCount)
+      else pass.draw(shape.form.vertexCount)
 
     if instanceCount == 0 then
       if hasPanelBinds then
@@ -1113,7 +1122,7 @@ class Painter(
       else
         setValueBindGroup(pass, shape.shade, shape.bindings)
         setPanelBindGroup(pass, shape.shade, shape.panelBindings)
-      pass.draw(shape.form.vertexCount)
+      drawCall()
     else
       var i = 0
       while i < instanceCount do
@@ -1129,7 +1138,7 @@ class Painter(
         applyInstanceBindings(inst, _workBindings, _workPanelBindings)
         setValueBindGroup(pass, shape.shade, _workBindings)
         setPanelBindGroup(pass, shape.shade, _workPanelBindings)
-        pass.draw(shape.form.vertexCount)
+        drawCall()
         i += 1
 
   // =========================================================================
@@ -1138,7 +1147,7 @@ class Painter(
 
   private def renderLayerOnPass(
       pass: GPURenderPassEncoder,
-      layer: Layer[?, ?],
+      layer: AnyLayer,
       depthTest: Boolean = false,
       multisample: Boolean = false,
       formats: Arr[String] = null,

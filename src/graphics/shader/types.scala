@@ -1,6 +1,7 @@
 package graphics.shader
 
 import graphics.math.cpu.*
+import graphics.math.gpu.{IVec2, IVec3, IVec4, UInt, UVec2, UVec3, UVec4}
 import graphics.math.gpu.Expr.{Texture2D, Sampler}
 import trivalibs.bufferdata.F32
 
@@ -177,3 +178,71 @@ sealed trait VertexPanel
 
 /** Panel texture visible in both vertex and fragment shaders */
 sealed trait SharedPanel
+
+// =============================================================================
+// Integer Types (shader-only; no CPU buffer representation)
+// =============================================================================
+
+given WGSLType[Int]:
+  def wgslName = "i32"
+  def byteSize = 4
+  def alignment = 4
+  def vertexFormat = ""
+  type AttribBuffer = EmptyTuple
+  type UniformBuffer = EmptyTuple
+
+given WGSLType[UInt]:
+  def wgslName = "u32"
+  def byteSize = 4
+  def alignment = 4
+  def vertexFormat = ""
+  type AttribBuffer = EmptyTuple
+  type UniformBuffer = EmptyTuple
+
+given WGSLType[IVec2]:
+  def wgslName = "vec2<i32>"
+  def byteSize = 8
+  def alignment = 8
+  def vertexFormat = ""
+  type AttribBuffer = EmptyTuple
+  type UniformBuffer = EmptyTuple
+
+given WGSLType[IVec3]:
+  def wgslName = "vec3<i32>"
+  def byteSize = 12
+  def alignment = 16
+  def vertexFormat = ""
+  type AttribBuffer = EmptyTuple
+  type UniformBuffer = EmptyTuple
+
+given WGSLType[IVec4]:
+  def wgslName = "vec4<i32>"
+  def byteSize = 16
+  def alignment = 16
+  def vertexFormat = ""
+  type AttribBuffer = EmptyTuple
+  type UniformBuffer = EmptyTuple
+
+given WGSLType[UVec2]:
+  def wgslName = "vec2<u32>"
+  def byteSize = 8
+  def alignment = 8
+  def vertexFormat = ""
+  type AttribBuffer = EmptyTuple
+  type UniformBuffer = EmptyTuple
+
+given WGSLType[UVec3]:
+  def wgslName = "vec3<u32>"
+  def byteSize = 12
+  def alignment = 16
+  def vertexFormat = ""
+  type AttribBuffer = EmptyTuple
+  type UniformBuffer = EmptyTuple
+
+given WGSLType[UVec4]:
+  def wgslName = "vec4<u32>"
+  def byteSize = 16
+  def alignment = 16
+  def vertexFormat = ""
+  type AttribBuffer = EmptyTuple
+  type UniformBuffer = EmptyTuple

@@ -2,6 +2,8 @@ package graphics.painter
 
 import trivalibs.utils.js.*
 
+type AnyLayer = Layer[?, ?]
+
 class Layer[U, P](
     val painter: Painter,
     val shade: Shade[U, P],

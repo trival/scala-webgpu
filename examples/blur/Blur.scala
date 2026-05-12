@@ -5,8 +5,10 @@ import graphics.math.cpu.{*, given}
 import graphics.math.gpu.{*, given}
 import graphics.painter.*
 import graphics.shader.dsl.{*, given}
+import graphics.shader.lib.blur.Blur
 import graphics.shader.{*, given}
 import graphics.utils.animation.animate
+import org.scalajs.dom
 import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.document
 import trivalibs.bufferdata.*
@@ -15,22 +17,6 @@ import trivalibs.utils.numbers.NumExt.given
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
-
-// 9-tap Gaussian blur (optimized linear sampling — 5 texture fetches)
-val gaussianBlur9: WgslFn[
-  (tex: Texture2D, s: Sampler, uv: Vec2, res: Vec2, dir: Vec2),
-  Vec4,
-] =
-  WgslFn.raw("gaussian_blur_9"):
-    """  var color = vec4(0.0);
-  let off1 = vec2<f32>(1.3846153846) * dir / res;
-  let off2 = vec2<f32>(3.2307692308) * dir / res;
-  color += textureSample(tex, s, uv)        * 0.2270270270;
-  color += textureSample(tex, s, uv + off1) * 0.3162162162;
-  color += textureSample(tex, s, uv - off1) * 0.3162162162;
-  color += textureSample(tex, s, uv + off2) * 0.0702702703;
-  color += textureSample(tex, s, uv - off2) * 0.0702702703;
-  return color;"""
 
 @JSExportTopLevel("main", moduleID = "blur")
 def main(): Unit =
@@ -69,7 +55,7 @@ def main(): Unit =
     val shape = painter.shape(form, shapeShade)
 
     // -----------------------------------------------------------------------
-    // Blur layer shade — reads source texture at panel slot 0
+    // Blur layer shades
     // -----------------------------------------------------------------------
 
     type BlurUniforms = (
@@ -78,12 +64,18 @@ def main(): Unit =
         dir: Vec2,
         blurSampler: Sampler,
     )
+    type FixedBlurUniforms = (
+        resolution: Vec2,
+        dir: Vec2,
+        blurSampler: Sampler,
+    )
     type BlurPanels = (source: FragmentPanel)
 
-    val blurShade = painter.layerShade[BlurUniforms, BlurPanels]: program =>
-      program.fn(gaussianBlur9)
+    // Logarithmic-chain shade (dir is pre-scaled by diameter).
+    val blur9Shade = painter.layerShade[BlurUniforms, BlurPanels]: program =>
+      program.fn(Blur.gaussianBlur9)
       program.frag: ctx =>
-        ctx.out.color := gaussianBlur9(
+        ctx.out.color := Blur.gaussianBlur9(
           ctx.textures.source,
           ctx.bindings.blurSampler,
           ctx.in.uv,
@@ -91,55 +83,181 @@ def main(): Unit =
           ctx.bindings.dir * ctx.bindings.diameter,
         )
 
+    val blur5Shade = painter.layerShade[FixedBlurUniforms, BlurPanels]:
+      program =>
+        program.fn(Blur.gaussianBlur5)
+        program.frag: ctx =>
+          ctx.out.color := Blur.gaussianBlur5(
+            ctx.textures.source,
+            ctx.bindings.blurSampler,
+            ctx.in.uv,
+            ctx.bindings.resolution,
+            ctx.bindings.dir,
+          )
+
+    val boxBlurShade = painter.layerShade[BlurUniforms, BlurPanels]: program =>
+      program.fn(Blur.boxBlur)
+      program.frag: ctx =>
+        ctx.out.color := Blur.boxBlur(
+          ctx.textures.source,
+          ctx.bindings.blurSampler,
+          ctx.bindings.diameter,
+          ctx.in.uv,
+          ctx.bindings.resolution,
+          ctx.bindings.dir,
+        )
+
+    val gaussShade = painter.layerShade[BlurUniforms, BlurPanels]: program =>
+      program.fn(Blur.gaussianBlur)
+      program.frag: ctx =>
+        ctx.out.color := Blur.gaussianBlur(
+          ctx.textures.source,
+          ctx.bindings.blurSampler,
+          ctx.bindings.diameter,
+          ctx.in.uv,
+          ctx.bindings.resolution,
+          ctx.bindings.dir,
+        )
+
     // -----------------------------------------------------------------------
-    // Blur passes — logarithmic: halve diameter until <= 2, H then V each step
+    // Shared bindings
     // -----------------------------------------------------------------------
 
     val res = painter.binding[Vec2]
-    var blurDiameter = 32.0f
+    val dirH = Vec2(1.0, 0.0)
+    val dirV = Vec2(0.0, 1.0)
+    val sampler = painter.samplerLinear
 
-    val layers = Arr[Layer[?, ?]]()
-    var d = blurDiameter
-    while d > 2.0f do
-      val dH = painter.binding(d)
-      val dirH = painter.binding(Vec2(1.0, 0.0))
-      val layerH = painter
-        .layer(blurShade)
+    // -----------------------------------------------------------------------
+    // Panel 1: heavy logarithmic gaussianBlur9
+    // -----------------------------------------------------------------------
+
+    val heavyLayers = Arr[AnyLayer]()
+    var d = 32.0
+    while d > 1.0 do
+      heavyLayers.push(
+        painter
+          .layer(blur9Shade)
+          .bind(
+            "diameter" := d,
+            "resolution" := res,
+            "dir" := dirH,
+            "blurSampler" := sampler,
+          ),
+      )
+      heavyLayers.push(
+        painter
+          .layer(blur9Shade)
+          .bind(
+            "diameter" := d,
+            "resolution" := res,
+            "dir" := dirV,
+            "blurSampler" := sampler,
+          ),
+      )
+      d = d / 2.0
+
+    // -----------------------------------------------------------------------
+    // Panel 2: small gaussianBlur5 (single H + V, fixed 5px)
+    // -----------------------------------------------------------------------
+
+    val blur5Layers = Arr(
+      painter
+        .layer(blur5Shade)
         .bind(
-          "diameter" := dH,
           "resolution" := res,
           "dir" := dirH,
-          "blurSampler" := painter.samplerLinear,
-        )
-      layers.push(layerH)
-
-      val dV = painter.binding(d)
-      val dirV = painter.binding(Vec2(0.0, 1.0))
-      val layerV = painter
-        .layer(blurShade)
+          "blurSampler" := sampler,
+        ),
+      painter
+        .layer(blur5Shade)
         .bind(
-          "diameter" := dV,
           "resolution" := res,
           "dir" := dirV,
-          "blurSampler" := painter.samplerLinear,
-        )
-      layers.push(layerV)
-
-      d = d / 2.0f
+          "blurSampler" := sampler,
+        ),
+    )
 
     // -----------------------------------------------------------------------
-    // Panel
+    // Panel 3: box blur (single H + V, animated diameter on a sine curve)
     // -----------------------------------------------------------------------
 
-    val panel = painter.panel(
-      clearColor = (0.04, 0.04, 0.15, 1.0),
-      shape = shape,
-      layers = layers,
+    val animDiameter = painter.binding(1.0)
+
+    val boxLayers = Arr(
+      painter
+        .layer(boxBlurShade)
+        .bind(
+          "diameter" := animDiameter,
+          "resolution" := res,
+          "dir" := dirH,
+          "blurSampler" := sampler,
+        ),
+      painter
+        .layer(boxBlurShade)
+        .bind(
+          "diameter" := animDiameter,
+          "resolution" := res,
+          "dir" := dirV,
+          "blurSampler" := sampler,
+        ),
+    )
+
+    // -----------------------------------------------------------------------
+    // Panel 4: animated generic gaussian blur — diameter on a sine curve
+    // -----------------------------------------------------------------------
+
+    val animLayers = Arr(
+      painter
+        .layer(gaussShade)
+        .bind(
+          "diameter" := animDiameter,
+          "resolution" := res,
+          "dir" := dirH,
+          "blurSampler" := sampler,
+        ),
+      painter
+        .layer(gaussShade)
+        .bind(
+          "diameter" := animDiameter,
+          "resolution" := res,
+          "dir" := dirV,
+          "blurSampler" := sampler,
+        ),
+    )
+
+    // -----------------------------------------------------------------------
+    // Panels
+    // -----------------------------------------------------------------------
+
+    def makePanel[L <: AnyLayer](layers: Arr[L]): Panel =
+      painter.panel(
+        clearColor = (0.04, 0.04, 0.15, 1.0),
+        shape = shape,
+        layers = layers,
+        multisample = true,
+      )
+
+    val panels = js.Array(
+      makePanel(heavyLayers),
+      makePanel(blur5Layers),
+      makePanel(boxLayers),
+      makePanel(animLayers),
+    )
+
+    var currentPanel = 0
+    canvas.addEventListener(
+      "pointerdown",
+      (_: dom.Event) => currentPanel = (currentPanel + 1) % panels.length,
     )
 
     painter.onResize: (w, h) =>
       res.set(Vec2(w, h))
 
+    var time = 0.0
     animate: tpf =>
-      painter.paint(panel)
-      painter.show(panel)
+      time = time + tpf * 0.001
+      // Sweep diameters on sine curves.
+      animDiameter.set(60.0 + 58.0 * time.sin)
+      painter.paint(panels(currentPanel))
+      painter.show(panels(currentPanel))
