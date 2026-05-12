@@ -1,55 +1,90 @@
-# Scala.js WebGPU
+# scala-webgpu — sketch playground
 
-A type-safe WebGPU library for Scala.js, targeting browser-based GPU programming
-with compile-time safety.
+This repo is the playground for experimenting with the [trivalibs](trivalibs/)
+Scala.js WebGPU library. The library itself lives in the `trivalibs/` submodule
+(sources, examples, tests). This outer repo is for **sketches** — ad-hoc
+experiments built against trivalibs. Once a sketch matures into a
+feature-documenting example, it migrates over into `trivalibs/examples/`.
 
-> **Work in progress** — this library is in early development. APIs will change.
+> **Work in progress** — both the library and the sketch workflow are beta.
 
-## What it does
+## Prerequisites
 
-Define GPU shader interfaces as Scala types. The compiler derives WGSL shader
-code, vertex buffer layouts, and bind group layouts automatically — no manual
-synchronization between CPU and GPU code.
-
-```scala
-type Attribs  = (position: Vec2, color: Vec4)
-type Varyings = (color: Vec4)
-type Uniforms = (tintColor: Vec4)
-
-val shader = Shader[Attribs, Varyings, Uniforms](
-  vertexBody = """
-    |output.position = vec4f(input.position, 0.0, 1.0);
-    |output.color = input.color;
-    """.stripMargin,
-  fragmentBody = "output.color = input.color * uniforms.tintColor;",
-)
-
-// shader.generateWGSL       → complete WGSL source
-// shader.vertexBufferLayout  → WebGPU vertex descriptor
-// shader.createPipelineLayout → WebGPU bind group layouts
-```
-
-## Current features
-
-- **Math library** — Vec2–4, Mat2–4 with mutable, immutable, and GPU buffer
-  representations
-- **Compile-time shader generation** — named tuple type parameters derive WGSL
-  structs and WebGPU layouts
-- **Typed buffer bindings** — `BufferBinding[T]` for CPU/GPU uniform sync with
-  zero-cost binary access
-- **WebGPU facades** — Scala.js trait bindings for the browser WebGPU API
-
-## Getting started
-
-Requires [Bun](https://bun.sh) and [Scala CLI](https://scala-cli.virtuslab.org).
+- [Bun](https://bun.sh)
+- [Scala CLI](https://scala-cli.virtuslab.org)
+- A WebGPU-capable browser (recent Chrome/Edge, or Firefox with the flag
+  enabled)
 
 ```bash
+git submodule update --init
 bun install
-bun run build   # compile to examples/out/
-bun run dev     # start dev server on :3000
 ```
 
-Open `http://localhost:3000` to see the examples.
+## Workflow
+
+Each sketch is a self-contained subdirectory under `sketches/`. A sketch is
+compiled in isolation — the only inputs are its own sources, `trivalibs/src/`,
+and the root `project.scala`. The output lands in `sketches/<name>/out/main.js`
+and is loaded directly by the sketch's `index.html` via an ES module import.
+
+The Scala entry point is a top-level `@main` function, so the bundle auto-runs
+on import — no JS bootstrap file needed.
+
+### Build a sketch
+
+```bash
+bun run sketch <name>          # one-off build
+bun run sketch:watch <name>    # rebuild on change
+```
+
+Example: `bun run sketch:watch base-triangle`.
+
+### Serve the sketches
+
+```bash
+bun run dev                    # http://localhost:3001
+```
+
+The custom dev server (`serve_custom.ts`):
+
+- discovers sketches dynamically (any subdir of `sketches/` containing an
+  `index.html`),
+- serves each sketch at `/<name>/`,
+- polls all `sketches/*/out/*.js` mtimes and pushes an SSE reload signal
+  whenever the bundle is rewritten by `sketch:watch`.
+
+Run `sketch:watch` and `dev` side-by-side in two terminals to iterate.
+
+### Add a new sketch
+
+1. Create `sketches/my-sketch/`.
+2. Add `MySketch.scala` with `package sketches.my_sketch` and an
+   `@main def mySketch(): Unit = ...` entry.
+3. Add `index.html` with a `<canvas id="canvas">` and
+   `<script type="module" src="./out/main.js"></script>`.
+4. (Optional) Add a card to `sketches/index.html`.
+5. `bun run sketch my-sketch` to build.
+
+The same `project.scala` covers Metals's view of all sketches plus the library
+sources, so the IDE type-checks everything as one workspace while each sketch
+builds independently.
+
+## Layout
+
+```
+.
+├── project.scala       # single Metals workspace config
+├── package.json        # bun scripts
+├── scripts/sketch.ts   # build dispatcher
+├── serve_custom.ts     # dev server with auto-reload
+├── sketches/
+│   ├── index.html      # nav page
+│   └── <name>/
+│       ├── <Name>.scala
+│       ├── index.html
+│       └── out/        # generated, gitignored
+└── trivalibs/          # submodule — the library + its examples + tests
+```
 
 ## License
 
