@@ -4,12 +4,12 @@
 
 //> using jsVersion 1.21.0
 //> using jsModuleKind es
+//> using jsMode full
 //> using jsEsVersionStr es2021
 //> using jsModuleSplitStyleStr fewestmodules
 
 //> using exclude trivalibs/project.scala
 //> using exclude trivalibs/test/**
 //> using exclude trivalibs/examples/**
-//> using exclude sketches/**/out/**
 
 //> using dep org.scala-js::scalajs-dom::2.8.1
