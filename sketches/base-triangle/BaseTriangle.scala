@@ -29,16 +29,6 @@ import trivalibs.utils.numbers.NumExt.given
       program.frag: ctx =>
         ctx.out.color := vec4(ctx.in.color, 1.0)
 
-    // val shade = p.shade[Attribs, Varyings, Uniforms](
-    //   vertWgsl = """
-    //     out.position = mvp * vec4<f32>(in.position, 1.0);
-    //     out.color = in.color;
-    //   """,
-    //   fragWgsl = """
-    //     out.color = vec4<f32>(in.color, 1.0);
-    //   """,
-    // )
-
     val vertices = allocateAttribs[Attribs](3)
     vertices(0).set0(0.0, 0.5, 0.0)
     vertices(0).set1(1.0, 0.2, 0.2)
