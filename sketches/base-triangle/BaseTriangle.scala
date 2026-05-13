@@ -4,8 +4,10 @@ import org.scalajs.dom.HTMLCanvasElement
 import org.scalajs.dom.document
 import trivalibs.graphics.buffers.*
 import trivalibs.graphics.math.cpu.{*, given}
+import trivalibs.graphics.math.gpu.{*, given}
 import trivalibs.graphics.painter.*
 import trivalibs.graphics.scene.PerspectiveCamera
+import trivalibs.graphics.shader.dsl.{*, given}
 import trivalibs.graphics.shader.{*, given}
 import trivalibs.utils.animation.animate
 import trivalibs.utils.numbers.NumExt.given
@@ -18,15 +20,14 @@ import trivalibs.utils.numbers.NumExt.given
     type Varyings = (color: Vec3)
     type Uniforms = (mvp: Mat4)
 
-    val shade = painter.shade[Attribs, Varyings, Uniforms](
-      vertWgsl = """
-        out.position = mvp * vec4<f32>(in.position, 1.0);
-        out.color = in.color;
-      """,
-      fragWgsl = """
-        out.color = vec4<f32>(in.color, 1.0);
-      """,
-    )
+    val shade = painter.shade[Attribs, Varyings, Uniforms]: program =>
+      program.vert: ctx =>
+        Block(
+          ctx.out.position := ctx.bindings.mvp * vec4(ctx.in.position, 1.0),
+          ctx.out.color := ctx.in.color,
+        )
+      program.frag: ctx =>
+        ctx.out.color := vec4(ctx.in.color, 1.0)
 
     val vertices = allocateAttribs[Attribs](3)
     vertices(0).set0(0.0, 0.5, 0.0)
