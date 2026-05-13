@@ -15,12 +15,12 @@ import trivalibs.utils.numbers.NumExt.given
 @main def baseTriangle(): Unit =
   val canvas = document.getElementById("canvas").asInstanceOf[HTMLCanvasElement]
 
-  Painter.init(canvas): painter =>
+  Painter.init(canvas): p =>
     type Attribs = (position: Vec3, color: Vec3)
     type Varyings = (color: Vec3)
     type Uniforms = (mvp: Mat4)
 
-    val shade = painter.shade[Attribs, Varyings, Uniforms]: program =>
+    val shade = p.shade[Attribs, Varyings, Uniforms]: program =>
       program.vert: ctx =>
         Block(
           ctx.out.position := ctx.bindings.mvp * vec4(ctx.in.position, 1.0),
@@ -28,6 +28,16 @@ import trivalibs.utils.numbers.NumExt.given
         )
       program.frag: ctx =>
         ctx.out.color := vec4(ctx.in.color, 1.0)
+
+    // val shade = p.shade[Attribs, Varyings, Uniforms](
+    //   vertWgsl = """
+    //     out.position = mvp * vec4<f32>(in.position, 1.0);
+    //     out.color = in.color;
+    //   """,
+    //   fragWgsl = """
+    //     out.color = vec4<f32>(in.color, 1.0);
+    //   """,
+    // )
 
     val vertices = allocateAttribs[Attribs](3)
     vertices(0).set0(0.0, 0.5, 0.0)
@@ -37,9 +47,9 @@ import trivalibs.utils.numbers.NumExt.given
     vertices(2).set0(0.5, -0.5, 0.0)
     vertices(2).set1(0.2, 0.4, 1.0)
 
-    val form = painter.form(vertices = vertices)
-    val mvp = painter.binding[Mat4]
-    val shape = painter.shape(form, shade).bind("mvp" := mvp)
+    val form = p.form(vertices = vertices)
+    val mvp = p.binding[Mat4]
+    val shape = p.shape(form, shade).bind("mvp" := mvp)
 
     val cam = PerspectiveCamera(
       fov = math.Pi / 3.0,
@@ -47,6 +57,12 @@ import trivalibs.utils.numbers.NumExt.given
       near = 0.1,
       far = 100.0,
       pos = Vec3(0.0, 0.0, 2.5),
+    )
+
+    val panel = p.panel(
+      shape = shape,
+      clearColor = (0.05, 0.06, 0.1, 1.0),
+      multisample = true,
     )
 
     var time = 0.0
@@ -59,4 +75,4 @@ import trivalibs.utils.numbers.NumExt.given
         Vec3(1.0, 1.0, 1.0),
       )
       mvp.set(cam.viewProjMat * model)
-      painter.draw(shape, clearColor = (0.05, 0.06, 0.1, 1.0))
+      p.paintAndShow(panel)

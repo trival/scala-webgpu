@@ -4,9 +4,9 @@
 
 //> using jsVersion 1.21.0
 //> using jsModuleKind es
-//> using jsMode full
+//> using jsMode fast
 //> using jsEsVersionStr es2021
-//> using jsModuleSplitStyleStr fewestmodules
+//> using jsModuleSplitStyleStr smallestmodules
 
 //> using exclude trivalibs/project.scala
 //> using exclude trivalibs/test/**
