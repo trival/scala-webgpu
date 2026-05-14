@@ -1,9 +1,77 @@
 # Porting the WebGPU library into trivalibs
 
-Status: plan, not yet executed. Target: move the painter / math / shader-DSL /
-geometry / scene / webgpu-facade code from this repo into the `trivalibs`
-submodule so other projects can depend on it the same way they already depend on
-`trivalibs/utils` and `trivalibs/preact`.
+Status: **largely executed** (branch `trivalibs-port`). The code move, package
+rename, examples + tests relocation, and standalone-workspace setup are all done
+and building green. Remaining work is docs + the consumer scaffold — see
+[Implementation status](#implementation-status) below.
+
+Target: move the painter / math / shader-DSL / geometry / scene / webgpu-facade
+code from this repo into the `trivalibs` submodule so other projects can depend
+on it the same way they already depend on `trivalibs/utils` and
+`trivalibs/preact`.
+
+## Implementation status
+
+As of 2026-05-14. Branch `trivalibs-port` in both this repo and the trivalibs
+submodule.
+
+**Done:**
+
+- §1–§3 — All `src/graphics/*` dirs relocated to `trivalibs/src/graphics/*`,
+  packages renamed to `trivalibs.graphics.*`, imports rewritten. `animate.scala`
+  → `trivalibs/src/utils/animate.scala`. The webgpu facade landed at
+  `trivalibs/src/graphics/painter/webgpu.scala` with
+  `package trivalibs.graphics.painter` as planned. (trivalibs commit `a982dc6`,
+  playground `02e6c33`)
+- §1/§3 — `examples/` (17 examples) and `test/` moved into `trivalibs/`. Both
+  `test-setup.scala` files deleted; no per-folder setup files remain. (trivalibs
+  `664e849`)
+- §4 — `trivalibs/project.scala` added as the standalone-workspace single source
+  of truth. Playground `project.scala` excludes `trivalibs/project.scala`,
+  `trivalibs/test/**`, `trivalibs/examples/**`.
+- §4 — `trivalibs/package.json` added. Note: scripts pass `src`, `examples`/
+  `test`, and `project.scala` explicitly as invocation inputs (not bare folder
+  roots) — needed so scala-cli picks up directives and doesn't hang. `serve.ts`
+  (minimal Bun static server) added.
+- §6 — bundle-size optimization pass done (playground `c62aaf3`, trivalibs
+  `7e3f2cb`); `paintAndShow` helper added (`b805cc7`).
+- Playground stripped to a pure consumer (`a091325`).
+
+**Divergence from plan — playground sketch system:**
+
+Instead of keeping `serve_custom.ts` + an `examples/`-as-sketches dir, the
+playground now has a dedicated `sketches/` tree with per-sketch isolated builds
+driven by `scripts/sketch.ts` (`bun run sketch` / `sketch:watch`).
+`serve_custom.ts` is gone; `dev` runs `serve_custom.ts`'s replacement. This
+supersedes §1's "examples + dev server split" and §7's `serve_custom.ts`
+guidance for the playground side.
+
+**Docs — done:**
+
+- §3 step 7 — `trivalibs/README.md` rewritten: goal statement for an integrated
+  interactive-graphics web library, Painter + Preact API summaries with code
+  excerpts, updated `graphics/` + `preact/` + `utils/` + `examples/` contents,
+  and the `package.json` / `serve.ts` script workflow. Playground `README.md`
+  was already current (sketches workflow).
+- §3 step 8 — `CLAUDE.md` — playground `CLAUDE.md` rewritten as a
+  trivalibs-consumer guide (sketches workflow, `trivalibs.*` namespace, points
+  lib work at the submodule). New `trivalibs/CLAUDE.md` added: the full lib-dev +
+  bundle-size-optimization reference, with architecture / source layout for the
+  relocated `trivalibs/src/graphics/...` tree.
+
+With the docs done, the only open item is moving this plan doc to
+`documents/done/` (manual) — the feature branch is otherwise complete.
+
+**Skipped / deferred:**
+
+- §8 step 6 — `trivalibs/examples/_starter/` scaffold dropped. The playground's
+  `sketches/base-triangle` already serves as the starter template for new
+  consumer projects.
+- §8 step 8 — moving this plan doc to `documents/done/` will be done manually.
+- §6 — incremental-rebuild measurement + Option 3/4 evaluation deferred to a
+  future feature branch. The recent bundle-size optimizations also shortened
+  build times considerably, so the 4 s figure should be re-measured fresh before
+  deciding on the JAR-publish route.
 
 ## 1. Scope of the move
 
@@ -307,47 +375,47 @@ starts hurting iteration but the API still churns weekly.
 
 ## 6. Addressing the 4-second compile
 
-The 4 s is the **watch-mode incremental rebuild cost per file change**, not
-cold start (cold start is longer). So `bun run watch` doesn't help; this is
-already the warm path. Mostly Scala.js linking + Scala 3 macros (the shader
-DSL uses inline + summonFrom heavily). Worth measuring before optimizing.
-Likely contributors, in descending order:
+The 4 s is the **watch-mode incremental rebuild cost per file change**, not cold
+start (cold start is longer). So `bun run watch` doesn't help; this is already
+the warm path. Mostly Scala.js linking + Scala 3 macros (the shader DSL uses
+inline + summonFrom heavily). Worth measuring before optimizing. Likely
+contributors, in descending order:
 
 1. **Scala.js linker** re-emitting ES modules for the full reachable graph.
    `fewestmodules` is the cheap option already; it still has to re-link the
-   whole reachable set on every change. The linker is the prime suspect for
-   the 4 s figure since it always runs and scales with library surface.
+   whole reachable set on every change. The linker is the prime suspect for the
+   4 s figure since it always runs and scales with library surface.
 2. **Macro expansion** in shader derivation (`ShaderDef`, `WGSLType` summons,
-   `allocateAttribs`). Only re-runs for files that touch macro call sites,
-   but those are common in examples.
+   `allocateAttribs`). Only re-runs for files that touch macro call sites, but
+   those are common in examples.
 3. **Scala 3 typer** on the math library (lots of given chains). Incremental
    compilation skips unchanged files, so this is mostly a cold-start cost.
 
 Mitigations, in order of expected impact:
 
 - **Precompile trivalibs to a JAR** (Option 3/4). Removes the lib from the
-  per-change recompile path entirely. Cost (1) shrinks dramatically because
-  the linker can treat the JAR as a stable input and only re-link the
-  consumer's own changed code. Cost (3) goes away for lib sources. Cost (2)
-  stays because macros expand at the _consumer_ call site regardless of
-  whether the macro definition is in source or JAR form.
+  per-change recompile path entirely. Cost (1) shrinks dramatically because the
+  linker can treat the JAR as a stable input and only re-link the consumer's own
+  changed code. Cost (3) goes away for lib sources. Cost (2) stays because
+  macros expand at the _consumer_ call site regardless of whether the macro
+  definition is in source or JAR form.
 - **Switch to `smallestmodules` only when packaging for production**, leave
-  watch builds in `fewestmodules` (already the case). No further tuning to
-  do here.
+  watch builds in `fewestmodules` (already the case). No further tuning to do
+  here.
 - **Track Scala.js linker caching upstream.**
-  [scala-js/scala-js#5352](https://github.com/scala-js/scala-js/pull/5352)
-  adds incremental linking support, currently surfaced through sbt 2. Open
-  question whether scala-cli's `package --js -w` mode picks it up
-  automatically once it lands in a released Scala.js version, or whether
-  scala-cli needs its own integration work. If/when this ships end-to-end,
-  the 4 s figure could drop dramatically without any of the JAR-publish
-  workarounds. Worth a separate spike before committing to Option 3/4.
-- **Move heavy macros behind smaller surface APIs** so call sites trigger
-  less work. Out of scope for this port; track separately.
+  [scala-js/scala-js#5352](https://github.com/scala-js/scala-js/pull/5352) adds
+  incremental linking support, currently surfaced through sbt 2. Open question
+  whether scala-cli's `package --js -w` mode picks it up automatically once it
+  lands in a released Scala.js version, or whether scala-cli needs its own
+  integration work. If/when this ships end-to-end, the 4 s figure could drop
+  dramatically without any of the JAR-publish workarounds. Worth a separate
+  spike before committing to Option 3/4.
+- **Move heavy macros behind smaller surface APIs** so call sites trigger less
+  work. Out of scope for this port; track separately.
 
-Suggested action: do the port first (Option 1), then **measure the
-incremental rebuild before and after `publish:local`** to confirm the JAR
-route actually shrinks the 4 s. Decide on Option 3/4 based on data.
+Suggested action: do the port first (Option 1), then **measure the incremental
+rebuild before and after `publish:local`** to confirm the JAR route actually
+shrinks the 4 s. Decide on Option 3/4 based on data.
 
 ## 7. Consumer project template
 

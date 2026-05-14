@@ -3,196 +3,85 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
+This repo is the **sketch / experiment playground**. It is a _consumer_ of the
+`trivalibs` library (included as a git submodule under `trivalibs/`) — the same
+role any downstream project has. The graphics / math / shader-DSL / painter code
+lives in trivalibs, not here. When an experiment matures into a
+feature-documenting example, it migrates over to `trivalibs/examples/`.
+
+For library development, optimization, and the full architecture reference, see
+`trivalibs/CLAUDE.md`.
+
 ## Build & Dev Commands
 
 ```bash
-bun run build          # Compile Scala.js → examples/out/ (never use sbt)
-bun run watch          # Incremental build with file watching
-bun run dev            # Start Bun dev server on :3000
-bun run test           # Run all tests (scala-cli test test/)
+bun run sketch <name>        # Build one sketch → sketches/<name>/out/main.js
+bun run sketch:watch <name>  # Incremental build of one sketch with file watching
+bun run dev                  # Bun dev server (serve_custom.ts)
 ```
 
-Build uses `scala-cli --power package . --js` targeting ES modules. Scala 3.8.2,
-Scala.js 1.20.2.
+Each sketch builds in isolation via `scripts/sketch.ts`, which passes only that
+sketch dir + `trivalibs/src` + `project.scala` to scala-cli — never a bare `.`.
+Never use sbt.
 
-## Tests
+## Sketches
 
-Tests live in `test/` with their own scala-cli config (`test/test-setup.scala`),
-separate from the main build.
+Sketches live in `sketches/<name>/` — each is self-contained:
 
-**Test config** (`test/test-setup.scala`): plain `platform js` with no module
-split settings.
+```
+sketches/<name>/
+├── <Name>.scala     # the sketch source
+├── index.html       # loads out/main.js
+└── out/main.js      # compiled output (gitignored build artifact)
+```
 
-**Adding a new test file**: create `test/<area>/<Name>.test.scala` (the
-`.test.scala` suffix is required — scala-cli uses it to detect test sources).
-Extend `munit.FunSuite`. No additional config needed; the file is picked up
-automatically.
+`sketches/base-triangle/` is the starter template — `cp -r` it to seed a new
+sketch.
+
+Sketches are **user code**: Scala convenience shorthands (`for`-comprehensions,
+string interpolation, etc.) are fine here — readability wins, and the bundle
+cost is local to one sketch. The strict bundle-size discipline applies to
+library code in `trivalibs/`, not here. See `trivalibs/CLAUDE.md` for that.
+
+## Using trivalibs
+
+Sketches import from the `trivalibs.*` namespace:
+
+- `trivalibs.graphics.math` — Vec2–4, Mat2–4
+- `trivalibs.graphics.shader` / `.shader.dsl` / `.shader.lib.*` — shader DSL
+- `trivalibs.graphics.buffers` — typed buffer bindings
+- `trivalibs.graphics.geometry` / `.scene` — geometry + scene graph
+- `trivalibs.graphics.painter` — the Painter abstraction (incl. WebGPU facades)
+- `trivalibs.utils.*` — JS helpers, numeric extensions, `animate`, bufferdata
+- `trivalibs.preact` — type-safe Preact bindings for the interactive DOM layer
+
+Prefer the trivalibs helpers (`Arr`, `Dict`, `Opt`, `Obj.literal`, `maybe()`)
+over raw `js.*` / Scala stdlib even in sketch code — they keep the API
+consistent and they compile to native JS.
+
+When writing new shader code, prefer the Scala shader DSL over raw WGSL strings.
+
+If a sketch needs a trivalibs feature that doesn't exist yet, add it in the
+`trivalibs/` submodule (see `trivalibs/CLAUDE.md`), not here.
+
+## project.scala
+
+`project.scala` is this repo's only scala-cli config. It pulls in
+`trivalibs/src` and excludes the submodule's own standalone-workspace files so
+Metals only loads one config:
 
 ```scala
-// test/shader/MyFeature.test.scala
-package gpu.shader.dsl
-
-import munit.FunSuite
-
-class MyFeatureTest extends FunSuite:
-  test("description"):
-    assertEquals(...)
+//> using exclude trivalibs/project.scala
+//> using exclude trivalibs/test/**
+//> using exclude trivalibs/examples/**
 ```
 
-If the new test needs sources from a directory not yet listed in
-`test/test-setup.scala`, add a `//> using file ../src/...` line there.
-
-## Project Overview
-
-A Scala.js WebGPU library evolving toward a type-safe painting framework. The
-long-term vision is a unified CPU/GPU programming model where Scala types and
-math work identically on both sides — replacing WGSL strings with a Scala shader
-DSL.
-
-**Current state**: Math library, compile-time shader definition with WGSL
-generation, typed buffer bindings, WebGPU facades. Next: Painter abstraction
-(see design doc).
-
-## Architecture
-
-### Source Layout
-
-- `src/gpu/math/` — Vec2–4, Mat2–4 with three representations each (mutable
-  class, immutable tuple, buffer type). Operations via type class traits
-  (`Vec3Base[Num, Vec]`, `Vec3Mutable`, `Vec3ImmutableOps`).
-- `src/gpu/shader/` — `ShaderDef` with 7 type parameters. Named tuple type
-  params → compile-time WGSL structs + WebGPU layouts. Key files: `types.scala`
-  (WGSLType type class), `derive.scala` (WGSL generation), `layouts.scala`
-  (vertex/bind group layouts), `builtins.scala`.
-- `src/gpu/buffers/` — `BufferBinding[T, F]` (CPU↔GPU uniform sync),
-  `AttribLayout` + `allocateAttribs` (typed vertex data).
-- `src/webgpu/facades.scala` — Manual WebGPU JS facade traits, extended
-  incrementally.
-- `trivalibs/` — Git submodule shared library: `StructArray`/`StructRef`
-  (zero-cost typed binary buffers), numeric utils, JS helpers.
-- `examples/` — Working examples (simple_triangle, buffer_triangle), each with
-  `index.html` + `main.js` + `*.scala`. Compiled JS lands in `examples/out/`.
-
-### Critical Type-Level Patterns
-
-**Named tuples as schema**: `type Attribs = (position: Vec2, color: Vec4)` —
-tuple position = layout index, field name = WGSL variable name, type = WGSLType
-mapping.
-
-**Named tuple aliases don't reduce in match types**: The compiler can't prove a
-type alias is a `NamedTuple`. Use `given` chains (implicit search) instead of
-match types — implicit search unfolds aliases correctly. See
-`src/gpu/buffers/attributes.scala` for the pattern.
-
-**`transparent inline` + `summonFrom`**: When a function must return a concrete
-`StructArray[F]` derived from a type class, declare return type `Any` with
-`transparent inline`. The compiler substitutes the concrete type at each call
-site. Used in `allocateAttribs`.
-
-### Design Documents
+## Design Documents
 
 - `documents/*.md` — Living blueprints for feature designs and implementations,
   for not yet completed features.
 - `documents/done/*.md` — Completed designs, for reference and historical
-  record, including base designs and decisions that shaped the current codebase.
-  Including painter design and ShaderDef design.
-
-## JS Bundle Size Rules
-
-Zero Scala stdlib at runtime — only use the type system and compile-time
-features. Every runtime construct must compile to minimal JS:
-
-- **No `enum`**: Use `opaque type Foo = String` with `val` constants in the
-  companion. Add `extension (x: Foo) inline def toJs: js.Any` if the opaque type
-  must be passed to `js.Dynamic.literal`. Note: `inline val` is not allowed on
-  opaque types — use plain `val`.
-- **No `scala.collection.*`**: Use `Arr` (`js.Array`), `Dict` (`js.Dictionary`),
-  or manual loops. `Dict[V]` works as a string-keyed cache (plain JS object).
-  For integer-indexed sparse data, use `Arr[T | Null]`.
-- **No `Option`**: Use `Opt[T]` (`js.UndefOr[T]`) from trivalibs with `Opt.Null`
-  as the empty value. Check with `.isEmpty` / `.safe` / `.getOr`.
-- **No `case class` for keys**: Build string keys manually with `s"..."` for
-  cache lookups in `Dict`.
-- **`.map/.filter/.sortBy` must delegate to JS**: Use `inline` extension methods
-  on `Arr` (in trivalibs) that compile to raw `js.Array` methods — never Scala
-  collection traits. Add new helpers in trivalibs as needed.
-- **JS-native classes for structured data**: `class Foo(...) extends js.Object`
-  preserves field names in JS output with zero overhead. But try pure scala
-  classes without js.Object first, to let the scala compiler apply its full set
-  of optimisations. If we observe compile size regressions or need runtime field
-  names, we can resolve to js.Object extension.
-- **`js.Dynamic` / `Obj.literal`** fine internally; user-facing API typed.
-- **Trivalibs helpers everywhere**: `Arr`, `Dict`, `Obj.literal`, `Opt`,
-  `Opt.Null`, `maybe()`.
-
-### Library code vs. user code
-
-Optimisation aggressiveness depends on _where_ the code lives:
-
-- **Library code (`trivalibs/src/`)**: optimise for native JS APIs aggressively.
-  Library code is inlined into every sketch and example, so any Scala-stdlib
-  leak multiplies across the whole bundle. Prefer raw JS calls, `while` loops,
-  and native helpers even when more verbose. Add `inline` extension methods in
-  trivalibs so the ergonomic call site still compiles to native JS.
-- **User code (`sketches/`, `examples/`)**: Scala convenience shorthands are
-  allowed. `for`-comprehensions, string interpolation etc. are fine here —
-  readability wins, and the cost is local to one bundle.
-
-Note: `Arr(...)` literals are safe in library code too — `Arr.apply` has
-concrete-arity `inline` overloads (0..12) that compile to native `js.Array(...)`
-with no varargs pipeline. The library-vs-user split is about Scala-stdlib
-constructs that have _no_ native-compiling helper, not about trivalibs helpers.
-
-### Known stdlib-leak traps (verified bundle-size wins)
-
-These all _look_ harmless but pull large Scala-stdlib subtrees. In library code,
-avoid them; in `inline` library helpers, route through native JS:
-
-- **`f"...%.1f..."` interpolator** → links the whole `java.util.Formatter`
-  ecosystem (~1.9k lines: Formatter, Locale, BigInteger, BigDecimal, every
-  `IllegalFormat*Exception`). Use `js.JSNumberOps`'s `.toFixed(n)` instead.
-- **Scala varargs (`xs: T*`)** → every call site goes through
-  `ScalaRunTime.wrapRefArray` → `ArraySeq` → `toJSVarArgsImpl`, dragging in
-  `scala.-Array$` (~4k lines) + WrappedArray + WrappedVarArgs + Tuple2-4. For
-  hot-path / frequently-called library constructors, provide concrete-arity
-  `inline` overloads (see `Arr.apply`, `Painter.paint`). One-shot
-  shader-build-time varargs (e.g. `Block(stmts*)`) may keep varargs.
-- **`.mkString(sep)`** → `IterableOnceOps.mkString` + StringBuilder + collection
-  traversal. On an `Arr`/`js.Array` use the native `.join(sep)`.
-- **`0 until n` / `for i <- 0 until n`** → allocates `Range$Exclusive`; its
-  `.foreach` pulls in the `IndexedSeq` iterator machinery → the entire
-  `Vector1-6` + `VectorBuilder` + `NewVectorIterator` family (~76k chars in one
-  observed chunk). Use a plain `var i = 0; while i < n do … i += 1` loop.
-- **`String.contains(char)` / `.nonEmpty`** → `scala.collection.StringOps`. Use
-  native `.indexOf(c) >= 0` and `.length > 0`.
-- **`js.Dictionary` `apply` / `update` / `dict(k) = v`** → routes through
-  `scala.scalajs.js.WrappedDictionary` (a Scala collection wrapper). Use the
-  `Dict` extensions `.at(key)` / `.set(key, value)` / `.has(key)` from
-  `trivalibs.utils.js` — they compile to raw JS property access. Prefer the
-  `Dict` alias over `js.Dictionary` everywhere; the extensions are in scope
-  wherever `Dict` is imported.
-
-### Diagnosing bundle size
-
-Temporarily set `jsModuleSplitStyleStr smallestmodules` in `project.scala` to
-split the bundle into one module per class — module filenames then reveal
-exactly which classes (and which stdlib subtrees) are pulled in. Compare a
-`jsMode full` build (DCE applied, the deployment target) against `jsMode fast`
-(strict runtime checks, no DCE) to attribute weight precisely. Restore
-`fewestmodules` + `full` when done.
-
-Note: `jsMode fast` enables strict runtime type checks (`$uF`, `$isFloat`, etc.)
-that `full` mode erases. Code that casts a `Double` to `Float` (or any narrowing
-`asInstanceOf`) compiles fine under `full` but throws `ClassCastException` under
-`fast`. `full` is the deployment target; treat `fast` as a diagnostics-only
-mode.
-
-## Conventions
-
-- **Examples**: Each implementation step gets a new example in `examples/`.
-  Previous examples are never deleted and must keep compiling.
-- When writing new shader code in examples and sketches using our painter API,
-  prefer the scala shader DSL over raw WGSL strings.
+  record.
 
 ## Scala Conventions
 
