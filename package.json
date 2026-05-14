@@ -1,5 +1,5 @@
 {
-	"name": "scala-webgpu",
+	"name": "scala-graphics",
 	"type": "module",
 	"scripts": {
 		"sketch": "bun scripts/sketch.ts",

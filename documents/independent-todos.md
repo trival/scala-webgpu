@@ -1,11 +1,6 @@
-# scala-webgpu Review TODO
+# TODOs that don't require full feature documents.
 
-Items identified during the `documents/rust-painter/scala-port-comparison.md`
-review. Grouped by scope: **docs**, **API design**, and **examples/codebase**.
-
----
-
-## Implementation
+## Form
 
 ### 🔄 `Form.set()` — destroy-always is wrong for dynamic geometry
 
@@ -131,7 +126,8 @@ All example call sites updated.
 ### ✅ Examples — `painter.form().set()` / `.panel().set()` / `.layer().set()`
 
 Collapsed chained `.set()` calls into the factory constructor across all example
-files. Pattern: `painter.form().set(vertices = v)` → `painter.form(vertices = v)`.
+files. Pattern: `painter.form().set(vertices = v)` →
+`painter.form(vertices = v)`.
 
 ---
 
