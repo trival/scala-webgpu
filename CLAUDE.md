@@ -107,12 +107,12 @@ features. Every runtime construct must compile to minimal JS:
   must be passed to `js.Dynamic.literal`. Note: `inline val` is not allowed on
   opaque types — use plain `val`.
 - **No `scala.collection.*`**: Use `Arr` (`js.Array`), `Dict` (`js.Dictionary`),
-  or manual loops. `js.Dictionary[V]` works as a string-keyed cache (plain JS
-  object). For integer-indexed sparse data, use `Arr[T | Null]`.
+  or manual loops. `Dict[V]` works as a string-keyed cache (plain JS object).
+  For integer-indexed sparse data, use `Arr[T | Null]`.
 - **No `Option`**: Use `Opt[T]` (`js.UndefOr[T]`) from trivalibs with `Opt.Null`
   as the empty value. Check with `.isEmpty` / `.safe` / `.getOr`.
 - **No `case class` for keys**: Build string keys manually with `s"..."` for
-  cache lookups in `js.Dictionary`.
+  cache lookups in `Dict`.
 - **`.map/.filter/.sortBy` must delegate to JS**: Use `inline` extension methods
   on `Arr` (in trivalibs) that compile to raw `js.Array` methods — never Scala
   collection traits. Add new helpers in trivalibs as needed.
@@ -125,11 +125,70 @@ features. Every runtime construct must compile to minimal JS:
 - **Trivalibs helpers everywhere**: `Arr`, `Dict`, `Obj.literal`, `Opt`,
   `Opt.Null`, `maybe()`.
 
+### Library code vs. user code
+
+Optimisation aggressiveness depends on _where_ the code lives:
+
+- **Library code (`trivalibs/src/`)**: optimise for native JS APIs aggressively.
+  Library code is inlined into every sketch and example, so any Scala-stdlib
+  leak multiplies across the whole bundle. Prefer raw JS calls, `while` loops,
+  and native helpers even when more verbose. Add `inline` extension methods in
+  trivalibs so the ergonomic call site still compiles to native JS.
+- **User code (`sketches/`, `examples/`)**: Scala convenience shorthands are
+  allowed. `for`-comprehensions, string interpolation etc. are fine here —
+  readability wins, and the cost is local to one bundle.
+
+Note: `Arr(...)` literals are safe in library code too — `Arr.apply` has
+concrete-arity `inline` overloads (0..12) that compile to native `js.Array(...)`
+with no varargs pipeline. The library-vs-user split is about Scala-stdlib
+constructs that have _no_ native-compiling helper, not about trivalibs helpers.
+
+### Known stdlib-leak traps (verified bundle-size wins)
+
+These all _look_ harmless but pull large Scala-stdlib subtrees. In library code,
+avoid them; in `inline` library helpers, route through native JS:
+
+- **`f"...%.1f..."` interpolator** → links the whole `java.util.Formatter`
+  ecosystem (~1.9k lines: Formatter, Locale, BigInteger, BigDecimal, every
+  `IllegalFormat*Exception`). Use `js.JSNumberOps`'s `.toFixed(n)` instead.
+- **Scala varargs (`xs: T*`)** → every call site goes through
+  `ScalaRunTime.wrapRefArray` → `ArraySeq` → `toJSVarArgsImpl`, dragging in
+  `scala.-Array$` (~4k lines) + WrappedArray + WrappedVarArgs + Tuple2-4. For
+  hot-path / frequently-called library constructors, provide concrete-arity
+  `inline` overloads (see `Arr.apply`, `Painter.paint`). One-shot
+  shader-build-time varargs (e.g. `Block(stmts*)`) may keep varargs.
+- **`.mkString(sep)`** → `IterableOnceOps.mkString` + StringBuilder + collection
+  traversal. On an `Arr`/`js.Array` use the native `.join(sep)`.
+- **`0 until n` / `for i <- 0 until n`** → allocates `Range$Exclusive`; its
+  `.foreach` pulls in the `IndexedSeq` iterator machinery → the entire
+  `Vector1-6` + `VectorBuilder` + `NewVectorIterator` family (~76k chars in one
+  observed chunk). Use a plain `var i = 0; while i < n do … i += 1` loop.
+- **`String.contains(char)` / `.nonEmpty`** → `scala.collection.StringOps`. Use
+  native `.indexOf(c) >= 0` and `.length > 0`.
+- **`js.Dictionary` `apply` / `update` / `dict(k) = v`** → routes through
+  `scala.scalajs.js.WrappedDictionary` (a Scala collection wrapper). Use the
+  `Dict` extensions `.at(key)` / `.set(key, value)` / `.has(key)` from
+  `trivalibs.utils.js` — they compile to raw JS property access. Prefer the
+  `Dict` alias over `js.Dictionary` everywhere; the extensions are in scope
+  wherever `Dict` is imported.
+
+### Diagnosing bundle size
+
+Temporarily set `jsModuleSplitStyleStr smallestmodules` in `project.scala` to
+split the bundle into one module per class — module filenames then reveal
+exactly which classes (and which stdlib subtrees) are pulled in. Compare a
+`jsMode full` build (DCE applied, the deployment target) against `jsMode fast`
+(strict runtime checks, no DCE) to attribute weight precisely. Restore
+`fewestmodules` + `full` when done.
+
+Note: `jsMode fast` enables strict runtime type checks (`$uF`, `$isFloat`, etc.)
+that `full` mode erases. Code that casts a `Double` to `Float` (or any narrowing
+`asInstanceOf`) compiles fine under `full` but throws `ClassCastException` under
+`fast`. `full` is the deployment target; treat `fast` as a diagnostics-only
+mode.
+
 ## Conventions
 
-- **Painter naming**: Rust "Layer" = Scala "Panel" (render target), Rust
-  "Effect" = Scala "Layer" (post-processing). Clear colors are `Vec4Tuple`, not
-  a dedicated Color type.
 - **Examples**: Each implementation step gets a new example in `examples/`.
   Previous examples are never deleted and must keep compiling.
 - When writing new shader code in examples and sketches using our painter API,
