@@ -3,11 +3,11 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
-This repo is the **sketch / experiment playground**. It is a _consumer_ of the
-`trivalibs` library (included as a git submodule under `trivalibs/`) — the same
-role any downstream project has. The graphics / math / shader-DSL / painter code
-lives in trivalibs, not here. When an experiment matures into a
-feature-documenting example, it migrates over to `trivalibs/examples/`.
+This repo is the **sketch / experiment playground**. It is a consumer of the
+`trivalibs` library (included as a git submodule under `trivalibs/`). The
+graphics / math / shader-DSL / painter code lives in trivalibs. When an
+experiment evolves into a feature-documenting example, it migrates over to
+`trivalibs/examples/`.
 
 For library development, optimization, and the full architecture reference, see
 `trivalibs/CLAUDE.md`.
@@ -62,7 +62,7 @@ consistent and they compile to native JS.
 When writing new shader code, prefer the Scala shader DSL over raw WGSL strings.
 
 If a sketch needs a trivalibs feature that doesn't exist yet, add it in the
-`trivalibs/` submodule (see `trivalibs/CLAUDE.md`), not here.
+`trivalibs/` submodule (see `trivalibs/CLAUDE.md`).
 
 ## project.scala
 
