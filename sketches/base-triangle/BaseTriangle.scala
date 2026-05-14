@@ -62,7 +62,7 @@ import trivalibs.utils.numbers.NumExt.given
       val model = Mat4.fromTranslationRotationScale(
         Vec3.zero,
         Quat.fromRotationY(angle),
-        Vec3(1.0, 1.0, 1.0),
+        Vec3.one,
       )
       mvp.set(cam.viewProjMat * model)
       p.paintAndShow(panel)
