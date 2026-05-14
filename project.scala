@@ -8,7 +8,8 @@
 //> using jsEsVersionStr es2021
 //> using jsModuleSplitStyleStr fewestmodules
 
+//> using exclude trivalibs/project.scala
 //> using exclude trivalibs/test/**
-//> using exclude test/**
+//> using exclude trivalibs/examples/**
 
 //> using dep org.scala-js::scalajs-dom::2.8.1
