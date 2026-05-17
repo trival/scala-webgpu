@@ -76,13 +76,6 @@ Metals only loads one config:
 //> using exclude trivalibs/examples/**
 ```
 
-## Design Documents
-
-- `documents/*.md` — Living blueprints for feature designs and implementations,
-  for not yet completed features.
-- `documents/done/*.md` — Completed designs, for reference and historical
-  record.
-
 ## Scala Conventions
 
 - make use of named tuples @trivalibs/documents/scala-reference/named-tuples.md
