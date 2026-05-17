@@ -175,29 +175,28 @@ All buffer types use Double at the trait level. F32 buffer setters convert via
 | `x.step(edge)`         | `x.step(edge)`         | `step(edge, x)`         | ✅ Done       |
 | `x.smoothstep(lo, hi)` | `x.smoothstep(lo, hi)` | `smoothstep(lo, hi, x)` | ✅ Done       |
 | `x.fma(b, c)`          | `x.fma(b, c)`          | `fma(x, b, c)`          | ✅ Done       |
-| `x.sign`               | `x.sign`               | `sign(x)`               | 📋 Add NumExt |
-| `x.round`              | `x.round`              | `round(x)`              | 📋 Add NumExt |
-| `x.trunc`              | `x.trunc`              | `trunc(x)`              | 📋 Add NumExt |
-| `x.fract`              | `x.fract`              | `fract(x)`              | 📋 Add NumExt |
-| `x.exp`                | `x.exp`                | `exp(x)`                | 📋 Add NumExt |
-| `x.exp2`               | `x.exp2`               | `exp2(x)`               | 📋 Add NumExt |
-| `x.log`                | `x.log`                | `log(x)`                | 📋 Add NumExt |
-| `x.log2`               | `x.log2`               | `log2(x)`               | 📋 Add NumExt |
-| `x.inverseSqrt`        | `x.inverseSqrt`        | `inverseSqrt(x)`        | 📋 Add NumExt |
-| `x.degrees`            | `x.degrees`            | `degrees(x)`            | 📋 Add NumExt |
-| `x.radians`            | `x.radians`            | `radians(x)`            | 📋 Add NumExt |
-| `x.sinh`               | `x.sinh`               | `sinh(x)`               | 📋 Add NumExt |
-| `x.cosh`               | `x.cosh`               | `cosh(x)`               | 📋 Add NumExt |
-| `x.tanh`               | `x.tanh`               | `tanh(x)`               | 📋 Add NumExt |
+| `x.sign`               | `x.sign`               | `sign(x)`               | ✅ Done       |
+| `x.round`              | `x.round`              | `round(x)`              | ✅ Done       |
+| `x.trunc`              | `x.trunc`              | `trunc(x)`              | ✅ Done       |
+| `x.fract`              | `x.fract`              | `fract(x)`              | ✅ Done       |
+| `x.exp`                | `x.exp`                | `exp(x)`                | ✅ Done       |
+| `x.exp2`               | `x.exp2`               | `exp2(x)`               | ✅ Done       |
+| `x.log`                | `x.log`                | `log(x)`                | ✅ Done       |
+| `x.log2`               | `x.log2`               | `log2(x)`               | ✅ Done       |
+| `x.inverseSqrt`        | `x.inverseSqrt`        | `inverseSqrt(x)`        | ✅ Done       |
+| `x.degrees`            | `x.degrees`            | `degrees(x)`            | ✅ Done       |
+| `x.radians`            | `x.radians`            | `radians(x)`            | ✅ Done       |
+| `x.sinh`               | `x.sinh`               | `sinh(x)`               | ✅ Done       |
+| `x.cosh`               | `x.cosh`               | `cosh(x)`               | ✅ Done       |
+| `x.tanh`               | `x.tanh`               | `tanh(x)`               | ✅ Done       |
 
 > **Note on argument order**: `step` and `smoothstep` have reversed argument
 > order vs WGSL. The extension syntax reads naturally: `x.smoothstep(lo, hi)` =
 > "smooth-step x between lo and hi". The emitted WGSL correctly swaps them.
 
-> **Planned NumExt additions**: The 14 rows marked "Add NumExt" currently exist
-> only in the GPU DSL. They should be added to the `NumExt` trait in `trivalibs`
-> so that scalar math reads identically on CPU and GPU — prefer `x.log` over
-> `math.log(x)` in all user code.
+> **NumExt parity**: All scalar ops above exist on both `NumExt` (CPU, in
+> [trivalibs/src/utils/numbers.scala](../trivalibs/src/utils/numbers.scala)) and
+> `FloatExpr` (GPU DSL). Prefer `x.log` over `math.log(x)` in all user code.
 
 ---
 
@@ -235,9 +234,9 @@ CPU traits: `Vec*Base`, `Vec*ImmutableOps`. GPU: `Vec*Expr` extensions in
 | `v.step(edge)`         | `v.step(edge)`         | `step(edge, v)`       | ✅ Done             |
 | `v.smoothstep(lo, hi)` | `v.smoothstep(lo, hi)` | `smoothstep(lo,hi,v)` | ✅ Done             |
 | `v.fma(w, c)`          | `v.fma(w, c)`          | `fma(v, w, c)`        | ✅ Done             |
-| —                      | `v.distance(w)`        | `distance(v, w)`      | 📋 Add VecBase      |
-| —                      | `v.reflect(n)`         | `reflect(v, n)`       | 📋 Add ImmutableOps |
-| —                      | `v.refract(n, eta)`    | `refract(v, n, eta)`  | 📋 Add ImmutableOps |
+| `v.distance(w)`        | `v.distance(w)`        | `distance(v, w)`      | ✅ Done             |
+| `v.reflect(n)`         | `v.reflect(n)`         | `reflect(v, n)`       | ✅ Done             |
+| `v.refract(n, eta)`    | `v.refract(n, eta)`    | `refract(v, n, eta)`  | ✅ Done             |
 
 ### 4.2 Vec3-Only Operations
 
@@ -256,17 +255,40 @@ CPU traits: `Vec*Base`, `Vec*ImmutableOps`. GPU: `Vec*Expr` extensions in
 
 ### 4.4 Swizzles
 
-Swizzle methods are implemented in **both** `Vec*ImmutableOps` (CPU, creating a
-concrete vector) and `Vec*Expr` extensions (GPU DSL, emitting a WGSL swizzle
-expression). CPU variants are `inline` and allocate using the standard
-constructor. The naming rule matches WGSL — field names in component order.
+CPU swizzles live in
+[src/graphics/math/cpu/swizzles.scala](../trivalibs/src/graphics/math/cpu/swizzles.scala)
+as concrete-receiver `inline extension`s on the Vec class and Vec Tuple
+families. Buffer types are intentionally out of scope — buffer slots are read
+component-by-component before swizzling. GPU swizzles live as `extension`s on
+`Vec*Expr` in
+[gpu/float_expr.scala](../trivalibs/src/graphics/math/gpu/float_expr.scala).
+Naming matches WGSL — field names in component order. Same-arity swizzles (`yx`,
+`zyx`, `wzyx`) preserve the source family.
 
-| Swizzle                                 | CPU output type | GPU output type | Status       |
-| --------------------------------------- | --------------- | --------------- | ------------ |
-| `.xy`, `.xz`, `.yz`, `.xw`, `.zw`       | `Vec2Tuple`     | `Vec2Expr`      | 📋 Add CPU   |
-| `.xyz`, `.xyw`, `.xzw`, `.yzw`, `.rgb`  | `Vec3Tuple`     | `Vec3Expr`      | 📋 Add CPU   |
-| (GPU swizzles currently done)           |                 | `Vec2/3Expr`    | ✅ GPU done  |
-| — (additional swizzles added as needed) |                 |                 | 📋 As needed |
+Concrete receivers per storage type were chosen over a single generic
+`[V: {Vec*Base, Vec*ImmutableOps}]` block because Scala's overload resolution
+can't disambiguate two generic extensions that share a method name even when
+their context bounds differ — the using-clauses are elaborated after the
+overload pick. Concrete receivers also let `cpu.*` and `gpu.*` wildcard imports
+coexist in the same file: each `.xy` / `.yz` etc. resolves uniquely by receiver
+type.
+
+The implemented set is the minimum from §1 needs: consecutive sub-vector splits
+
+- the full-arity reverse, plus `rgba` aliases on Vec3 / Vec4 mirroring the
+  existing single-component `r/g/b/a` aliases on `Vec*BaseG`. (`Vec2` has only
+  `u/v` aliases, no `r/g` — so no `rg` swizzle alias.) More permutations can be
+  added as usage demands.
+
+| Source         | Splits (→ smaller sibling)                                                                                              | Full reverse                | Status  |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------- |
+| `Vec2`         | —                                                                                                                       | `yx → Vec2`                 | ✅ Done |
+| `Vec2Tuple`    | —                                                                                                                       | `yx → Vec2Tuple`            | ✅ Done |
+| `Vec3`         | `xy`/`rg`, `yz`/`gb` → `Vec2`                                                                                           | `zyx`/`bgr` → `Vec3`        | ✅ Done |
+| `Vec3Tuple`    | `xy`/`rg`, `yz`/`gb` → `Vec2Tuple`                                                                                      | `zyx`/`bgr` → `Vec3Tuple`   | ✅ Done |
+| `Vec4`         | `xy`/`rg`, `yz`/`gb`, `zw`/`ba` → `Vec2`; `xyz`/`rgb`, `yzw`/`gba` → `Vec3`                                             | `wzyx`/`abgr` → `Vec4`      | ✅ Done |
+| `Vec4Tuple`    | same set as `Vec4`, returning `Vec*Tuple`                                                                               | `wzyx`/`abgr` → `Vec4Tuple` | ✅ Done |
+| GPU `Vec*Expr` | same set as the CPU class side, returning `Vec*Expr` (rgba aliases are Scala-side only — they emit `.xy`/`.xyz`/… WGSL) |                             | ✅ Done |
 
 ---
 
@@ -564,37 +586,29 @@ pattern is uncommon. Tracked as P6 in §8.2.
 - **GPU DSL vector operations** — full `Vec*Expr` extension set ✅
 - **GPU DSL matrix operations** — `Mat*Expr` `*`, `transpose`, `determinant` ✅
 - **GPU DSL constructors** — `vec2`, `vec3`, `vec4` ✅
+- **Swizzles** — consecutive splits + full reverse, on `Vec*` class /
+  `Vec*Tuple` CPU and on `Vec*Expr` GPU. See §4.4. ✅
+- **`distance` / `reflect` / `refract`** — isomorphic CPU + GPU. Added to
+  `Vec*BaseG` (`distance`) and `Vec*ImmutableOpsG` (`reflect`, `refract`) with
+  docstrings. See §4.1. ✅
+- **NumExt parity** — full scalar set (`trunc`, `exp2`, `inverseSqrt`,
+  `degrees`, `radians`, `sinh`, `cosh`, `tanh`) now isomorphic across
+  `NumExt[Double]` / `NumExt[Float]` and `NumExt[FloatExpr]`. See §3.1. ✅
 
-### 8.2 Planned — Math Library (Priority Order)
+### 8.2 Unplanned (deferred until usage requires)
 
-**P1 — Remaining Mat4 convenience**
+The following gaps remain. Not scheduled — implement only when a real use site
+needs them, to keep the library lean.
 
-1. `m.translate(v: Vec3)` and `m.scale(v: Vec3)` / `m.scale(s: Double)`
-   apply-transform methods
-2. Corresponding mutable `*Self` / `*To(out)` variants for translate/scale
-
-**P2 — Additional convenience constructors**
-
-3. `Mat4.fromAxisAngle(axis: Vec3, angle: Double): Mat4`
-4. `Mat4.fromQuat(q: Quat): Mat4`
-5. `Mat4.ortho(left, right, bottom, top, near, far): Mat4`
-6. `Quat.fromMat4(m: Mat4): Quat`
-7. `Quat.toAxisAngle` — extract axis + angle from quaternion
-
-**P3 — NumExt parity (CPU side of GPU DSL ops)**
-
-8. Add to `trivalibs`: `sign`, `round`, `trunc`, `fract`, `exp`, `exp2`, `log`,
-   `log2`, `inverseSqrt`, `degrees`, `radians`, `sinh`, `cosh`, `tanh`
-
-**P4 — Vector additions**
-
-9. `v.distance(w)` — add to `Vec*Base`
-10. `v.reflect(n)` — add to `Vec*ImmutableOps`
-11. `v.refract(n, eta)` — add to `Vec*ImmutableOps`
-
-**P5 — GPU DSL matrix constructors**
-
-12. `mat2`, `mat3`, `mat4` constructor free-functions from column vectors
+- **Mat4 apply-transforms** — `m.translate(v: Vec3)`, `m.scale(v: Vec3)` /
+  `m.scale(s: Double)` + mutable `*Self` / `*To` variants. `Transform` composes
+  T·R·S directly, so these aren't currently needed on `Mat4`.
+- **Extra Mat4 / Quat constructors** — `Mat4.fromAxisAngle`, `Mat4.fromQuat`,
+  `Mat4.ortho`, `Quat.fromMat4`, `Quat.toAxisAngle`.
+- **GPU DSL matrix constructors** — `mat2` / `mat3` / `mat4` from column
+  vectors. Rarely needed — transforms are CPU-computed and uploaded.
+- **Swizzle expansion** — additional permutations beyond consecutive splits +
+  reverse (`xz`, `xw`, `yw`, etc.), and swizzle support for `*Buffer` types.
 
 ### 8.3 Depth Texture Support (Painter)
 
