@@ -4,10 +4,13 @@
 	"scripts": {
 		"sketch": "bun scripts/sketch.ts",
 		"sketch:watch": "bun scripts/sketch.ts --watch",
-		"dev": "bun --bun serve_custom.ts"
+		"dev": "vite",
+		"build": "vite build",
+		"preview": "vite preview"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"@types/bun": "latest",
+		"vite": "^7.0.0"
 	},
 	"dependencies": {
 		"@webgpu/types": "^0.1.69"

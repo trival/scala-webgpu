@@ -1,26 +1,32 @@
 #!/usr/bin/env bun
 // Build a single sketch with isolated inputs.
-// Usage: bun scripts/sketch.ts <sketch-name> [--watch|-w]
+// Usage: bun scripts/sketch.ts <relative/path/from/sketches> [--watch|-w]
 
-import { existsSync, mkdirSync } from "node:fs"
-import { join } from "node:path"
+import { existsSync } from "node:fs"
+import { join, normalize } from "node:path"
 
 const argv = process.argv.slice(2)
 const watch = argv.includes("--watch") || argv.includes("-w")
-const name = argv.find(a => !a.startsWith("-"))
-if (!name) {
-	console.error("usage: bun scripts/sketch.ts <sketch-name> [--watch|-w]")
+const rawName = argv.find(a => !a.startsWith("-"))
+if (!rawName) {
+	console.error(
+		"usage: bun scripts/sketch.ts <sketches/path | path/from/sketches> [--watch|-w]",
+	)
 	process.exit(1)
 }
+
+// Accept both forms so bash path completion works from the project root:
+//   bun run sketch sketches/geometry/voronoi  (tab-completed)
+//   bun run sketch geometry/voronoi           (typed directly)
+// Strip an optional leading "sketches/" and any trailing slash from tab completion.
+const name = normalize(rawName).replace(/^sketches[\/\\]/, "").replace(/[\/\\]$/, "")
 
 const sketchDir = join("sketches", name)
 if (!existsSync(sketchDir)) {
 	console.error(`sketch not found: ${sketchDir}`)
 	process.exit(1)
 }
-const outDir = join(sketchDir, "out")
-mkdirSync(outDir, { recursive: true })
-const outFile = join(outDir, "main.js")
+const outFile = join(sketchDir, "main.js")
 
 const args = [
 	"--power", "package",

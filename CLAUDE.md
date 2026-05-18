@@ -15,9 +15,10 @@ For library development, optimization, and the full architecture reference, see
 ## Build & Dev Commands
 
 ```bash
-bun run sketch <name>        # Build one sketch → sketches/<name>/out/main.js
-bun run sketch:watch <name>  # Incremental build of one sketch with file watching
-bun run dev                  # Bun dev server (serve_custom.ts)
+bun run sketch <path>        # Build one sketch → sketches/<path>/main.js
+bun run sketch:watch <path>  # Incremental build of one sketch with file watching
+bun run dev                  # Vite dev server (root: sketches/, port 3001)
+bun run build                # Vite static build → dist/
 ```
 
 Each sketch builds in isolation via `scripts/sketch.ts`, which passes only that
@@ -26,17 +27,21 @@ Never use sbt.
 
 ## Sketches
 
-Sketches live in `sketches/<name>/` — each is self-contained:
+Sketches live under `sketches/` — each is a self-contained directory. They
+can be nested in arbitrary category folders (e.g.
+`sketches/geometry/voronoi/`); `<path>` arguments to the scripts are
+relative to `sketches/`.
 
 ```
-sketches/<name>/
+sketches/<path>/
 ├── <Name>.scala     # the sketch source
-├── index.html       # loads out/main.js
-└── out/main.js      # compiled output (gitignored build artifact)
+├── index.html       # loads ./main.js
+└── main.js          # scala-cli output (checked into git, for now)
 ```
 
 `sketches/base-triangle/` is the starter template — `cp -r` it to seed a new
-sketch.
+sketch. The Scala `package` should mirror the path (e.g.
+`package sketches.geometry.voronoi`).
 
 Sketches are **user code**: Scala convenience shorthands (`for`-comprehensions,
 string interpolation, etc.) are fine here — readability wins, and the bundle

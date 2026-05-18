@@ -22,10 +22,12 @@ bun install
 
 ## Workflow
 
-Each sketch is a self-contained subdirectory under `sketches/`. A sketch is
-compiled in isolation — the only inputs are its own sources, `trivalibs/src/`,
-and the root `project.scala`. The output lands in `sketches/<name>/out/main.js`
-and is loaded directly by the sketch's `index.html` via an ES module import.
+Each sketch is a self-contained subdirectory under `sketches/`. Sketches can be
+nested in arbitrary category folders (e.g. `sketches/geometry/foo/`,
+`sketches/layers/bar/`). A sketch is compiled in isolation — the only inputs are
+its own sources, `trivalibs/src/`, and the root `project.scala`. The output
+lands in `<sketch-dir>/main.js` (checked into git for now) and is loaded
+directly by the sketch's `index.html` via an ES module import.
 
 The Scala entry point is a top-level `@main` function, so the bundle auto-runs
 on import — no JS bootstrap file needed.
@@ -33,37 +35,41 @@ on import — no JS bootstrap file needed.
 ### Build a sketch
 
 ```bash
-bun run sketch <name>          # one-off build
-bun run sketch:watch <name>    # rebuild on change
+bun run sketch <path>          # one-off build
+bun run sketch:watch <path>    # rebuild on change
 ```
 
-Example: `bun run sketch:watch base-triangle`.
+`<path>` is the sketch directory, with or without a leading `sketches/` (so
+bash tab-completion from the project root works). Examples:
+`bun run sketch:watch base-triangle`,
+`bun run sketch:watch sketches/geometry/voronoi/`.
 
 ### Serve the sketches
 
 ```bash
-bun run dev                    # http://localhost:3001
+bun run dev                    # vite, http://localhost:3001
+bun run build                  # static build → dist/
 ```
 
-The custom dev server (`serve_custom.ts`):
-
-- discovers sketches dynamically (any subdir of `sketches/` containing an
-  `index.html`),
-- serves each sketch at `/<name>/`,
-- polls all `sketches/*/out/*.js` mtimes and pushes an SSE reload signal
-  whenever the bundle is rewritten by `sketch:watch`.
+Vite serves `sketches/` as its root, so each sketch is reachable at its relative
+path (e.g. `/base-triangle/`, `/geometry/voronoi/`) and the nav page at `/`.
+Vite auto-reloads when `sketch:watch` rewrites a `main.js`. The recursive walk
+in [vite.config.ts](vite.config.ts) collects every nested `index.html` as a
+rollup input for `bun run build`.
 
 Run `sketch:watch` and `dev` side-by-side in two terminals to iterate.
 
 ### Add a new sketch
 
-1. Create `sketches/my-sketch/`.
-2. Add `MySketch.scala` with `package sketches.my_sketch` and an
+1. Create `sketches/<category>/my-sketch/` (category folder optional — top level
+   works too).
+2. Add `MySketch.scala` with a package matching the path (e.g.
+   `package sketches.category.my_sketch`) and an
    `@main def mySketch(): Unit = ...` entry.
 3. Add `index.html` with a `<canvas id="canvas">` and
-   `<script type="module" src="./out/main.js"></script>`.
+   `<script type="module" src="./main.js"></script>`.
 4. (Optional) Add a card to `sketches/index.html`.
-5. `bun run sketch my-sketch` to build.
+5. `bun run sketch <category>/my-sketch` to build.
 
 The same `project.scala` covers Metals's view of all sketches plus the library
 sources, so the IDE type-checks everything as one workspace while each sketch
@@ -75,14 +81,18 @@ builds independently.
 .
 ├── project.scala       # single Metals workspace config
 ├── package.json        # bun scripts
+├── vite.config.ts      # dev server + build config (root: sketches/)
 ├── scripts/sketch.ts   # build dispatcher
-├── serve_custom.ts     # dev server with auto-reload
 ├── sketches/
-│   ├── index.html      # nav page
-│   └── <name>/
+│   ├── index.html              # nav page
+│   ├── <name>/                 # flat sketch
+│   │   ├── <Name>.scala
+│   │   ├── index.html
+│   │   └── main.js             # scala-cli output (in git, for now)
+│   └── <category>/<name>/      # nested sketch (arbitrary depth)
 │       ├── <Name>.scala
 │       ├── index.html
-│       └── out/        # generated, gitignored
+│       └── main.js
 └── trivalibs/          # submodule — the library + its examples + tests
 ```
 

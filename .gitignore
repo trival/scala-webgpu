@@ -5,5 +5,5 @@
 .idea/
 .claude/
 node_modules
-sketches/**/out/
+dist
 *.semanticdb
